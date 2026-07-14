@@ -1,11 +1,20 @@
 import { Platform } from 'react-native';
+import type { NotificationPermissionsStatus } from 'expo-notifications';
 
-import * as Notifications from 'expo-notifications';
+import {
+  getNotificationsUnavailableMessage,
+  loadNotificationsModule,
+} from '@/services/notifications.runtime';
 
 const REMINDER_CHANNEL_ID = 'watttrack-daily-reminder';
 const REMINDER_NOTIFICATION_ID = 'watttrack-daily-reminder';
 
-function hasGrantedNotificationPermission(status: Notifications.NotificationPermissionsStatus): boolean {
+type NotificationsModule = Awaited<ReturnType<typeof loadNotificationsModule>>;
+
+function hasGrantedNotificationPermission(
+  Notifications: NonNullable<NotificationsModule>,
+  status: NotificationPermissionsStatus
+): boolean {
   return status.granted || status.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 
@@ -30,6 +39,11 @@ async function ensureNotificationChannel(): Promise<void> {
     return;
   }
 
+  const Notifications = await loadNotificationsModule();
+  if (!Notifications) {
+    throw new Error(getNotificationsUnavailableMessage());
+  }
+
   await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
     name: 'Daily reminders',
     importance: Notifications.AndroidImportance.DEFAULT,
@@ -39,8 +53,13 @@ async function ensureNotificationChannel(): Promise<void> {
 
 export const notificationService = {
   async enableDailyReminder(reminderTime: string): Promise<void> {
+    const Notifications = await loadNotificationsModule();
+    if (!Notifications) {
+      throw new Error(getNotificationsUnavailableMessage());
+    }
+
     const existingPermissions = await Notifications.getPermissionsAsync();
-    const permissions = hasGrantedNotificationPermission(existingPermissions)
+    const permissions = hasGrantedNotificationPermission(Notifications, existingPermissions)
       ? existingPermissions
       : await Notifications.requestPermissionsAsync({
           ios: {
@@ -50,7 +69,7 @@ export const notificationService = {
           },
         });
 
-    if (!hasGrantedNotificationPermission(permissions)) {
+    if (!hasGrantedNotificationPermission(Notifications, permissions)) {
       throw new Error('Notification permission was not granted.');
     }
 
@@ -84,6 +103,11 @@ export const notificationService = {
   },
 
   async disableDailyReminder(): Promise<void> {
+    const Notifications = await loadNotificationsModule();
+    if (!Notifications) {
+      return;
+    }
+
     await Notifications.cancelScheduledNotificationAsync(REMINDER_NOTIFICATION_ID);
   },
 };

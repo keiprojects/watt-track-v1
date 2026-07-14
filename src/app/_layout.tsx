@@ -2,29 +2,46 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+import {
+  getNotificationsUnavailableMessage,
+  loadNotificationsModule,
+} from '@/services/notifications.runtime';
 
 export default function RootLayout() {
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const route = response.notification.request.content.data?.route;
+    let isMounted = true;
+    let subscription: { remove: () => void } | null = null;
 
-      if (route === '/(tabs)/add') {
-        router.push('/(tabs)/add');
+    void (async () => {
+      const Notifications = await loadNotificationsModule();
+      if (!Notifications || !isMounted) {
+        if (__DEV__) {
+          console.info(getNotificationsUnavailableMessage());
+        }
+        return;
       }
-    });
+
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+
+      subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const route = response.notification.request.content.data?.route;
+
+        if (route === '/(tabs)/add') {
+          router.push('/(tabs)/add');
+        }
+      });
+    })();
 
     return () => {
-      subscription.remove();
+      isMounted = false;
+      subscription?.remove();
     };
   }, []);
 
