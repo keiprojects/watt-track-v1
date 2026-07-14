@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Redirect, router } from 'expo-router';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { SegmentedControl } from '@/components/segmented-control';
+import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { ExportInputMode, ReadingInputMode } from '@/types/system';
@@ -93,6 +94,7 @@ function Field({
 }
 
 export default function OnboardingScreen() {
+  const readings = useReadingsStore((state) => state.readings);
   const saveProfile = useSystemStore((state) => state.saveProfile);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const completeOnboarding = useSettingsStore((state) => state.completeOnboarding);
@@ -132,6 +134,21 @@ export default function OnboardingScreen() {
   }
 
   const onSubmit = async (values: OnboardingFormValues) => {
+    const nextExportInputMode = values.exportEnabled ? values.exportInputMode : 'disabled';
+    const changedInputModes =
+      systemProfile &&
+      (systemProfile.gridInputMode !== values.gridInputMode ||
+        systemProfile.solarInputMode !== values.solarInputMode ||
+        systemProfile.exportInputMode !== nextExportInputMode);
+
+    if (changedInputModes && readings.length > 0) {
+      Alert.alert(
+        'Reading modes cannot change after logging data',
+        'WattTrack stores the original grid and solar values exactly as entered. Switching between daily usage and cumulative meter modes would reinterpret those saved numbers and can produce incorrect totals. Delete existing readings first, then change the modes.',
+      );
+      return;
+    }
+
     const now = new Date().toISOString();
 
     await saveProfile({
@@ -149,7 +166,7 @@ export default function OnboardingScreen() {
       defaultExportRate: values.exportEnabled ? values.defaultExportRate : undefined,
       gridInputMode: values.gridInputMode,
       solarInputMode: values.solarInputMode,
-      exportInputMode: values.exportEnabled ? values.exportInputMode : 'disabled',
+      exportInputMode: nextExportInputMode,
       createdAt: systemProfile?.createdAt ?? now,
       updatedAt: now,
     });
