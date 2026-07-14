@@ -19,6 +19,7 @@ import {
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
+import { useAppTheme } from '@/theme/use-app-theme';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
@@ -87,12 +88,14 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const theme = useAppTheme();
+
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>{label}</Text>
-      {helper ? <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
       {children}
-      {error ? <Text style={{ color: '#b91c1c', fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>{error}</Text> : null}
     </View>
   );
 }
@@ -106,20 +109,22 @@ function SectionCard({
   description?: string;
   children: React.ReactNode;
 }) {
+  const theme = useAppTheme();
+
   return (
     <View
       style={{
         gap: 14,
         borderRadius: 8,
         borderCurve: 'continuous',
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.surface,
         padding: 18,
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+        boxShadow: theme.shadow,
       }}
     >
       <View style={{ gap: 4 }}>
-        <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>{title}</Text>
-        {description ? <Text style={{ color: '#475569', fontSize: 14, lineHeight: 21 }}>{description}</Text> : null}
+        <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{title}</Text>
+        {description ? <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 21 }}>{description}</Text> : null}
       </View>
       {children}
     </View>
@@ -167,6 +172,7 @@ function getRangeHelper(range: InsightsRange): string {
 }
 
 export default function InsightsScreen() {
+  const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
   const costs = useCostsStore((state) => state.costs);
   const saveCost = useCostsStore((state) => state.saveCost);
@@ -325,12 +331,12 @@ export default function InsightsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
     >
       <View style={{ gap: 6 }}>
-        <Text style={{ color: '#0f172a', fontSize: 28, fontWeight: '800' }}>Insights</Text>
-        <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+        <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>Insights</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
           Review energy and financial performance over a selected date range, then manage the costs feeding ROI and payback.
         </Text>
       </View>
@@ -348,10 +354,12 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             </Field>
             <Field label="End date" helper="Use YYYY-MM-DD">
@@ -363,13 +371,15 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             </Field>
-            {rangeHasInvalidCustomDates ? <Text style={{ color: '#b91c1c', fontSize: 13 }}>End date must be on or after the start date.</Text> : null}
+            {rangeHasInvalidCustomDates ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>End date must be on or after the start date.</Text> : null}
           </View>
         ) : null}
       </SectionCard>
@@ -395,13 +405,13 @@ export default function InsightsScreen() {
 
       {filteredReadings.length === 0 ? (
         <SectionCard title="No readings in range" description="Change the selected range or add readings to populate energy insights for this time window.">
-          <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
             WattTrack keeps your saved history intact. This range just does not include any matching readings yet, so energy metrics are empty for now.
           </Text>
         </SectionCard>
       ) : (
         <View style={{ gap: 10 }}>
-          <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Energy</Text>
+          <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Energy</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <MetricCard label="Solar generated" value={formatKwh(summary.solarGeneratedKwh)} tone="accent" />
             <MetricCard label="Avg solar per day" value={formatKwh(averageSolarPerDay)} />
@@ -418,7 +428,7 @@ export default function InsightsScreen() {
       )}
 
       <View style={{ gap: 10 }}>
-        <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Financial</Text>
+        <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Financial</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />
           <MetricCard label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" />
@@ -454,10 +464,12 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -492,10 +504,12 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -515,10 +529,12 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -539,11 +555,13 @@ export default function InsightsScreen() {
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
                   textAlignVertical: 'top',
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -559,11 +577,11 @@ export default function InsightsScreen() {
               justifyContent: 'center',
               borderRadius: 8,
               borderCurve: 'continuous',
-              backgroundColor: '#0f766e',
+              backgroundColor: theme.accent,
               padding: 16,
             }}
           >
-            <Text style={{ color: '#f0fdfa', fontSize: 16, fontWeight: '800' }}>{editingCostId ? 'Update cost' : 'Save cost'}</Text>
+            <Text style={{ color: theme.textOnDark, fontSize: 16, fontWeight: '800' }}>{editingCostId ? 'Update cost' : 'Save cost'}</Text>
           </Pressable>
 
           {editingCostId ? (
@@ -575,11 +593,11 @@ export default function InsightsScreen() {
                 justifyContent: 'center',
                 borderRadius: 8,
                 borderCurve: 'continuous',
-                backgroundColor: '#e2e8f0',
+                backgroundColor: theme.neutralSoft,
                 padding: 16,
               }}
             >
-              <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '800' }}>Cancel edit</Text>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>Cancel edit</Text>
             </Pressable>
           ) : null}
         </View>
@@ -587,7 +605,7 @@ export default function InsightsScreen() {
 
       <SectionCard title="Tracked costs" description="These entries feed directly into ROI, net benefit, and payback calculations.">
         {costs.length === 0 ? (
-          <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
             No extra costs saved yet. Add maintenance, repair, upgrade, or other capital items when they happen.
           </Text>
         ) : (
@@ -599,21 +617,21 @@ export default function InsightsScreen() {
                   gap: 10,
                   borderRadius: 8,
                   borderCurve: 'continuous',
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: theme.surfaceMuted,
                   padding: 14,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '800' }}>{cost.description}</Text>
-                    <Text style={{ color: '#475569', fontSize: 14 }}>
+                    <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{cost.description}</Text>
+                    <Text style={{ color: theme.textMuted, fontSize: 14 }}>
                       {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
                     </Text>
                   </View>
-                  <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '800' }}>{formatCurrency(cost.amount)}</Text>
+                  <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{formatCurrency(cost.amount)}</Text>
                 </View>
 
-                {cost.notes ? <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>{cost.notes}</Text> : null}
+                {cost.notes ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{cost.notes}</Text> : null}
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable
@@ -624,11 +642,11 @@ export default function InsightsScreen() {
                       justifyContent: 'center',
                       borderRadius: 8,
                       borderCurve: 'continuous',
-                      backgroundColor: '#dbeafe',
+                      backgroundColor: theme.surfaceAccent,
                       padding: 12,
                     }}
                   >
-                    <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '700' }}>Edit</Text>
+                    <Text style={{ color: theme.accentText, fontSize: 14, fontWeight: '700' }}>Edit</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => onDeleteCost(cost)}
@@ -638,11 +656,11 @@ export default function InsightsScreen() {
                       justifyContent: 'center',
                       borderRadius: 8,
                       borderCurve: 'continuous',
-                      backgroundColor: '#fee2e2',
+                      backgroundColor: theme.dangerSoft,
                       padding: 12,
                     }}
                   >
-                    <Text style={{ color: '#b91c1c', fontSize: 14, fontWeight: '700' }}>Delete</Text>
+                    <Text style={{ color: theme.dangerText, fontSize: 14, fontWeight: '700' }}>Delete</Text>
                   </Pressable>
                 </View>
               </View>

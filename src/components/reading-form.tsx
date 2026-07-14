@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
 import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
+import { useAppTheme } from '@/theme/use-app-theme';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
@@ -71,12 +72,14 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const theme = useAppTheme();
+
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>{label}</Text>
-      {helper ? <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
       {children}
-      {error ? <Text style={{ color: '#b91c1c', fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>{error}</Text> : null}
     </View>
   );
 }
@@ -118,6 +121,7 @@ export function ReadingForm({
   onSubmitDraft,
   onCancel,
 }: ReadingFormProps) {
+  const theme = useAppTheme();
   const { formatCurrency, formatKwh } = useAppFormatters();
   const {
     control,
@@ -186,11 +190,11 @@ export function ReadingForm({
     return (
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: '#f8fafc' }}
+        style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={{ gap: 16, padding: 20 }}
       >
-        <Text style={{ color: '#0f172a', fontSize: 28, fontWeight: '800' }}>{title}</Text>
-        <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+        <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>{title}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
           Finish onboarding first so WattTrack knows your rates, timezone, and reading modes.
         </Text>
       </ScrollView>
@@ -274,12 +278,12 @@ export function ReadingForm({
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
     >
       <View style={{ gap: 6 }}>
-        <Text style={{ color: '#0f172a', fontSize: 28, fontWeight: '800' }}>{title}</Text>
-        <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>{description}</Text>
+        <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>{title}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>{description}</Text>
       </View>
 
       <View
@@ -287,9 +291,9 @@ export function ReadingForm({
           gap: 18,
           borderRadius: 8,
           borderCurve: 'continuous',
-          backgroundColor: '#ffffff',
+          backgroundColor: theme.surface,
           padding: 18,
-          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+          boxShadow: theme.shadow,
         }}
       >
         <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
@@ -304,10 +308,12 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -334,10 +340,12 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -356,10 +364,12 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -378,10 +388,12 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -401,10 +413,12 @@ export function ReadingForm({
                     borderRadius: 8,
                     borderCurve: 'continuous',
                     borderWidth: 1,
-                    borderColor: '#cbd5e1',
-                    backgroundColor: '#ffffff',
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
                     padding: 14,
+                    color: theme.text,
                   }}
+                  placeholderTextColor={theme.textSubtle}
                 />
               )}
             />
@@ -425,10 +439,12 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -449,10 +465,12 @@ export function ReadingForm({
                     borderRadius: 8,
                     borderCurve: 'continuous',
                     borderWidth: 1,
-                    borderColor: '#cbd5e1',
-                    backgroundColor: '#ffffff',
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
                     padding: 14,
+                    color: theme.text,
                   }}
+                  placeholderTextColor={theme.textSubtle}
                 />
               )}
             />
@@ -474,11 +492,13 @@ export function ReadingForm({
                   borderRadius: 8,
                   borderCurve: 'continuous',
                   borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   padding: 14,
                   textAlignVertical: 'top',
+                  color: theme.text,
                 }}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -492,39 +512,39 @@ export function ReadingForm({
             gap: 16,
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#f8fafc',
+            backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Meter reset or replacement</Text>
-            <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Meter reset or replacement</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>
               Turn this on when a cumulative meter has rolled over or been replaced.
             </Text>
           </View>
           <Controller
             control={control}
             name="meterReset"
-            render={({ field: { onChange, value } }) => <Switch value={Boolean(value)} onValueChange={onChange} trackColor={{ true: '#0f766e' }} />}
+            render={({ field: { onChange, value } }) => <Switch value={Boolean(value)} onValueChange={onChange} trackColor={{ true: theme.accent }} />}
           />
         </View>
       </View>
 
       {preview ? (
         <View style={{ gap: 10 }}>
-          <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Preview</Text>
+          <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Preview</Text>
           {systemProfile.gridInputMode === 'cumulative' && typeof draft?.gridReading === 'number' ? (
             <View
               style={{
                 gap: 6,
                 borderRadius: 8,
                 borderCurve: 'continuous',
-                backgroundColor: '#eff6ff',
+                backgroundColor: theme.surfaceAccent,
                 padding: 14,
               }}
             >
-              <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '800' }}>Grid meter check</Text>
-              <Text style={{ color: '#1e3a8a', fontSize: 13, lineHeight: 18 }}>
+              <Text style={{ color: theme.accentText, fontSize: 15, fontWeight: '800' }}>Grid meter check</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18 }}>
                 {previousGridReadingLabel
                   ? `Current reading ${formatKwh(draft.gridReading)} minus previous reading ${formatKwh(previousReadings?.grid?.gridReading ?? 0)} from ${previousGridReadingLabel} equals ${formatKwh(preview.gridConsumptionKwh)} grid usage.`
                   : `This is your baseline grid meter reading. Grid usage will start calculating after you save a later reading.`}
@@ -545,13 +565,13 @@ export function ReadingForm({
                 gap: 6,
                 borderRadius: 8,
                 borderCurve: 'continuous',
-                backgroundColor: '#fff7ed',
+                backgroundColor: theme.warningSoft,
                 padding: 14,
               }}
             >
-              <Text style={{ color: '#9a3412', fontSize: 15, fontWeight: '800' }}>Warnings</Text>
+              <Text style={{ color: theme.warningText, fontSize: 15, fontWeight: '800' }}>Warnings</Text>
               {preview.warningCodes.map((warning) => (
-                <Text key={warning} style={{ color: '#9a3412', fontSize: 13, lineHeight: 18 }}>
+                <Text key={warning} style={{ color: theme.warningText, fontSize: 13, lineHeight: 18 }}>
                   {getWarningLabel(warning)}
                 </Text>
               ))}
@@ -570,11 +590,11 @@ export function ReadingForm({
             justifyContent: 'center',
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#0f766e',
+            backgroundColor: theme.accent,
             padding: 16,
           }}
         >
-          <Text style={{ color: '#f0fdfa', fontSize: 16, fontWeight: '800' }}>{primaryActionLabel}</Text>
+          <Text style={{ color: theme.textOnDark, fontSize: 16, fontWeight: '800' }}>{primaryActionLabel}</Text>
         </Pressable>
 
         {secondaryActionLabel ? (
@@ -587,11 +607,11 @@ export function ReadingForm({
               justifyContent: 'center',
               borderRadius: 8,
               borderCurve: 'continuous',
-              backgroundColor: '#e2e8f0',
+              backgroundColor: theme.neutralSoft,
               padding: 16,
             }}
           >
-            <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '800' }}>{secondaryActionLabel}</Text>
+            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{secondaryActionLabel}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -604,11 +624,11 @@ export function ReadingForm({
             justifyContent: 'center',
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.surface,
             padding: 16,
           }}
         >
-          <Text style={{ color: '#334155', fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 15, fontWeight: '700' }}>Cancel</Text>
         </Pressable>
       ) : null}
     </ScrollView>
