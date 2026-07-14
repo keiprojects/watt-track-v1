@@ -4,8 +4,10 @@ import { Redirect, Tabs } from 'expo-router';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
+import { useAppTheme } from '@/theme/use-app-theme';
 
 export default function TabsLayout() {
+  const theme = useAppTheme();
   const settingsHydrated = useSettingsStore((state) => state.hasHydrated);
   const onboardingCompleted = useSettingsStore((state) => state.settings.onboardingCompleted);
   const systemHydrated = useSystemStore((state) => state.hasHydrated);
@@ -22,11 +24,15 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#f8fafc' },
-        headerTitleStyle: { color: '#0f172a', fontWeight: '700' },
-        tabBarActiveTintColor: '#0f766e',
-        tabBarInactiveTintColor: '#64748b',
-        tabBarStyle: { backgroundColor: '#ffffff' },
+        headerStyle: { backgroundColor: theme.background },
+        headerTitleStyle: { color: theme.text, fontWeight: '700' },
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.textSubtle,
+        sceneStyle: { backgroundColor: theme.background },
+        tabBarStyle: {
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
+        },
       }}
     >
       <Tabs.Screen

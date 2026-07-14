@@ -16,6 +16,7 @@ import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
+import { useAppTheme } from '@/theme/use-app-theme';
 import type { DashboardPeriod } from '@/types/settings';
 import { addDaysToDate, formatMonthLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
@@ -63,6 +64,7 @@ function getMonthComparison(currentValue: number, previousValue: number): string
 }
 
 export default function DashboardScreen() {
+  const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
   const costs = useCostsStore((state) => state.costs);
   const systemProfile = useSystemStore((state) => state.systemProfile);
@@ -101,7 +103,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
     >
       <View
@@ -109,12 +111,12 @@ export default function DashboardScreen() {
           gap: 6,
           borderRadius: 8,
           borderCurve: 'continuous',
-          backgroundColor: '#0f172a',
+          backgroundColor: theme.header,
           padding: 20,
         }}
       >
-        <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{systemProfile?.systemName ?? 'WattTrack'}</Text>
-        <Text style={{ color: '#cbd5e1', fontSize: 14 }}>
+        <Text style={{ color: theme.textOnDark, fontSize: 28, fontWeight: '800' }}>{systemProfile?.systemName ?? 'WattTrack'}</Text>
+        <Text style={{ color: theme.textSubtle, fontSize: 14 }}>
           {systemProfile?.location ? `${systemProfile.location} | ` : ''}
           {systemProfile?.timezone ?? 'Asia/Manila'} | {formatMonthLabel(today)}
         </Text>
@@ -126,25 +128,25 @@ export default function DashboardScreen() {
             gap: 10,
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.surface,
             padding: 20,
-            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+            boxShadow: theme.shadow,
           }}
         >
-          <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>No readings yet</Text>
-          <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+          <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>No readings yet</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
             Head to Add and log your first grid and solar reading. Home will start answering today, month, and ROI questions as soon as data exists.
           </Text>
         </View>
       ) : (
         <>
           <View style={{ gap: 10 }}>
-            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Dashboard period</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Dashboard period</Text>
             <SegmentedControl options={dashboardPeriodOptions} value={dashboardPeriod} onChange={setDashboardPeriod} />
           </View>
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Today</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Today</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               <MetricCard label="Solar generated" value={formatKwh(todayReading?.solarGenerationKwh ?? 0)} tone="accent" helper={todayReading ? formatShortDate(todayReading.date) : 'No reading today'} />
               <MetricCard label="Grid consumed" value={formatKwh(todayReading?.gridConsumptionKwh ?? 0)} />
@@ -154,7 +156,7 @@ export default function DashboardScreen() {
           </View>
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>{getPeriodLabel(dashboardPeriod)}</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{getPeriodLabel(dashboardPeriod)}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               <MetricCard label="Solar generated" value={formatKwh(filteredSummary.solarGeneratedKwh)} tone="accent" />
               <MetricCard label="Grid consumed" value={formatKwh(filteredSummary.gridConsumedKwh)} />
@@ -164,7 +166,7 @@ export default function DashboardScreen() {
           </View>
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Monthly summary</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Monthly summary</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               <MetricCard label="Solar generated" value={formatKwh(monthSummary.solarGeneratedKwh)} tone="accent" helper={getMonthComparison(monthSummary.solarGeneratedKwh, previousMonthSummary.solarGeneratedKwh)} />
               <MetricCard label="Grid consumed" value={formatKwh(monthSummary.gridConsumedKwh)} helper={getMonthComparison(monthSummary.gridConsumedKwh, previousMonthSummary.gridConsumedKwh)} />
@@ -176,7 +178,7 @@ export default function DashboardScreen() {
           <EnergyChart data={chartData} />
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>ROI summary</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>ROI summary</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               <MetricCard label="Total investment" value={formatCurrency(roi.totalCapitalInvestment)} />
               <MetricCard label="Total estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />

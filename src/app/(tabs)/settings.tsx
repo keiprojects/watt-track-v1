@@ -9,6 +9,7 @@ import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
+import { useAppTheme } from '@/theme/use-app-theme';
 import type { AppTheme, DashboardPeriod } from '@/types/settings';
 import { useAppFormatters } from '@/utils/format';
 
@@ -32,10 +33,12 @@ function SettingsCard({
   title,
   description,
   children,
+  theme,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  theme: ReturnType<typeof useAppTheme>;
 }) {
   return (
     <View
@@ -43,14 +46,14 @@ function SettingsCard({
         gap: 14,
         borderRadius: 8,
         borderCurve: 'continuous',
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.surface,
         padding: 18,
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+        boxShadow: theme.shadow,
       }}
     >
       <View style={{ gap: 4 }}>
-        <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '800' }}>{title}</Text>
-        {description ? <Text style={{ color: '#475569', fontSize: 14, lineHeight: 21 }}>{description}</Text> : null}
+        <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>{title}</Text>
+        {description ? <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 21 }}>{description}</Text> : null}
       </View>
       {children}
     </View>
@@ -61,10 +64,12 @@ function SegmentedRow<T extends string>({
   options,
   value,
   onChange,
+  theme,
 }: {
   options: { label: string; value: T }[];
   value: T;
   onChange: (value: T) => void;
+  theme: ReturnType<typeof useAppTheme>;
 }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -82,13 +87,15 @@ function SegmentedRow<T extends string>({
               borderRadius: 8,
               borderCurve: 'continuous',
               borderWidth: 1,
-              borderColor: selected ? '#0f766e' : '#cbd5e1',
-              backgroundColor: selected ? '#ccfbf1' : '#ffffff',
+              borderColor: selected ? theme.accent : theme.border,
+              backgroundColor: selected ? theme.accentSoft : theme.surface,
               paddingHorizontal: 14,
               paddingVertical: 10,
             }}
           >
-            <Text style={{ color: selected ? '#115e59' : '#334155', fontSize: 14, fontWeight: '700' }}>{option.label}</Text>
+            <Text style={{ color: selected ? theme.accentText : theme.textMuted, fontSize: 14, fontWeight: '700' }}>
+              {option.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -100,17 +107,19 @@ function ActionButton({
   label,
   onPress,
   tone = 'primary',
+  theme,
 }: {
   label: string;
   onPress: () => void;
   tone?: 'primary' | 'secondary' | 'danger';
+  theme: ReturnType<typeof useAppTheme>;
 }) {
   const palette =
     tone === 'danger'
-      ? { backgroundColor: '#fee2e2', color: '#b91c1c' }
+      ? { backgroundColor: theme.dangerSoft, color: theme.dangerText }
       : tone === 'secondary'
-        ? { backgroundColor: '#e2e8f0', color: '#0f172a' }
-        : { backgroundColor: '#0f766e', color: '#f0fdfa' };
+        ? { backgroundColor: theme.neutralSoft, color: theme.text }
+        : { backgroundColor: theme.accent, color: theme.textOnDark };
 
   return (
     <Pressable
@@ -131,6 +140,7 @@ function ActionButton({
 }
 
 export default function SettingsScreen() {
+  const theme = useAppTheme();
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const settings = useSettingsStore((state) => state.settings);
@@ -142,7 +152,7 @@ export default function SettingsScreen() {
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const { formatCurrency, formatRate } = useAppFormatters();
 
-  const [theme, setTheme] = useState<AppTheme>(settings.theme);
+  const [themePreference, setThemePreference] = useState<AppTheme>(settings.theme);
   const [decimalPlaces, setDecimalPlaces] = useState(String(settings.decimalPlaces));
   const [defaultDashboardPeriod, setDefaultDashboardPeriod] = useState<DashboardPeriod>(settings.defaultDashboardPeriod);
   const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled);
@@ -150,7 +160,7 @@ export default function SettingsScreen() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setTheme(settings.theme);
+    setThemePreference(settings.theme);
     setDecimalPlaces(String(settings.decimalPlaces));
     setDefaultDashboardPeriod(settings.defaultDashboardPeriod);
     setReminderEnabled(settings.reminderEnabled);
@@ -163,7 +173,7 @@ export default function SettingsScreen() {
 
   const saveDisplaySettings = async () => {
     await updateSettings({
-      theme,
+      theme: themePreference,
       decimalPlaces: Number(decimalPlaces),
       defaultDashboardPeriod,
     });
@@ -291,36 +301,37 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
     >
-      <Text style={{ color: '#0f172a', fontSize: 28, fontWeight: '800' }}>Settings</Text>
+      <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>Settings</Text>
 
-      <SettingsCard title="System settings" description="Review your saved solar setup and reopen onboarding to edit the profile.">
-        <Text style={{ color: '#334155', fontSize: 15 }}>System name: {systemProfile?.systemName ?? 'Not set'}</Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>Timezone: {systemProfile?.timezone ?? 'Asia/Manila'}</Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>Currency: PHP</Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>
+      <SettingsCard theme={theme} title="System settings" description="Review your saved solar setup and reopen onboarding to edit the profile.">
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>System name: {systemProfile?.systemName ?? 'Not set'}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Timezone: {systemProfile?.timezone ?? 'Asia/Manila'}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Currency: PHP</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>
           Initial system cost: {formatCurrency(systemProfile?.initialSystemCost ?? 0)}
         </Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>
           Default import rate: {formatRate(systemProfile?.defaultImportRate ?? 0)}
         </Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>Grid input mode: {systemProfile?.gridInputMode ?? 'cumulative'}</Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>Solar input mode: {systemProfile?.solarInputMode ?? 'cumulative'}</Text>
-        <Text style={{ color: '#334155', fontSize: 15 }}>Export mode: {systemProfile?.exportInputMode ?? 'disabled'}</Text>
-        <ActionButton label="Edit system profile" onPress={() => router.push('/onboarding')} tone="secondary" />
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Grid input mode: {systemProfile?.gridInputMode ?? 'cumulative'}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Solar input mode: {systemProfile?.solarInputMode ?? 'cumulative'}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Export mode: {systemProfile?.exportInputMode ?? 'disabled'}</Text>
+        <ActionButton theme={theme} label="Edit system profile" onPress={() => router.push('/onboarding')} tone="secondary" />
       </SettingsCard>
 
-      <SettingsCard title="Display settings" description="Keep formatting and dashboard defaults consistent on this device.">
+      <SettingsCard theme={theme} title="Display settings" description="Keep formatting and dashboard defaults consistent on this device.">
         <View style={{ gap: 8 }}>
-          <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Theme</Text>
-          <SegmentedRow options={themeOptions} value={theme} onChange={setTheme} />
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Theme</Text>
+          <SegmentedRow theme={theme} options={themeOptions} value={themePreference} onChange={setThemePreference} />
         </View>
 
         <View style={{ gap: 8 }}>
-          <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Decimal places</Text>
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Decimal places</Text>
           <SegmentedRow
+            theme={theme}
             options={decimalOptions.map((value) => ({ label: value, value }))}
             value={decimalPlaces}
             onChange={setDecimalPlaces}
@@ -328,14 +339,14 @@ export default function SettingsScreen() {
         </View>
 
         <View style={{ gap: 8 }}>
-          <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Default dashboard period</Text>
-          <SegmentedRow options={dashboardPeriodOptions} value={defaultDashboardPeriod} onChange={setDefaultDashboardPeriod} />
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Default dashboard period</Text>
+          <SegmentedRow theme={theme} options={dashboardPeriodOptions} value={defaultDashboardPeriod} onChange={setDefaultDashboardPeriod} />
         </View>
 
-        <ActionButton label="Save display settings" onPress={() => void saveDisplaySettings()} />
+        <ActionButton theme={theme} label="Save display settings" onPress={() => void saveDisplaySettings()} />
       </SettingsCard>
 
-      <SettingsCard title="Daily reminder" description="Schedule a local reminder that opens the Add tab when the notification is tapped.">
+      <SettingsCard theme={theme} title="Daily reminder" description="Schedule a local reminder that opens the Add tab when the notification is tapped.">
         <View
           style={{
             flexDirection: 'row',
@@ -344,15 +355,15 @@ export default function SettingsScreen() {
             gap: 16,
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#f8fafc',
+            backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Enable reminder</Text>
-            <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>Use HH:MM in 24-hour time.</Text>
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Enable reminder</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>Use HH:MM in 24-hour time.</Text>
           </View>
-          <Switch value={reminderEnabled} onValueChange={setReminderEnabled} trackColor={{ true: '#0f766e' }} />
+          <Switch value={reminderEnabled} onValueChange={setReminderEnabled} trackColor={{ true: theme.accent }} />
         </View>
 
         <TextInput
@@ -364,31 +375,33 @@ export default function SettingsScreen() {
             borderRadius: 8,
             borderCurve: 'continuous',
             borderWidth: 1,
-            borderColor: '#cbd5e1',
-            backgroundColor: '#ffffff',
+            borderColor: theme.border,
+            backgroundColor: theme.surface,
+            color: theme.text,
             padding: 14,
           }}
+          placeholderTextColor={theme.textSubtle}
         />
 
-        <ActionButton label="Save reminder" onPress={() => void saveReminderSettings()} />
+        <ActionButton theme={theme} label="Save reminder" onPress={() => void saveReminderSettings()} />
       </SettingsCard>
 
-      <SettingsCard title="Data settings" description="Export your readings, back up the full app state, or restore from a prior JSON backup.">
-        <ActionButton label="Export readings CSV" onPress={() => void exportCsv()} />
-        <ActionButton label="Export JSON backup" onPress={() => void exportBackup()} tone="secondary" />
-        <ActionButton label="Import JSON backup" onPress={() => void importBackup()} tone="secondary" />
-        <ActionButton label="Delete all readings" onPress={deleteAllReadings} tone="danger" />
+      <SettingsCard theme={theme} title="Data settings" description="Export your readings, back up the full app state, or restore from a prior JSON backup.">
+        <ActionButton theme={theme} label="Export readings CSV" onPress={() => void exportCsv()} />
+        <ActionButton theme={theme} label="Export JSON backup" onPress={() => void exportBackup()} tone="secondary" />
+        <ActionButton theme={theme} label="Import JSON backup" onPress={() => void importBackup()} tone="secondary" />
+        <ActionButton theme={theme} label="Delete all readings" onPress={deleteAllReadings} tone="danger" />
       </SettingsCard>
 
-      <SettingsCard title="Information">
-        <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+      <SettingsCard theme={theme} title="Information">
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
           WattTrack stores information only on this device. Removing the app, clearing application data, or losing the device may permanently delete your
           records unless you create a backup.
         </Text>
-        <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
           Reset clears the profile, costs, readings, and local preferences, then sends you back to onboarding.
         </Text>
-        <ActionButton label="Reset application" onPress={resetApplication} tone="danger" />
+        <ActionButton theme={theme} label="Reset application" onPress={resetApplication} tone="danger" />
       </SettingsCard>
 
       {statusMessage ? (
@@ -396,11 +409,11 @@ export default function SettingsScreen() {
           style={{
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: '#ecfeff',
+            backgroundColor: theme.statusBackground,
             padding: 16,
           }}
         >
-          <Text style={{ color: '#155e75', fontSize: 14, fontWeight: '700' }}>{statusMessage}</Text>
+          <Text style={{ color: theme.statusText, fontSize: 14, fontWeight: '700' }}>{statusMessage}</Text>
         </View>
       ) : null}
     </ScrollView>

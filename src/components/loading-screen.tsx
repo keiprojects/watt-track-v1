@@ -1,10 +1,14 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 
+import { useAppTheme } from '@/theme/use-app-theme';
+
 type LoadingScreenProps = {
   label?: string;
 };
 
 export function LoadingScreen({ label = 'Loading WattTrack...' }: LoadingScreenProps) {
+  const theme = useAppTheme();
+
   return (
     <View
       style={{
@@ -12,12 +16,12 @@ export function LoadingScreen({ label = 'Loading WattTrack...' }: LoadingScreenP
         alignItems: 'center',
         justifyContent: 'center',
         gap: 12,
-        backgroundColor: '#f8fafc',
+        backgroundColor: theme.background,
         padding: 24,
       }}
     >
-      <ActivityIndicator color="#0f766e" size="large" />
-      <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{label}</Text>
+      <ActivityIndicator color={theme.accent} size="large" />
+      <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{label}</Text>
     </View>
   );
 }

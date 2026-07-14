@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 
+import { useAppTheme } from '@/theme/use-app-theme';
 import { useAppFormatters } from '@/utils/format';
 
 type EnergyChartDatum = {
@@ -20,6 +21,7 @@ function formatDayLabel(date: string): string {
 }
 
 export function EnergyChart({ data }: EnergyChartProps) {
+  const theme = useAppTheme();
   const { formatKwh } = useAppFormatters();
   const maxValue = Math.max(1, ...data.flatMap((item) => [item.solarGenerationKwh, item.gridConsumptionKwh]));
 
@@ -29,24 +31,24 @@ export function EnergyChart({ data }: EnergyChartProps) {
         gap: 14,
         borderRadius: 8,
         borderCurve: 'continuous',
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.surface,
         padding: 18,
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+        boxShadow: theme.shadow,
       }}
     >
       <View style={{ gap: 4 }}>
-        <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Last 7 days</Text>
-        <Text style={{ color: '#475569', fontSize: 14, lineHeight: 21 }}>Solar generation versus grid consumption by reading date.</Text>
+        <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Last 7 days</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 21 }}>Solar generation versus grid consumption by reading date.</Text>
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: '#0f766e' }} />
-          <Text style={{ color: '#334155', fontSize: 13, fontWeight: '600' }}>Solar</Text>
+          <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.primaryChart }} />
+          <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '600' }}>Solar</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: '#2563eb' }} />
-          <Text style={{ color: '#334155', fontSize: 13, fontWeight: '600' }}>Grid</Text>
+          <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.secondaryChart }} />
+          <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '600' }}>Grid</Text>
         </View>
       </View>
 
@@ -58,11 +60,11 @@ export function EnergyChart({ data }: EnergyChartProps) {
           return (
             <View key={item.date} style={{ flex: 1, alignItems: 'center', gap: 8 }}>
               <View style={{ height: 144, width: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 }}>
-                <View style={{ width: 14, height: solarHeight, borderRadius: 999, backgroundColor: '#0f766e' }} />
-                <View style={{ width: 14, height: gridHeight, borderRadius: 999, backgroundColor: '#2563eb' }} />
+                <View style={{ width: 14, height: solarHeight, borderRadius: 999, backgroundColor: theme.primaryChart }} />
+                <View style={{ width: 14, height: gridHeight, borderRadius: 999, backgroundColor: theme.secondaryChart }} />
               </View>
-              <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '700' }}>{formatDayLabel(item.date)}</Text>
-              <Text style={{ color: '#94a3b8', fontSize: 11 }}>{formatKwh(item.solarGenerationKwh + item.gridConsumptionKwh)}</Text>
+              <Text style={{ color: theme.textSubtle, fontSize: 12, fontWeight: '700' }}>{formatDayLabel(item.date)}</Text>
+              <Text style={{ color: theme.textSubtle, fontSize: 11 }}>{formatKwh(item.solarGenerationKwh + item.gridConsumptionKwh)}</Text>
             </View>
           );
         })}

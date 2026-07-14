@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 
+import { useAppTheme } from '@/theme/use-app-theme';
+
 type MetricCardProps = {
   label: string;
   value: string;
@@ -8,8 +10,9 @@ type MetricCardProps = {
 };
 
 export function MetricCard({ label, value, tone = 'default', helper }: MetricCardProps) {
-  const backgroundColor = tone === 'accent' ? '#ecfeff' : '#ffffff';
-  const valueColor = tone === 'accent' ? '#155e75' : '#0f172a';
+  const theme = useAppTheme();
+  const backgroundColor = tone === 'accent' ? theme.surfaceAccent : theme.surface;
+  const valueColor = tone === 'accent' ? theme.accentText : theme.text;
 
   return (
     <View
@@ -21,14 +24,14 @@ export function MetricCard({ label, value, tone = 'default', helper }: MetricCar
         borderCurve: 'continuous',
         backgroundColor,
         padding: 16,
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+        boxShadow: theme.shadow,
       }}
     >
-      <Text style={{ color: '#475569', fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
       <Text selectable style={{ color: valueColor, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
         {value}
       </Text>
-      {helper ? <Text style={{ color: '#64748b', fontSize: 12, lineHeight: 18 }}>{helper}</Text> : null}
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 12, lineHeight: 18 }}>{helper}</Text> : null}
     </View>
   );
 }

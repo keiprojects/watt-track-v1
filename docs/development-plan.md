@@ -28,7 +28,7 @@ Current implementation observed in `src/`:
 - Add Reading supports date-based entry, daily or cumulative modes, preview calculations, duplicate-date blocking, and warning overrides.
 - Home, History, and Insights provide baseline summaries and empty states.
 - System cost CRUD and payback forecasting now exist in Insights.
-- Settings now supports display preferences, CSV export, JSON backup export/import, local reminder scheduling, delete-all-readings, and full reset flows.
+- Settings now supports display preferences, CSV export, JSON backup export/import, local reminder scheduling, delete-all-readings, full reset flows, and applied light/dark theme preferences.
 - Saved decimal precision now drives kWh, currency, rate, and percentage formatting across dashboard, history, detail, insights, settings, and reading preview surfaces.
 - Backup import validation now checks the full payload shape before replacing local data, and restored reminder settings are re-applied to the device schedule during import.
 - History now supports month grouping, date/note/warning filters, detail view, edit, duplicate, and delete flows with cumulative recalculation safeguards.
@@ -241,7 +241,7 @@ Definition of done:
 
 ### Milestone 6: Settings, Backup, Export, and Reminders
 
-Status: partial
+Status: completed
 
 Goal:
 Finish the offline product loop and protect user data.
@@ -346,6 +346,7 @@ Use this section as the release gate. Mark each item only when verified in app b
 - System cost management and forecast-based payback estimation were added in Insights as the next finance-focused delivery slice.
 - Settings, local reminder scheduling, CSV export, JSON backup import/export, and destructive reset flows were added as the next offline data-safety delivery slice.
 - Display precision settings were wired into shared number formatting, and imported reminder settings now reschedule local notifications after backup restore.
+- Saved theme preferences now apply across the core app shell and dashboard/settings surfaces, and reminder deep links now route to Add on cold start as well as while the app is already running.
 - History filters, reading detail/edit/duplicate/delete flows, and downstream cumulative recalculation safeguards were added as the next readings-management delivery slice.
 - Dashboard period filters, seven-day solar-vs-grid charting, and range-based insights summaries were added to complete the dashboard and core insights milestone.
 - Insights cost filtering, capital-versus-maintenance breakdowns, and payback date visibility were tightened to complete the costs, ROI, and payback milestone.

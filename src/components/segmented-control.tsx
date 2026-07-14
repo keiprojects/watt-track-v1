@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useAppTheme } from '@/theme/use-app-theme';
+
 type SegmentedControlOption<T extends string> = {
   label: string;
   value: T;
@@ -12,6 +14,8 @@ type SegmentedControlProps<T extends string> = {
 };
 
 export function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
+  const theme = useAppTheme();
+
   return (
     <View
       style={{
@@ -34,13 +38,15 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
               borderRadius: 8,
               borderCurve: 'continuous',
               borderWidth: 1,
-              borderColor: selected ? '#0f766e' : '#cbd5e1',
-              backgroundColor: selected ? '#ccfbf1' : '#ffffff',
+              borderColor: selected ? theme.accent : theme.border,
+              backgroundColor: selected ? theme.accentSoft : theme.surface,
               paddingHorizontal: 14,
               paddingVertical: 10,
             }}
           >
-            <Text style={{ color: selected ? '#115e59' : '#334155', fontSize: 14, fontWeight: '700' }}>{option.label}</Text>
+            <Text style={{ color: selected ? theme.accentText : theme.textMuted, fontSize: 14, fontWeight: '700' }}>
+              {option.label}
+            </Text>
           </Pressable>
         );
       })}

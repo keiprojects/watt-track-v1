@@ -6,12 +6,14 @@ import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
 } from '@/services/notifications.runtime';
+import { useAppTheme } from '@/theme/use-app-theme';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 
 export default function RootLayout() {
+  const theme = useAppTheme();
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
@@ -24,6 +26,7 @@ export default function RootLayout() {
   useEffect(() => {
     let isMounted = true;
     let subscription: { remove: () => void } | null = null;
+    let handledInitialNotification = false;
 
     void (async () => {
       const Notifications = await loadNotificationsModule();
@@ -42,6 +45,13 @@ export default function RootLayout() {
           shouldShowList: true,
         }),
       });
+
+      const initialResponse = await Notifications.getLastNotificationResponseAsync();
+
+      if (!handledInitialNotification && initialResponse?.notification.request.content.data?.route === '/(tabs)/add') {
+        handledInitialNotification = true;
+        router.push('/(tabs)/add');
+      }
 
       subscription = Notifications.addNotificationResponseReceivedListener((response) => {
         const route = response.notification.request.content.data?.route;
@@ -64,7 +74,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
     </>
   );
 }
