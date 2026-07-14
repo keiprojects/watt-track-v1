@@ -6,12 +6,20 @@ import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
 import { SegmentedControl } from '@/components/segmented-control';
-import { estimatePaybackForecast, summarizeReadings, summarizeRoi, type PaybackForecastWindow } from '@/services/calculation.service';
+import {
+  estimatePaybackForecast,
+  filterInsightsReadingsByRange,
+  summarizeReadings,
+  summarizeRoi,
+  type InsightsRange,
+  type PaybackForecastWindow,
+} from '@/services/calculation.service';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
-import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
+import type { EnergyReading } from '@/types/reading';
+import { formatShortDate, getTodayDateInputValue, isDateWithinRange } from '@/utils/date';
 import { formatCurrency, formatKwh, formatPercent } from '@/utils/format';
 import { createId } from '@/utils/ids';
 
@@ -30,6 +38,16 @@ const forecastOptions: { label: string; value: PaybackForecastWindow }[] = [
   { label: '30 days', value: '30d' },
   { label: '90 days', value: '90d' },
   { label: 'All time', value: 'all' },
+];
+
+const rangeOptions: { label: string; value: InsightsRange }[] = [
+  { label: '7d', value: '7d' },
+  { label: '30d', value: '30d' },
+  { label: 'This month', value: 'current-month' },
+  { label: 'Last month', value: 'previous-month' },
+  { label: 'This year', value: 'current-year' },
+  { label: 'All', value: 'all' },
+  { label: 'Custom', value: 'custom' },
 ];
 
 const costCategoryOptions: { label: string; value: SystemCostCategory }[] = [
@@ -118,6 +136,34 @@ function getForecastHelper(window: PaybackForecastWindow): string {
   return 'Projected from every saved reading on this device.';
 }
 
+function getRangeHelper(range: InsightsRange): string {
+  if (range === '7d') {
+    return 'Showing the most recent 7 days of readings.';
+  }
+
+  if (range === '30d') {
+    return 'Showing the most recent 30 days of readings.';
+  }
+
+  if (range === 'current-month') {
+    return 'Showing readings from the current month.';
+  }
+
+  if (range === 'previous-month') {
+    return 'Showing readings from the previous month.';
+  }
+
+  if (range === 'current-year') {
+    return 'Showing readings from the current year.';
+  }
+
+  if (range === 'custom') {
+    return 'Filter readings and costs to a specific start and end date.';
+  }
+
+  return 'Showing all locally saved readings and tracked costs.';
+}
+
 export default function InsightsScreen() {
   const readings = useReadingsStore((state) => state.readings);
   const costs = useCostsStore((state) => state.costs);
@@ -127,6 +173,9 @@ export default function InsightsScreen() {
   const systemProfile = useSystemStore((state) => state.systemProfile);
 
   const [forecastWindow, setForecastWindow] = useState<PaybackForecastWindow>('30d');
+  const [selectedRange, setSelectedRange] = useState<InsightsRange>('30d');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState(getTodayDateInputValue());
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
 
   const {
@@ -139,32 +188,83 @@ export default function InsightsScreen() {
     defaultValues: createDefaultCostValues(),
   });
 
-  const summary = useMemo(() => summarizeReadings(readings), [readings]);
-  const roi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
-  const paybackForecast = useMemo(
-    () => estimatePaybackForecast({ readings, remainingAmount: roi.remainingAmount, window: forecastWindow }),
-    [forecastWindow, readings, roi.remainingAmount],
+  const today = getTodayDateInputValue();
+
+  const filteredReadings = useMemo(
+    () =>
+      filterInsightsReadingsByRange({
+        readings,
+        today,
+        range: selectedRange,
+        customStartDate: selectedRange === 'custom' ? customStartDate || undefined : undefined,
+        customEndDate: selectedRange === 'custom' ? customEndDate || undefined : undefined,
+      }),
+    [customEndDate, customStartDate, readings, selectedRange, today],
   );
 
-  const averageDailySavings = readings.length === 0 ? 0 : roi.totalEstimatedSavings / readings.length;
+  const filteredCosts = useMemo(() => {
+    if (selectedRange === 'all') {
+      return costs;
+    }
+
+    if (selectedRange === 'custom') {
+      return costs.filter((cost) => isDateWithinRange(cost.date, customStartDate || undefined, customEndDate || undefined));
+    }
+
+    const readingDates = new Set(filteredReadings.map((reading) => reading.date));
+    return costs.filter((cost) => {
+      if (readingDates.has(cost.date)) {
+        return true;
+      }
+
+      if (selectedRange === 'current-month') {
+        return cost.date.startsWith(today.slice(0, 7));
+      }
+
+      if (selectedRange === 'previous-month') {
+        return filteredReadings.some((reading) => reading.date.slice(0, 7) === cost.date.slice(0, 7));
+      }
+
+      if (selectedRange === 'current-year') {
+        return cost.date.startsWith(today.slice(0, 4));
+      }
+
+      return false;
+    });
+  }, [costs, customEndDate, customStartDate, filteredReadings, selectedRange, today]);
+
+  const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
+  const overallRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
+  const roi = useMemo(
+    () => summarizeRoi({ profile: systemProfile, readings: filteredReadings, costs: filteredCosts }),
+    [filteredCosts, filteredReadings, systemProfile],
+  );
+  const paybackForecast = useMemo(
+    () => estimatePaybackForecast({ readings, remainingAmount: overallRoi.remainingAmount, window: forecastWindow }),
+    [forecastWindow, overallRoi.remainingAmount, readings],
+  );
+
+  const averageDailySavings = filteredReadings.length === 0 ? 0 : summary.estimatedSavings / filteredReadings.length;
   const averageMonthlySavings = averageDailySavings * 30;
+  const averageSolarPerDay = filteredReadings.length === 0 ? 0 : summary.solarGeneratedKwh / filteredReadings.length;
+  const averageGridPerDay = filteredReadings.length === 0 ? 0 : summary.gridConsumedKwh / filteredReadings.length;
   const solarContribution = summary.homeUsageKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.homeUsageKwh) * 100;
   const selfConsumptionShare = summary.solarGeneratedKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.solarGeneratedKwh) * 100;
-  const averageDailyGridCost = readings.length === 0 ? 0 : summary.estimatedGridCost / readings.length;
-  const highestSolarDay = readings.reduce((highest, reading) => {
+  const averageDailyGridCost = filteredReadings.length === 0 ? 0 : summary.estimatedGridCost / filteredReadings.length;
+  const highestSolarDay = filteredReadings.reduce<EnergyReading | undefined>((highest, reading) => {
     if (!highest || reading.solarGenerationKwh > highest.solarGenerationKwh) {
       return reading;
     }
 
     return highest;
-  }, readings[0]);
-  const lowestSolarDay = readings.reduce((lowest, reading) => {
+  }, undefined);
+  const lowestSolarDay = filteredReadings.reduce<EnergyReading | undefined>((lowest, reading) => {
     if (!lowest || reading.solarGenerationKwh < lowest.solarGenerationKwh) {
       return reading;
     }
 
     return lowest;
-  }, readings[0]);
+  }, undefined);
 
   const startEditingCost = (cost: SystemCost) => {
     setEditingCostId(cost.id);
@@ -226,6 +326,8 @@ export default function InsightsScreen() {
     ]);
   };
 
+  const rangeHasInvalidCustomDates = selectedRange === 'custom' && Boolean(customStartDate && customEndDate && customStartDate > customEndDate);
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -235,21 +337,60 @@ export default function InsightsScreen() {
       <View style={{ gap: 6 }}>
         <Text style={{ color: '#0f172a', fontSize: 28, fontWeight: '800' }}>Insights</Text>
         <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
-          Review all-time energy performance, manage system costs, and project how quickly savings can recover your investment.
+          Review energy and financial performance over a selected date range, then manage the costs feeding ROI and payback.
         </Text>
       </View>
+
+      <SectionCard title="Time range" description={getRangeHelper(selectedRange)}>
+        <SegmentedControl options={rangeOptions} value={selectedRange} onChange={setSelectedRange} />
+        {selectedRange === 'custom' ? (
+          <View style={{ gap: 12 }}>
+            <Field label="Start date" helper="Use YYYY-MM-DD">
+              <TextInput
+                value={customStartDate}
+                onChangeText={setCustomStartDate}
+                placeholder="2026-07-01"
+                style={{
+                  borderRadius: 8,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: '#cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: 14,
+                }}
+              />
+            </Field>
+            <Field label="End date" helper="Use YYYY-MM-DD">
+              <TextInput
+                value={customEndDate}
+                onChangeText={setCustomEndDate}
+                placeholder="2026-07-14"
+                style={{
+                  borderRadius: 8,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: '#cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: 14,
+                }}
+              />
+            </Field>
+            {rangeHasInvalidCustomDates ? <Text style={{ color: '#b91c1c', fontSize: 13 }}>End date must be on or after the start date.</Text> : null}
+          </View>
+        ) : null}
+      </SectionCard>
 
       <SectionCard title="Payback forecast" description={getForecastHelper(forecastWindow)}>
         <SegmentedControl options={forecastOptions} value={forecastWindow} onChange={setForecastWindow} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <MetricCard label="Remaining to recover" value={formatCurrency(roi.remainingAmount)} />
+          <MetricCard label="Remaining to recover" value={formatCurrency(overallRoi.remainingAmount)} />
           <MetricCard label="Forecast daily savings" value={formatCurrency(paybackForecast.averageDailySavings)} helper="Estimated" tone="accent" />
           <MetricCard
             label="Projected payback"
             value={paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD'}
             helper={
               paybackForecast.hasEnoughSavingsData
-                ? roi.remainingAmount === 0
+                ? overallRoi.remainingAmount === 0
                   ? 'Investment recovered'
                   : `${paybackForecast.basedOnReadingCount} reading(s) in forecast`
                 : 'Not enough savings data'
@@ -258,45 +399,51 @@ export default function InsightsScreen() {
         </View>
       </SectionCard>
 
-      <View style={{ gap: 10 }}>
-        <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Energy</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <MetricCard label="Solar generated" value={formatKwh(summary.solarGeneratedKwh)} tone="accent" />
-          <MetricCard label="Avg solar per day" value={formatKwh(readings.length === 0 ? 0 : summary.solarGeneratedKwh / readings.length)} />
-          <MetricCard label="Grid consumed" value={formatKwh(summary.gridConsumedKwh)} />
-          <MetricCard label="Avg grid cost" value={formatCurrency(averageDailyGridCost)} helper="Estimated" />
-          <MetricCard label="Home usage" value={formatKwh(summary.homeUsageKwh)} />
-          <MetricCard label="Solar contribution" value={formatPercent(solarContribution)} />
-          <MetricCard label="Self-consumption" value={formatPercent(selfConsumptionShare)} />
-          <MetricCard
-            label="Best solar day"
-            value={highestSolarDay ? formatKwh(highestSolarDay.solarGenerationKwh) : formatKwh(0)}
-            helper={highestSolarDay ? formatShortDate(highestSolarDay.date) : 'No readings'}
-          />
-          <MetricCard
-            label="Lowest solar day"
-            value={lowestSolarDay ? formatKwh(lowestSolarDay.solarGenerationKwh) : formatKwh(0)}
-            helper={lowestSolarDay ? formatShortDate(lowestSolarDay.date) : 'No readings'}
-          />
-        </View>
-      </View>
+      {filteredReadings.length === 0 ? (
+        <SectionCard title="No readings in range" description="Change the selected range or add readings to populate energy and financial insights.">
+          <Text style={{ color: '#475569', fontSize: 15, lineHeight: 22 }}>
+            WattTrack keeps your saved history intact. This range just does not include any matching readings yet.
+          </Text>
+        </SectionCard>
+      ) : (
+        <>
+          <View style={{ gap: 10 }}>
+            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Energy</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <MetricCard label="Solar generated" value={formatKwh(summary.solarGeneratedKwh)} tone="accent" />
+              <MetricCard label="Avg solar per day" value={formatKwh(averageSolarPerDay)} />
+              <MetricCard label="Highest day" value={highestSolarDay ? formatKwh(highestSolarDay.solarGenerationKwh) : formatKwh(0)} helper={highestSolarDay ? formatShortDate(highestSolarDay.date) : 'No readings'} />
+              <MetricCard label="Lowest day" value={lowestSolarDay ? formatKwh(lowestSolarDay.solarGenerationKwh) : formatKwh(0)} helper={lowestSolarDay ? formatShortDate(lowestSolarDay.date) : 'No readings'} />
+              <MetricCard label="Grid consumed" value={formatKwh(summary.gridConsumedKwh)} />
+              <MetricCard label="Avg grid per day" value={formatKwh(averageGridPerDay)} />
+              <MetricCard label="Home usage" value={formatKwh(summary.homeUsageKwh)} helper="Estimated from grid + self-consumed solar" />
+              <MetricCard label="Solar contribution" value={formatPercent(solarContribution)} />
+              <MetricCard label="Self-consumption" value={formatPercent(selfConsumptionShare)} helper="Estimated" />
+              <MetricCard label="Avg daily grid cost" value={formatCurrency(averageDailyGridCost)} helper="Estimated" />
+            </View>
+          </View>
 
-      <View style={{ gap: 10 }}>
-        <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Financial</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />
-          <MetricCard label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" />
-          <MetricCard label="Avg monthly savings" value={formatCurrency(averageMonthlySavings)} helper="Estimated" />
-          <MetricCard label="Initial system cost" value={formatCurrency(systemProfile?.initialSystemCost ?? 0)} />
-          <MetricCard label="Extra capital costs" value={formatCurrency(roi.additionalCapitalCosts)} />
-          <MetricCard label="Maintenance expenses" value={formatCurrency(roi.maintenanceCosts)} />
-          <MetricCard label="Net benefit" value={formatCurrency(roi.netSavings)} />
-          <MetricCard label="ROI" value={formatPercent(roi.roiPercentage)} />
-          <MetricCard label="Payback progress" value={formatPercent(roi.paybackProgress)} />
-        </View>
-      </View>
+          <View style={{ gap: 10 }}>
+            <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Financial</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />
+              <MetricCard label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" />
+              <MetricCard label="Avg monthly savings" value={formatCurrency(averageMonthlySavings)} helper="Estimated" />
+              <MetricCard label="Total capital invested" value={formatCurrency(roi.totalCapitalInvestment)} />
+              <MetricCard label="Maintenance expenses" value={formatCurrency(roi.maintenanceCosts)} />
+              <MetricCard label="Net financial benefit" value={formatCurrency(roi.netSavings)} helper="Estimated savings minus maintenance" />
+              <MetricCard label="ROI" value={formatPercent(roi.roiPercentage)} />
+              <MetricCard label="Payback progress" value={formatPercent(roi.paybackProgress)} />
+              <MetricCard label="Remaining to recover" value={formatCurrency(roi.remainingAmount)} />
+            </View>
+          </View>
+        </>
+      )}
 
-      <SectionCard title={editingCostId ? 'Edit system cost' : 'Add system cost'} description="Track one-off investment and ongoing maintenance separately so ROI stays accurate.">
+      <SectionCard
+        title={editingCostId ? 'Edit system cost' : 'Add system cost'}
+        description="Track one-off investment and ongoing maintenance separately so ROI stays accurate."
+      >
         <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
           <Controller
             control={control}

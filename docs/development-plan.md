@@ -30,7 +30,7 @@ Current implementation observed in `src/`:
 - System cost CRUD and payback forecasting now exist in Insights.
 - Settings now supports display preferences, CSV export, JSON backup export/import, local reminder scheduling, delete-all-readings, and full reset flows.
 - History now supports month grouping, date/note/warning filters, detail view, edit, duplicate, and delete flows with cumulative recalculation safeguards.
-- Dashboard charts/filters and expanded insights range controls are still not implemented.
+- Dashboard period filters, seven-day energy charting, and expanded insights range controls are now implemented.
 
 ## Source-of-Truth Rules
 
@@ -200,7 +200,7 @@ Definition of done:
 
 ### Milestone 4: Dashboard and Core Insights
 
-Status: partial
+Status: completed
 
 Goal:
 Turn stored readings into clear daily and monthly understanding.
@@ -319,9 +319,9 @@ Use this section as the release gate. Mark each item only when verified in app b
 - [ ] App calculates daily grid consumption automatically.
 - [ ] App calculates daily solar generation automatically.
 - [ ] App calculates estimated savings from stored rates.
-- [ ] Dashboard displays daily and monthly summaries.
+- [x] Dashboard displays daily and monthly summaries.
 - [x] History supports view, edit, and delete.
-- [ ] Insights displays totals, savings, ROI, and payback.
+- [x] Insights displays totals, savings, ROI, and payback.
 - [ ] Additional system costs can be recorded.
 - [ ] Data persists after app close and reopen.
 - [ ] App works without internet.
@@ -344,3 +344,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - System cost management and forecast-based payback estimation were added in Insights as the next finance-focused delivery slice.
 - Settings, local reminder scheduling, CSV export, JSON backup import/export, and destructive reset flows were added as the next offline data-safety delivery slice.
 - History filters, reading detail/edit/duplicate/delete flows, and downstream cumulative recalculation safeguards were added as the next readings-management delivery slice.
+- Dashboard period filters, seven-day solar-vs-grid charting, and range-based insights summaries were added to complete the dashboard and core insights milestone.

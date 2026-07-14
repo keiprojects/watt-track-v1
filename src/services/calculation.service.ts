@@ -1,9 +1,7 @@
 import type { SystemCost } from '@/types/cost';
 import type { EnergyReading, ReadingDraft, WarningCode } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
-import { sortReadingsAscending } from '@/utils/date';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { addDaysToDate, differenceInCalendarDays, getMonthPrefix, getYearPrefix, isDateWithinRange, sortReadingsAscending } from '@/utils/date';
 
 type ReadingPreview = {
   gridConsumptionKwh: number;
@@ -19,6 +17,7 @@ type ReadingPreview = {
 };
 
 export type PaybackForecastWindow = '30d' | '90d' | 'all';
+export type InsightsRange = '7d' | '30d' | 'current-month' | 'previous-month' | 'current-year' | 'all' | 'custom';
 
 type PaybackForecast = {
   window: PaybackForecastWindow;
@@ -31,20 +30,6 @@ type PaybackForecast = {
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function parseDateOnlyUtc(date: string): Date {
-  return new Date(`${date}T00:00:00Z`);
-}
-
-function differenceInCalendarDays(laterDate: string, earlierDate: string): number {
-  return Math.floor((parseDateOnlyUtc(laterDate).getTime() - parseDateOnlyUtc(earlierDate).getTime()) / DAY_MS);
-}
-
-function addDaysToDate(date: string, days: number): string {
-  const result = parseDateOnlyUtc(date);
-  result.setUTCDate(result.getUTCDate() + days);
-  return result.toISOString().slice(0, 10);
 }
 
 function getDailyValue({
@@ -261,6 +246,74 @@ export function createReadingRecord({
   };
 }
 
+export function filterDashboardReadings({
+  readings,
+  today,
+  period,
+}: {
+  readings: EnergyReading[];
+  today: string;
+  period: '7d' | '30d' | 'month' | 'year' | 'all';
+}): EnergyReading[] {
+  if (period === 'all') {
+    return readings;
+  }
+
+  if (period === 'month') {
+    const monthPrefix = getMonthPrefix(today);
+    return readings.filter((reading) => reading.date.startsWith(monthPrefix));
+  }
+
+  if (period === 'year') {
+    const yearPrefix = getYearPrefix(today);
+    return readings.filter((reading) => reading.date.startsWith(yearPrefix));
+  }
+
+  const days = period === '7d' ? 7 : 30;
+  return readings.filter((reading) => differenceInCalendarDays(today, reading.date) >= 0 && differenceInCalendarDays(today, reading.date) < days);
+}
+
+export function filterInsightsReadingsByRange({
+  readings,
+  today,
+  range,
+  customStartDate,
+  customEndDate,
+}: {
+  readings: EnergyReading[];
+  today: string;
+  range: InsightsRange;
+  customStartDate?: string;
+  customEndDate?: string;
+}): EnergyReading[] {
+  if (range === 'all') {
+    return readings;
+  }
+
+  if (range === 'current-month') {
+    const monthPrefix = getMonthPrefix(today);
+    return readings.filter((reading) => reading.date.startsWith(monthPrefix));
+  }
+
+  if (range === 'previous-month') {
+    const previousMonthDate = addDaysToDate(`${getMonthPrefix(today)}-01`, -1);
+    const monthPrefix = getMonthPrefix(previousMonthDate);
+    return readings.filter((reading) => reading.date.startsWith(monthPrefix));
+  }
+
+  if (range === 'current-year') {
+    const yearPrefix = getYearPrefix(today);
+    return readings.filter((reading) => reading.date.startsWith(yearPrefix));
+  }
+
+  if (range === 'custom') {
+    return readings.filter((reading) => isDateWithinRange(reading.date, customStartDate, customEndDate));
+  }
+
+  const days = range === '7d' ? 7 : 30;
+  return readings.filter((reading) => differenceInCalendarDays(today, reading.date) >= 0 && differenceInCalendarDays(today, reading.date) < days);
+}
+
 export function summarizeReadings(readings: EnergyReading[]) {
   const summary = readings.reduce(
     (summary, reading) => {
@@ -290,6 +343,29 @@ export function summarizeReadings(readings: EnergyReading[]) {
     estimatedSavings: round(summary.estimatedSavings),
     estimatedGridCost: round(summary.estimatedGridCost),
   };
+}
+
+export function buildDailyEnergySeries({
+  readings,
+  endDate,
+  days,
+}: {
+  readings: EnergyReading[];
+  endDate: string;
+  days: number;
+}) {
+  const readingsByDate = new Map(readings.map((reading) => [reading.date, reading]));
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = addDaysToDate(endDate, index - (days - 1));
+    const reading = readingsByDate.get(date);
+
+    return {
+      date,
+      solarGenerationKwh: reading?.solarGenerationKwh ?? 0,
+      gridConsumptionKwh: reading?.gridConsumptionKwh ?? 0,
+    };
+  });
 }
 
 export function readingToDraft(reading: EnergyReading): ReadingDraft {
