@@ -1,10 +1,22 @@
-export type EnergySystemType = 'solar' | 'battery' | 'grid' | 'generator' | 'other';
+export type ReadingInputMode = 'daily' | 'cumulative';
+export type ExportInputMode = 'disabled' | 'daily' | 'cumulative';
 
-export type EnergySystem = {
+export type SystemProfile = {
   id: string;
-  name: string;
-  type: EnergySystemType;
-  capacityWatts?: number;
+  systemName: string;
+  location?: string;
+  installationDate: string;
+  currency: 'PHP';
+  timezone: string;
+  solarCapacityKw?: number;
+  inverterCapacityKw?: number;
+  batteryCapacityKwh?: number;
+  initialSystemCost: number;
+  defaultImportRate: number;
+  defaultExportRate?: number;
+  gridInputMode: ReadingInputMode;
+  solarInputMode: ReadingInputMode;
+  exportInputMode: ExportInputMode;
   createdAt: string;
   updatedAt: string;
 };

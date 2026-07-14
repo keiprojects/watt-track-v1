@@ -1,8 +1,11 @@
 export const STORAGE_KEYS = {
-  onboardingCompleted: '@watt-track/onboarding-completed',
-  systems: '@watt-track/systems',
-  readings: '@watt-track/readings',
-  costSettings: '@watt-track/cost-settings',
+  systemProfile: 'watttrack.systemProfile',
+  energyReadings: 'watttrack.energyReadings',
+  systemCosts: 'watttrack.systemCosts',
+  appSettings: 'watttrack.appSettings',
+  schemaVersion: 'watttrack.schemaVersion',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+export const CURRENT_SCHEMA_VERSION = 1;
