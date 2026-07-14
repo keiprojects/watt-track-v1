@@ -345,7 +345,7 @@ export default function OnboardingScreen() {
             name="solarCapacityKw"
             render={({ field: { onChange, value } }) => (
               <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
+                value={value == null ? '' : String(value)}
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
@@ -368,7 +368,7 @@ export default function OnboardingScreen() {
             name="inverterCapacityKw"
             render={({ field: { onChange, value } }) => (
               <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
+                value={value == null ? '' : String(value)}
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
@@ -391,7 +391,7 @@ export default function OnboardingScreen() {
             name="batteryCapacityKwh"
             render={({ field: { onChange, value } }) => (
               <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
+                value={value == null ? '' : String(value)}
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"

@@ -6,8 +6,21 @@ import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
 } from '@/services/notifications.runtime';
+import { useCostsStore } from '@/stores/costs.store';
+import { useReadingsStore } from '@/stores/readings.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useSystemStore } from '@/stores/system.store';
 
 export default function RootLayout() {
+  const hydrateCosts = useCostsStore((state) => state.hydrate);
+  const hydrateReadings = useReadingsStore((state) => state.hydrate);
+  const hydrateSettings = useSettingsStore((state) => state.hydrate);
+  const hydrateSystem = useSystemStore((state) => state.hydrate);
+
+  useEffect(() => {
+    void Promise.all([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]);
+  }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
+
   useEffect(() => {
     let isMounted = true;
     let subscription: { remove: () => void } | null = null;
