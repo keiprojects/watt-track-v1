@@ -133,21 +133,8 @@ export default function OnboardingScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  const onSubmit = async (values: OnboardingFormValues) => {
+  const persistProfile = async (values: OnboardingFormValues) => {
     const nextExportInputMode = values.exportEnabled ? values.exportInputMode : 'disabled';
-    const changedInputModes =
-      systemProfile &&
-      (systemProfile.gridInputMode !== values.gridInputMode ||
-        systemProfile.solarInputMode !== values.solarInputMode ||
-        systemProfile.exportInputMode !== nextExportInputMode);
-
-    if (changedInputModes && readings.length > 0) {
-      Alert.alert(
-        'Reading modes cannot change after logging data',
-        'WattTrack stores the original grid and solar values exactly as entered. Switching between daily usage and cumulative meter modes would reinterpret those saved numbers and can produce incorrect totals. Delete existing readings first, then change the modes.',
-      );
-      return;
-    }
 
     const now = new Date().toISOString();
 
@@ -173,6 +160,34 @@ export default function OnboardingScreen() {
 
     await completeOnboarding();
     router.replace('/(tabs)');
+  };
+
+  const onSubmit = async (values: OnboardingFormValues) => {
+    const nextExportInputMode = values.exportEnabled ? values.exportInputMode : 'disabled';
+    const changedInputModes =
+      systemProfile &&
+      (systemProfile.gridInputMode !== values.gridInputMode ||
+        systemProfile.solarInputMode !== values.solarInputMode ||
+        systemProfile.exportInputMode !== nextExportInputMode);
+
+    if (changedInputModes && readings.length > 0) {
+      Alert.alert(
+        'Recalculate existing readings?',
+        'WattTrack will reinterpret your saved values using the new reading modes and recalculate your history. Continue only if your past entries were recorded in the same style you are switching to now.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Recalculate',
+            onPress: () => {
+              void persistProfile(values);
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    await persistProfile(values);
   };
 
   return (
