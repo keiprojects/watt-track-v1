@@ -1,15 +1,24 @@
 {
   "expo": {
     "name": "Watt Track",
-    "slug": "watt-track-v1",
+    "slug": "watt-track",
     "scheme": "watttrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "94b69d50-1778-4481-912f-c5f068ebe648"
+      }
+    },
+    "owner": "keiprojects"
   }
 }
