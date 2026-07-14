@@ -28,7 +28,8 @@ Current implementation observed in `src/`:
 - Add Reading supports date-based entry, daily or cumulative modes, preview calculations, duplicate-date blocking, and warning overrides.
 - Home, History, and Insights provide baseline summaries and empty states.
 - System cost CRUD and payback forecasting now exist in Insights.
-- History detail/edit/delete flows, dashboard charts and filters, settings controls, exports, imports, and reminders are still not implemented.
+- Settings now supports display preferences, CSV export, JSON backup export/import, local reminder scheduling, delete-all-readings, and full reset flows.
+- History detail/edit/delete flows and dashboard charts/filters are still not implemented.
 
 ## Source-of-Truth Rules
 
@@ -237,7 +238,7 @@ Definition of done:
 
 ### Milestone 6: Settings, Backup, Export, and Reminders
 
-Status: pending
+Status: partial
 
 Goal:
 Finish the offline product loop and protect user data.
@@ -340,3 +341,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - The first source-of-truth document is this PRD-aligned development plan.
 - The current scaffold will be refactored toward the PRD rather than extended as-is.
 - System cost management and forecast-based payback estimation were added in Insights as the next finance-focused delivery slice.
+- Settings, local reminder scheduling, CSV export, JSON backup import/export, and destructive reset flows were added as the next offline data-safety delivery slice.

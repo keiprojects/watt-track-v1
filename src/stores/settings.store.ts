@@ -9,6 +9,7 @@ type SettingsState = {
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<void>;
+  updateSettings: (updates: Partial<AppSettings>) => Promise<void>;
   completeOnboarding: () => Promise<void>;
 };
 
@@ -21,6 +22,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ settings, hasHydrated: true });
   },
   saveSettings: async (settings) => {
+    set({ settings });
+    await storageService.saveAppSettings(settings);
+  },
+  updateSettings: async (updates) => {
+    const settings = { ...get().settings, ...updates };
     set({ settings });
     await storageService.saveAppSettings(settings);
   },
