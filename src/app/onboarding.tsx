@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Redirect, router } from 'expo-router';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { ScrollView, Switch, Text, TextInput, View, Pressable } from 'react-native';
+import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { SegmentedControl } from '@/components/segmented-control';
@@ -60,8 +60,8 @@ const onboardingSchema = z
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 const readingModeOptions: { label: string; value: ReadingInputMode }[] = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Cumulative', value: 'cumulative' },
+  { label: 'Daily usage', value: 'daily' },
+  { label: 'Meter reading', value: 'cumulative' },
 ];
 
 const exportModeOptions: { label: string; value: ExportInputMode }[] = [
@@ -69,6 +69,7 @@ const exportModeOptions: { label: string; value: ExportInputMode }[] = [
   { label: 'Daily', value: 'daily' },
   { label: 'Cumulative', value: 'cumulative' },
 ];
+const fullLogo = require('../../assets/branding/logo-full.png');
 
 function Field({
   label,
@@ -164,6 +165,11 @@ export default function OnboardingScreen() {
       contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: 40 }}
     >
       <View style={{ gap: 8 }}>
+        <Image
+          source={fullLogo}
+          resizeMode="contain"
+          style={{ width: 240, height: 130, alignSelf: 'center', marginBottom: 8 }}
+        />
         <Text style={{ color: '#0f172a', fontSize: 32, fontWeight: '800' }}>Set up WattTrack</Text>
         <Text style={{ color: '#475569', fontSize: 16, lineHeight: 24 }}>
           We&apos;ll save your system profile locally on this device so daily logging, savings estimates, and ROI can work offline.
@@ -419,7 +425,7 @@ export default function OnboardingScreen() {
           boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
         }}
       >
-        <Field label="Grid input mode" helper="Choose daily values or cumulative meter readings" error={errors.gridInputMode?.message}>
+        <Field label="Grid input mode" helper="Choose Daily usage if you type kWh directly, or Meter reading if you type the running number shown on the meter base." error={errors.gridInputMode?.message}>
           <Controller
             control={control}
             name="gridInputMode"
@@ -429,7 +435,7 @@ export default function OnboardingScreen() {
           />
         </Field>
 
-        <Field label="Solar input mode" error={errors.solarInputMode?.message}>
+        <Field label="Solar input mode" helper="Use Meter reading if you log the running solar meter number and want WattTrack to subtract the previous reading." error={errors.solarInputMode?.message}>
           <Controller
             control={control}
             name="solarInputMode"

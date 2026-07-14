@@ -1,7 +1,8 @@
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import { LoadingScreen } from '@/components/loading-screen';
 import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
@@ -18,9 +19,27 @@ export default function RootLayout() {
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
+  const [hasBooted, setHasBooted] = useState(false);
+  const [hasShownSplash, setHasShownSplash] = useState(false);
 
   useEffect(() => {
-    void Promise.all([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]);
+    let isMounted = true;
+    const splashTimer = setTimeout(() => {
+      if (isMounted) {
+        setHasShownSplash(true);
+      }
+    }, 1600);
+
+    void Promise.all([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]).then(() => {
+      if (isMounted) {
+        setHasBooted(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(splashTimer);
+    };
   }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
 
   useEffect(() => {
@@ -67,6 +86,15 @@ export default function RootLayout() {
       subscription?.remove();
     };
   }, []);
+
+  if (!hasBooted || !hasShownSplash) {
+    return (
+      <>
+        <LoadingScreen label="Powering up your solar dashboard..." />
+        <StatusBar style="light" />
+      </>
+    );
+  }
 
   return (
     <>
