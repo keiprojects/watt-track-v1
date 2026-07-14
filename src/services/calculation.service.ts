@@ -3,6 +3,8 @@ import type { EnergyReading, ReadingDraft, WarningCode } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { sortReadingsAscending } from '@/utils/date';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 type ReadingPreview = {
   gridConsumptionKwh: number;
   solarGenerationKwh: number;
@@ -16,8 +18,33 @@ type ReadingPreview = {
   warningCodes: WarningCode[];
 };
 
+export type PaybackForecastWindow = '30d' | '90d' | 'all';
+
+type PaybackForecast = {
+  window: PaybackForecastWindow;
+  averageDailySavings: number;
+  projectedDaysToPayback?: number;
+  estimatedPaybackDate?: string;
+  basedOnReadingCount: number;
+  hasEnoughSavingsData: boolean;
+};
+
 function round(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function parseDateOnlyUtc(date: string): Date {
+  return new Date(`${date}T00:00:00Z`);
+}
+
+function differenceInCalendarDays(laterDate: string, earlierDate: string): number {
+  return Math.floor((parseDateOnlyUtc(laterDate).getTime() - parseDateOnlyUtc(earlierDate).getTime()) / DAY_MS);
+}
+
+function addDaysToDate(date: string, days: number): string {
+  const result = parseDateOnlyUtc(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result.toISOString().slice(0, 10);
 }
 
 function getDailyValue({
@@ -235,7 +262,7 @@ export function createReadingRecord({
 }
 
 export function summarizeReadings(readings: EnergyReading[]) {
-  return readings.reduce(
+  const summary = readings.reduce(
     (summary, reading) => {
       summary.solarGeneratedKwh += reading.solarGenerationKwh;
       summary.gridConsumedKwh += reading.gridConsumptionKwh;
@@ -254,6 +281,15 @@ export function summarizeReadings(readings: EnergyReading[]) {
       estimatedGridCost: 0,
     },
   );
+
+  return {
+    solarGeneratedKwh: round(summary.solarGeneratedKwh),
+    gridConsumedKwh: round(summary.gridConsumedKwh),
+    selfConsumedSolarKwh: round(summary.selfConsumedSolarKwh),
+    homeUsageKwh: round(summary.homeUsageKwh),
+    estimatedSavings: round(summary.estimatedSavings),
+    estimatedGridCost: round(summary.estimatedGridCost),
+  };
 }
 
 export function calculateSolarContribution(reading?: Pick<EnergyReading, 'estimatedHomeUsageKwh' | 'selfConsumedSolarKwh'>): number {
@@ -286,12 +322,76 @@ export function summarizeRoi({
   const remainingAmount = Math.max(0, totalCapitalInvestment - netSavings);
 
   return {
-    totalCapitalInvestment,
-    maintenanceCosts,
-    totalEstimatedSavings,
-    netSavings,
-    roiPercentage,
+    additionalCapitalCosts: round(capitalCosts),
+    maintenanceCosts: round(maintenanceCosts),
+    totalCapitalInvestment: round(totalCapitalInvestment),
+    totalEstimatedSavings: round(totalEstimatedSavings),
+    netSavings: round(netSavings),
+    roiPercentage: round(roiPercentage),
     paybackProgress: Math.max(0, Math.min(100, roiPercentage)),
-    remainingAmount,
+    remainingAmount: round(remainingAmount),
+  };
+}
+
+export function estimatePaybackForecast({
+  readings,
+  remainingAmount,
+  window = '30d',
+}: {
+  readings: EnergyReading[];
+  remainingAmount: number;
+  window?: PaybackForecastWindow;
+}): PaybackForecast {
+  const sortedReadings = [...readings].sort((left, right) => right.date.localeCompare(left.date));
+
+  if (sortedReadings.length === 0) {
+    return {
+      window,
+      averageDailySavings: 0,
+      basedOnReadingCount: 0,
+      hasEnoughSavingsData: false,
+    };
+  }
+
+  const latestReadingDate = sortedReadings[0].date;
+  const windowDays = window === '30d' ? 30 : window === '90d' ? 90 : undefined;
+  const windowReadings =
+    typeof windowDays === 'number'
+      ? sortedReadings.filter((reading) => differenceInCalendarDays(latestReadingDate, reading.date) < windowDays)
+      : sortedReadings;
+  const validWindowReadings = windowReadings.filter((reading) => Number.isFinite(reading.estimatedSavings));
+  const totalWindowSavings = validWindowReadings.reduce((sum, reading) => sum + reading.estimatedSavings, 0);
+  const averageDailySavings = validWindowReadings.length === 0 ? 0 : totalWindowSavings / validWindowReadings.length;
+  const hasEnoughSavingsData = averageDailySavings > 0;
+
+  if (!hasEnoughSavingsData) {
+    return {
+      window,
+      averageDailySavings: 0,
+      basedOnReadingCount: validWindowReadings.length,
+      hasEnoughSavingsData: false,
+    };
+  }
+
+  if (remainingAmount <= 0) {
+    return {
+      window,
+      averageDailySavings: round(averageDailySavings),
+      projectedDaysToPayback: 0,
+      estimatedPaybackDate: latestReadingDate,
+      basedOnReadingCount: validWindowReadings.length,
+      hasEnoughSavingsData: true,
+    };
+  }
+
+  const projectedDaysToPayback = remainingAmount / averageDailySavings;
+
+  return {
+    window,
+    averageDailySavings: round(averageDailySavings),
+    projectedDaysToPayback: round(projectedDaysToPayback),
+    estimatedPaybackDate: addDaysToDate(latestReadingDate, Math.ceil(projectedDaysToPayback)),
+    basedOnReadingCount: validWindowReadings.length,
+    hasEnoughSavingsData: true,
   };
 }

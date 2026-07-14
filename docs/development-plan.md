@@ -18,17 +18,17 @@ The PRD defines product requirements. [spec-plan.md](C:\Users\kgonz\Documents\Gi
 
 ## Current State Snapshot
 
-The repository already contains a lightweight Expo Router scaffold, but it does not yet implement the PRD data model or MVP feature set.
+The repository now contains a PRD-aligned offline-first MVP foundation with onboarding, reading calculations, and baseline dashboard screens, but it still has meaningful gaps before the full acceptance gate is met.
 
 Current implementation observed in `src/`:
 
-- Expo Router root layout and tab layout exist.
-- Onboarding exists as a single CTA screen, not a system setup flow.
-- Home and Add tabs exist with placeholder energy tracking behavior.
-- Storage service exists, but it stores generic systems, readings, and cost settings rather than the PRD models.
-- Calculation service currently converts watts and duration into kWh, which does not match the PRD's meter-reading-based logic.
-- Zustand state exists for readings only.
-- Types do not yet match `SystemProfile`, `EnergyReading`, `SystemCost`, or `AppSettings` from the PRD.
+- Expo Router root layout and five-tab shell exist with onboarding gating.
+- Core types, storage keys, backup payload, and schema versioning align to the PRD entities.
+- Onboarding persists a full `SystemProfile` and onboarding completion state.
+- Add Reading supports date-based entry, daily or cumulative modes, preview calculations, duplicate-date blocking, and warning overrides.
+- Home, History, and Insights provide baseline summaries and empty states.
+- System cost CRUD and payback forecasting now exist in Insights.
+- History detail/edit/delete flows, dashboard charts and filters, settings controls, exports, imports, and reminders are still not implemented.
 
 ## Source-of-Truth Rules
 
@@ -113,7 +113,7 @@ The build will follow seven milestones. Each milestone should end with the app c
 
 ### Milestone 0: Realign Foundation
 
-Status: pending
+Status: completed
 
 Goal:
 Bring the scaffold into alignment with the PRD before building new user-facing functionality.
@@ -134,7 +134,7 @@ Definition of done:
 
 ### Milestone 1: Onboarding and System Profile
 
-Status: pending
+Status: completed
 
 Goal:
 Collect the minimum setup information required for calculations and unlock the rest of the app.
@@ -154,7 +154,7 @@ Definition of done:
 
 ### Milestone 2: Reading Entry and Calculation Engine
 
-Status: pending
+Status: completed
 
 Goal:
 Support daily input for grid, solar, export, and rate data using the PRD calculation rules.
@@ -178,7 +178,7 @@ Definition of done:
 
 ### Milestone 3: History and Readings Management
 
-Status: pending
+Status: partial
 
 Goal:
 Make stored readings reviewable, editable, and safe to correct.
@@ -198,7 +198,7 @@ Definition of done:
 
 ### Milestone 4: Dashboard and Core Insights
 
-Status: pending
+Status: partial
 
 Goal:
 Turn stored readings into clear daily and monthly understanding.
@@ -218,7 +218,7 @@ Definition of done:
 
 ### Milestone 5: Costs, ROI, and Payback
 
-Status: pending
+Status: partial
 
 Goal:
 Track investment recovery with clear financial context.
@@ -339,3 +339,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - The repository `docs/` folder was established as the planning source of truth.
 - The first source-of-truth document is this PRD-aligned development plan.
 - The current scaffold will be refactored toward the PRD rather than extended as-is.
+- System cost management and forecast-based payback estimation were added in Insights as the next finance-focused delivery slice.

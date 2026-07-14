@@ -1,11 +1,11 @@
 import { ScrollView, Text, View } from 'react-native';
 
 import { MetricCard } from '@/components/metric-card';
-import { calculateSolarContribution, summarizeReadings, summarizeRoi } from '@/services/calculation.service';
+import { calculateSolarContribution, estimatePaybackForecast, summarizeReadings, summarizeRoi } from '@/services/calculation.service';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
-import { getTodayDateInputValue } from '@/utils/date';
+import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { formatCurrency, formatKwh, formatPercent } from '@/utils/format';
 
 export default function DashboardScreen() {
@@ -19,6 +19,7 @@ export default function DashboardScreen() {
   const monthReadings = readings.filter((reading) => reading.date.startsWith(monthPrefix));
   const monthSummary = summarizeReadings(monthReadings);
   const roi = summarizeRoi({ profile: systemProfile, readings, costs });
+  const paybackForecast = estimatePaybackForecast({ readings, remainingAmount: roi.remainingAmount, window: '30d' });
 
   return (
     <ScrollView
@@ -37,8 +38,8 @@ export default function DashboardScreen() {
       >
         <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{systemProfile?.systemName ?? 'WattTrack'}</Text>
         <Text style={{ color: '#cbd5e1', fontSize: 14 }}>
-          {systemProfile?.location ? `${systemProfile.location} • ` : ''}
-          {systemProfile?.timezone ?? 'Asia/Manila'} • Offline-first
+          {systemProfile?.location ? `${systemProfile.location} | ` : ''}
+          {systemProfile?.timezone ?? 'Asia/Manila'} | Offline-first
         </Text>
       </View>
 
@@ -91,6 +92,11 @@ export default function DashboardScreen() {
               <MetricCard label="Total savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />
               <MetricCard label="Payback progress" value={formatPercent(roi.paybackProgress)} />
               <MetricCard label="Remaining to recover" value={formatCurrency(roi.remainingAmount)} />
+              <MetricCard
+                label="Est. payback date"
+                value={paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD'}
+                helper={paybackForecast.hasEnoughSavingsData ? 'Based on 30-day average savings' : 'Add more savings data'}
+              />
             </View>
           </View>
         </>
