@@ -222,7 +222,7 @@ Definition of done:
 
 ### Milestone 5: Costs, ROI, and Payback
 
-Status: partial
+Status: completed
 
 Goal:
 Track investment recovery with clear financial context.
@@ -348,3 +348,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - Display precision settings were wired into shared number formatting, and imported reminder settings now reschedule local notifications after backup restore.
 - History filters, reading detail/edit/duplicate/delete flows, and downstream cumulative recalculation safeguards were added as the next readings-management delivery slice.
 - Dashboard period filters, seven-day solar-vs-grid charting, and range-based insights summaries were added to complete the dashboard and core insights milestone.
+- Insights cost filtering, capital-versus-maintenance breakdowns, and payback date visibility were tightened to complete the costs, ROI, and payback milestone.
