@@ -5,6 +5,7 @@ import { EnergyChart } from '@/components/energy-chart';
 import { MetricCard } from '@/components/metric-card';
 import { SegmentedControl } from '@/components/segmented-control';
 import {
+  aggregateReadingsByDate,
   buildDailyEnergySeries,
   calculateSolarContribution,
   estimatePaybackForecast,
@@ -78,8 +79,9 @@ export default function DashboardScreen() {
   }, [settings.defaultDashboardPeriod]);
 
   const today = getTodayDateInputValue();
+  const dailyReadings = useMemo(() => aggregateReadingsByDate(readings), [readings]);
 
-  const todayReading = useMemo(() => readings.find((reading) => reading.date === today), [readings, today]);
+  const todayReading = useMemo(() => dailyReadings.find((reading) => reading.date === today), [dailyReadings, today]);
   const filteredReadings = useMemo(
     () => filterDashboardReadings({ readings, today, period: dashboardPeriod }),
     [dashboardPeriod, readings, today],

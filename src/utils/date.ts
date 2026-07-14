@@ -3,7 +3,7 @@ import type { EnergyReading } from '@/types/reading';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function asDateTime(value: Pick<EnergyReading, 'date' | 'time'>): number {
-  const iso = value.time ? `${value.date}T${value.time}:00` : `${value.date}T00:00:00`;
+  const iso = value.time ? `${value.date}T${value.time}:00` : `${value.date}T23:59:59`;
   return new Date(iso).getTime();
 }
 

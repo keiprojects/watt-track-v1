@@ -5,7 +5,7 @@ import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'rea
 import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
-import { buildReadingPreview, findPreviousReading } from '@/services/calculation.service';
+import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
@@ -23,13 +23,16 @@ const readingSchema = z.object({
     .string()
     .optional()
     .refine((value) => !value || /^\d{2}:\d{2}$/.test(value), 'Use HH:MM if adding a time'),
-  gridReading: z.coerce.number().min(0, 'Grid value cannot be negative'),
-  solarReading: z.coerce.number().min(0, 'Solar value cannot be negative'),
+  gridReading: optionalNumberField,
+  solarReading: optionalNumberField,
   exportReading: optionalNumberField,
   importRate: optionalNumberField,
   exportRate: optionalNumberField,
   notes: z.string().optional(),
   meterReset: z.boolean().optional(),
+}).refine((values) => typeof values.gridReading === 'number' || typeof values.solarReading === 'number' || typeof values.exportReading === 'number', {
+  message: 'Enter at least one meter value.',
+  path: ['gridReading'],
 });
 
 type ReadingFormValues = z.infer<typeof readingSchema>;
@@ -47,8 +50,8 @@ function buildFormValues(systemProfile: SystemProfile, initialDraft?: Partial<Re
   return {
     date: initialDraft?.date ?? getTodayDateInputValue(),
     time: initialDraft?.time ?? '',
-    gridReading: initialDraft?.gridReading ?? 0,
-    solarReading: initialDraft?.solarReading ?? 0,
+    gridReading: initialDraft?.gridReading,
+    solarReading: initialDraft?.solarReading,
     exportReading: initialDraft?.exportReading,
     importRate: initialDraft?.importRate ?? systemProfile.defaultImportRate,
     exportRate: initialDraft?.exportRate ?? systemProfile.defaultExportRate,
@@ -84,6 +87,10 @@ function formatPreviousReadingLabel(reading?: EnergyReading): string | undefined
   }
 
   return reading.time ? `${formatShortDate(reading.date)} at ${reading.time}` : formatShortDate(reading.date);
+}
+
+function normalizeTimeSlot(time?: string): string {
+  return time?.trim() || '__end_of_day__';
 }
 
 type ReadingFormProps = {
@@ -155,23 +162,25 @@ export function ReadingForm({
     };
   }, [systemProfile, watchedValues]);
 
-  const preview = useMemo(() => {
+  const previousReadings = useMemo(() => {
     if (!systemProfile || !draft) {
       return null;
     }
 
-    const previousReading = findPreviousReading(comparisonReadings, draft);
-
-    return buildReadingPreview({ draft, profile: systemProfile, previousReading });
+    return findPreviousReadings(comparisonReadings, draft);
   }, [comparisonReadings, draft, systemProfile]);
 
-  const previousReading = useMemo(() => {
-    if (!draft) {
-      return undefined;
+  const preview = useMemo(() => {
+    if (!systemProfile || !draft || !previousReadings) {
+      return null;
     }
 
-    return findPreviousReading(comparisonReadings, draft);
-  }, [comparisonReadings, draft]);
+    return buildReadingPreview({ draft, profile: systemProfile, previousReadings });
+  }, [draft, previousReadings, systemProfile]);
+  const sameDateReadings = useMemo(
+    () => (draft?.date ? comparisonReadings.filter((reading) => reading.date === draft.date) : []),
+    [comparisonReadings, draft?.date],
+  );
 
   if (!systemProfile) {
     return (
@@ -191,16 +200,16 @@ export function ReadingForm({
   const gridLabel = systemProfile.gridInputMode === 'cumulative' ? 'Grid meter reading' : 'Grid usage (kWh)';
   const solarLabel = systemProfile.solarInputMode === 'cumulative' ? 'Solar meter reading' : 'Solar generation (kWh)';
   const exportLabel = systemProfile.exportInputMode === 'cumulative' ? 'Export meter reading' : 'Exported energy (kWh)';
-  const previousReadingLabel = formatPreviousReadingLabel(previousReading);
+  const previousGridReadingLabel = formatPreviousReadingLabel(previousReadings?.grid);
   const gridHelper =
     systemProfile.gridInputMode === 'cumulative'
-      ? previousReadingLabel
-        ? `Enter the meter-base number you see now. WattTrack will subtract the previous grid reading from ${previousReadingLabel}.`
-        : 'Enter the meter-base number you see now. The first cumulative entry sets your baseline, so daily grid usage starts on the next reading.'
+      ? previousGridReadingLabel
+        ? `Enter the meter-base number you see now. WattTrack will subtract the previous grid reading from ${previousGridReadingLabel}.`
+        : 'Optional. Enter the meter-base number you see now. The first cumulative entry sets your baseline, so daily grid usage starts on the next reading.'
       : 'Enter the kWh you used since your last reading.';
   const solarHelper =
     systemProfile.solarInputMode === 'cumulative'
-      ? 'Enter the solar meter number you see now.'
+      ? 'Optional. Enter the solar meter number you see now. You can record one reading when PV starts and another when PV stops for the day.'
       : 'Enter the kWh your system generated since your last reading.';
   const exportHelper =
     systemProfile.exportInputMode === 'cumulative'
@@ -220,10 +229,18 @@ export function ReadingForm({
       meterReset: values.meterReset,
     };
     const warnings = preview?.warningCodes ?? [];
-    const hasDuplicateDate = readings.some((reading) => reading.date === values.date && reading.id !== duplicateDateIgnoreId);
+    const matchingDateReadings = readings.filter((reading) => reading.date === values.date && reading.id !== duplicateDateIgnoreId);
+    const hasDuplicateTimestamp = matchingDateReadings.some(
+      (reading) => normalizeTimeSlot(reading.time) === normalizeTimeSlot(values.time),
+    );
 
-    if (hasDuplicateDate) {
-      Alert.alert('Duplicate date', 'WattTrack currently supports one primary reading per date. Edit the existing entry instead.');
+    if (hasDuplicateTimestamp) {
+      Alert.alert(
+        'Duplicate reading time',
+        values.time
+          ? 'A reading for this date and time already exists. Change the time or edit the existing entry instead.'
+          : 'A reading without a time already exists for this date. Add a time to save another intra-day entry.',
+      );
       return;
     }
 
@@ -296,7 +313,15 @@ export function ReadingForm({
           />
         </Field>
 
-        <Field label="Time" helper="Optional, use HH:MM" error={errors.time?.message}>
+        <Field
+          label="Time"
+          helper={
+            sameDateReadings.length > 0
+              ? 'Use HH:MM. Add a time when saving multiple readings on the same date.'
+              : 'Optional, use HH:MM'
+          }
+          error={errors.time?.message}
+        >
           <Controller
             control={control}
             name="time"
@@ -488,7 +513,7 @@ export function ReadingForm({
       {preview ? (
         <View style={{ gap: 10 }}>
           <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Preview</Text>
-          {systemProfile.gridInputMode === 'cumulative' ? (
+          {systemProfile.gridInputMode === 'cumulative' && typeof draft?.gridReading === 'number' ? (
             <View
               style={{
                 gap: 6,
@@ -500,8 +525,8 @@ export function ReadingForm({
             >
               <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '800' }}>Grid meter check</Text>
               <Text style={{ color: '#1e3a8a', fontSize: 13, lineHeight: 18 }}>
-                {previousReadingLabel
-                  ? `Current reading ${formatKwh(draft?.gridReading ?? 0)} minus previous reading ${formatKwh(previousReading?.gridReading ?? 0)} from ${previousReadingLabel} equals ${formatKwh(preview.gridConsumptionKwh)} grid usage.`
+                {previousGridReadingLabel
+                  ? `Current reading ${formatKwh(draft.gridReading)} minus previous reading ${formatKwh(previousReadings?.grid?.gridReading ?? 0)} from ${previousGridReadingLabel} equals ${formatKwh(preview.gridConsumptionKwh)} grid usage.`
                   : `This is your baseline grid meter reading. Grid usage will start calculating after you save a later reading.`}
               </Text>
             </View>

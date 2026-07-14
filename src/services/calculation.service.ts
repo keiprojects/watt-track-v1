@@ -18,6 +18,7 @@ type ReadingPreview = {
 
 export type PaybackForecastWindow = '30d' | '90d' | 'all';
 export type InsightsRange = '7d' | '30d' | 'current-month' | 'previous-month' | 'current-year' | 'all' | 'custom';
+type ReadingValueField = 'gridReading' | 'solarReading' | 'exportReading';
 
 type PaybackForecast = {
   window: PaybackForecastWindow;
@@ -31,6 +32,25 @@ type PaybackForecast = {
 function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+export type DailyReadingSummary = {
+  date: string;
+  readingCount: number;
+  solarGenerationKwh: number;
+  gridConsumptionKwh: number;
+  exportedEnergyKwh: number;
+  selfConsumedSolarKwh: number;
+  estimatedHomeUsageKwh: number;
+  estimatedSavings: number;
+  estimatedGridCost: number;
+};
+
+export type PreviousReadingSet = {
+  any?: EnergyReading;
+  grid?: EnergyReading;
+  solar?: EnergyReading;
+  export?: EnergyReading;
+};
 
 function getDailyValue({
   mode,
@@ -65,14 +85,14 @@ function getDailyValue({
 
 function collectWarnings({
   profile,
-  previousReading,
+  previousReadings,
   draft,
   solarGenerationKwh,
   exportedEnergyKwh,
   importRate,
 }: {
   profile: SystemProfile;
-  previousReading?: EnergyReading;
+  previousReadings: PreviousReadingSet;
   draft: ReadingDraft;
   solarGenerationKwh: number;
   exportedEnergyKwh: number;
@@ -83,8 +103,8 @@ function collectWarnings({
   if (
     profile.gridInputMode === 'cumulative' &&
     typeof draft.gridReading === 'number' &&
-    typeof previousReading?.gridReading === 'number' &&
-    draft.gridReading < previousReading.gridReading &&
+    typeof previousReadings.grid?.gridReading === 'number' &&
+    draft.gridReading < previousReadings.grid.gridReading &&
     !draft.meterReset
   ) {
     warnings.push('cumulative-lower-than-prior');
@@ -93,8 +113,8 @@ function collectWarnings({
   if (
     profile.solarInputMode === 'cumulative' &&
     typeof draft.solarReading === 'number' &&
-    typeof previousReading?.solarReading === 'number' &&
-    draft.solarReading < previousReading.solarReading &&
+    typeof previousReadings.solar?.solarReading === 'number' &&
+    draft.solarReading < previousReadings.solar.solarReading &&
     !draft.meterReset
   ) {
     warnings.push('cumulative-lower-than-prior');
@@ -103,8 +123,8 @@ function collectWarnings({
   if (
     profile.exportInputMode === 'cumulative' &&
     typeof draft.exportReading === 'number' &&
-    typeof previousReading?.exportReading === 'number' &&
-    draft.exportReading < previousReading.exportReading &&
+    typeof previousReadings.export?.exportReading === 'number' &&
+    draft.exportReading < previousReadings.export.exportReading &&
     !draft.meterReset
   ) {
     warnings.push('cumulative-lower-than-prior');
@@ -137,14 +157,39 @@ export function findPreviousReading(readings: EnergyReading[], draft: Pick<Readi
     .at(-1);
 }
 
+function findPreviousReadingForField(
+  readings: EnergyReading[],
+  draft: Pick<ReadingDraft, 'date' | 'time'>,
+  field: ReadingValueField,
+): EnergyReading | undefined {
+  const sorted = sortReadingsAscending(readings);
+  const currentDateTime = new Date(draft.time ? `${draft.date}T${draft.time}:00` : `${draft.date}T23:59:59`).getTime();
+
+  return sorted
+    .filter((reading) => {
+      const readingDateTime = new Date(reading.time ? `${reading.date}T${reading.time}:00` : `${reading.date}T23:59:59`).getTime();
+      return readingDateTime < currentDateTime && typeof reading[field] === 'number';
+    })
+    .at(-1);
+}
+
+export function findPreviousReadings(readings: EnergyReading[], draft: Pick<ReadingDraft, 'date' | 'time'>): PreviousReadingSet {
+  return {
+    any: findPreviousReading(readings, draft),
+    grid: findPreviousReadingForField(readings, draft, 'gridReading'),
+    solar: findPreviousReadingForField(readings, draft, 'solarReading'),
+    export: findPreviousReadingForField(readings, draft, 'exportReading'),
+  };
+}
+
 export function buildReadingPreview({
   draft,
   profile,
-  previousReading,
+  previousReadings,
 }: {
   draft: ReadingDraft;
   profile: SystemProfile;
-  previousReading?: EnergyReading;
+  previousReadings: PreviousReadingSet;
 }): ReadingPreview {
   const importRate = draft.importRate ?? profile.defaultImportRate;
   const exportRate = profile.exportInputMode === 'disabled' ? undefined : draft.exportRate ?? profile.defaultExportRate;
@@ -153,7 +198,7 @@ export function buildReadingPreview({
     getDailyValue({
       mode: profile.gridInputMode,
       currentValue: draft.gridReading,
-      previousValue: previousReading?.gridReading,
+      previousValue: previousReadings.grid?.gridReading,
       meterReset: draft.meterReset,
     }),
   );
@@ -161,7 +206,7 @@ export function buildReadingPreview({
     getDailyValue({
       mode: profile.solarInputMode,
       currentValue: draft.solarReading,
-      previousValue: previousReading?.solarReading,
+      previousValue: previousReadings.solar?.solarReading,
       meterReset: draft.meterReset,
     }),
   );
@@ -171,7 +216,7 @@ export function buildReadingPreview({
       : getDailyValue({
           mode: profile.exportInputMode,
           currentValue: draft.exportReading,
-          previousValue: previousReading?.exportReading,
+          previousValue: previousReadings.export?.exportReading,
           meterReset: draft.meterReset,
         }),
   );
@@ -198,7 +243,7 @@ export function buildReadingPreview({
     exportRate,
     warningCodes: collectWarnings({
       profile,
-      previousReading,
+      previousReadings,
       draft,
       solarGenerationKwh,
       exportedEnergyKwh,
@@ -210,17 +255,17 @@ export function buildReadingPreview({
 export function createReadingRecord({
   draft,
   profile,
-  previousReading,
+  previousReadings,
   id,
   createdAt,
 }: {
   draft: ReadingDraft;
   profile: SystemProfile;
-  previousReading?: EnergyReading;
+  previousReadings: PreviousReadingSet;
   id: string;
   createdAt: string;
 }): EnergyReading {
-  const preview = buildReadingPreview({ draft, profile, previousReading });
+  const preview = buildReadingPreview({ draft, profile, previousReadings });
 
   return {
     id,
@@ -386,6 +431,51 @@ export function summarizeReadings(readings: EnergyReading[]) {
   };
 }
 
+export function aggregateReadingsByDate(readings: EnergyReading[]): DailyReadingSummary[] {
+  const grouped = new Map<string, DailyReadingSummary>();
+
+  for (const reading of readings) {
+    const existing = grouped.get(reading.date);
+
+    if (existing) {
+      existing.readingCount += 1;
+      existing.solarGenerationKwh += reading.solarGenerationKwh;
+      existing.gridConsumptionKwh += reading.gridConsumptionKwh;
+      existing.exportedEnergyKwh += reading.exportedEnergyKwh;
+      existing.selfConsumedSolarKwh += reading.selfConsumedSolarKwh;
+      existing.estimatedHomeUsageKwh += reading.estimatedHomeUsageKwh;
+      existing.estimatedSavings += reading.estimatedSavings;
+      existing.estimatedGridCost += reading.estimatedGridCost;
+      continue;
+    }
+
+    grouped.set(reading.date, {
+      date: reading.date,
+      readingCount: 1,
+      solarGenerationKwh: reading.solarGenerationKwh,
+      gridConsumptionKwh: reading.gridConsumptionKwh,
+      exportedEnergyKwh: reading.exportedEnergyKwh,
+      selfConsumedSolarKwh: reading.selfConsumedSolarKwh,
+      estimatedHomeUsageKwh: reading.estimatedHomeUsageKwh,
+      estimatedSavings: reading.estimatedSavings,
+      estimatedGridCost: reading.estimatedGridCost,
+    });
+  }
+
+  return [...grouped.values()]
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((summary) => ({
+      ...summary,
+      solarGenerationKwh: round(summary.solarGenerationKwh),
+      gridConsumptionKwh: round(summary.gridConsumptionKwh),
+      exportedEnergyKwh: round(summary.exportedEnergyKwh),
+      selfConsumedSolarKwh: round(summary.selfConsumedSolarKwh),
+      estimatedHomeUsageKwh: round(summary.estimatedHomeUsageKwh),
+      estimatedSavings: round(summary.estimatedSavings),
+      estimatedGridCost: round(summary.estimatedGridCost),
+    }));
+}
+
 export function buildDailyEnergySeries({
   readings,
   endDate,
@@ -395,7 +485,8 @@ export function buildDailyEnergySeries({
   endDate: string;
   days: number;
 }) {
-  const readingsByDate = new Map(readings.map((reading) => [reading.date, reading]));
+  const dailyReadings = aggregateReadingsByDate(readings);
+  const readingsByDate = new Map(dailyReadings.map((reading) => [reading.date, reading]));
 
   return Array.from({ length: days }, (_, index) => {
     const date = addDaysToDate(endDate, index - (days - 1));
@@ -431,16 +522,24 @@ export function recalculateReadings({
   profile: SystemProfile;
 }): EnergyReading[] {
   const recalculated: EnergyReading[] = [];
+  let previousGridReading: EnergyReading | undefined;
+  let previousSolarReading: EnergyReading | undefined;
+  let previousExportReading: EnergyReading | undefined;
 
   for (const reading of sortReadingsAscending(readings)) {
     const previousReading = recalculated.at(-1);
     const preview = buildReadingPreview({
       draft: readingToDraft(reading),
       profile,
-      previousReading,
+      previousReadings: {
+        any: previousReading,
+        grid: previousGridReading,
+        solar: previousSolarReading,
+        export: previousExportReading,
+      },
     });
 
-    recalculated.push({
+    const nextReading = {
       ...reading,
       gridConsumptionKwh: preview.gridConsumptionKwh,
       solarGenerationKwh: preview.solarGenerationKwh,
@@ -452,7 +551,21 @@ export function recalculateReadings({
       estimatedSavings: preview.estimatedSavings,
       estimatedGridCost: preview.estimatedGridCost,
       warningCodes: preview.warningCodes.length > 0 ? preview.warningCodes : undefined,
-    });
+    };
+
+    recalculated.push(nextReading);
+
+    if (typeof nextReading.gridReading === 'number') {
+      previousGridReading = nextReading;
+    }
+
+    if (typeof nextReading.solarReading === 'number') {
+      previousSolarReading = nextReading;
+    }
+
+    if (typeof nextReading.exportReading === 'number') {
+      previousExportReading = nextReading;
+    }
   }
 
   return recalculated;
@@ -549,15 +662,16 @@ export function estimatePaybackForecast({
       ? sortedReadings.filter((reading) => differenceInCalendarDays(latestReadingDate, reading.date) < windowDays)
       : sortedReadings;
   const validWindowReadings = windowReadings.filter((reading) => Number.isFinite(reading.estimatedSavings));
-  const totalWindowSavings = validWindowReadings.reduce((sum, reading) => sum + reading.estimatedSavings, 0);
-  const averageDailySavings = validWindowReadings.length === 0 ? 0 : totalWindowSavings / validWindowReadings.length;
+  const validDailySummaries = aggregateReadingsByDate(validWindowReadings);
+  const totalWindowSavings = validDailySummaries.reduce((sum, reading) => sum + reading.estimatedSavings, 0);
+  const averageDailySavings = validDailySummaries.length === 0 ? 0 : totalWindowSavings / validDailySummaries.length;
   const hasEnoughSavingsData = averageDailySavings > 0;
 
   if (!hasEnoughSavingsData) {
     return {
       window,
       averageDailySavings: 0,
-      basedOnReadingCount: validWindowReadings.length,
+      basedOnReadingCount: validDailySummaries.length,
       hasEnoughSavingsData: false,
     };
   }
@@ -568,7 +682,7 @@ export function estimatePaybackForecast({
       averageDailySavings: round(averageDailySavings),
       projectedDaysToPayback: 0,
       estimatedPaybackDate: latestReadingDate,
-      basedOnReadingCount: validWindowReadings.length,
+      basedOnReadingCount: validDailySummaries.length,
       hasEnoughSavingsData: true,
     };
   }
@@ -580,7 +694,7 @@ export function estimatePaybackForecast({
     averageDailySavings: round(averageDailySavings),
     projectedDaysToPayback: round(projectedDaysToPayback),
     estimatedPaybackDate: addDaysToDate(latestReadingDate, Math.ceil(projectedDaysToPayback)),
-    basedOnReadingCount: validWindowReadings.length,
+    basedOnReadingCount: validDailySummaries.length,
     hasEnoughSavingsData: true,
   };
 }

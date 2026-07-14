@@ -2,7 +2,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { ReadingForm } from '@/components/reading-form';
-import { createReadingRecord, findPreviousReading, readingToDraft } from '@/services/calculation.service';
+import { createReadingRecord, findPreviousReadings, readingToDraft } from '@/services/calculation.service';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { ReadingDraft } from '@/types/reading';
@@ -20,7 +20,7 @@ export default function EditReadingScreen() {
       return;
     }
 
-    const previousReading = findPreviousReading(
+    const previousReadings = findPreviousReadings(
       readings.filter((entry) => entry.id !== reading.id),
       draft,
     );
@@ -28,7 +28,7 @@ export default function EditReadingScreen() {
       ...createReadingRecord({
         draft,
         profile: systemProfile,
-        previousReading,
+        previousReadings,
         id: reading.id,
         createdAt: reading.createdAt,
       }),

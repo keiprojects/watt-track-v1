@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { MetricCard } from '@/components/metric-card';
 import { SegmentedControl } from '@/components/segmented-control';
 import {
+  aggregateReadingsByDate,
   estimatePaybackForecast,
   filterCostsByRange,
   filterInsightsReadingsByRange,
@@ -217,6 +218,7 @@ export default function InsightsScreen() {
   );
 
   const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
+  const dailySummaries = useMemo(() => aggregateReadingsByDate(filteredReadings), [filteredReadings]);
   const overallRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const roi = useMemo(
     () => summarizeRoi({ profile: systemProfile, readings: filteredReadings, costs: filteredCosts }),
@@ -227,21 +229,21 @@ export default function InsightsScreen() {
     [forecastWindow, overallRoi.remainingAmount, readings],
   );
 
-  const averageDailySavings = filteredReadings.length === 0 ? 0 : summary.estimatedSavings / filteredReadings.length;
+  const averageDailySavings = dailySummaries.length === 0 ? 0 : summary.estimatedSavings / dailySummaries.length;
   const averageMonthlySavings = averageDailySavings * 30;
-  const averageSolarPerDay = filteredReadings.length === 0 ? 0 : summary.solarGeneratedKwh / filteredReadings.length;
-  const averageGridPerDay = filteredReadings.length === 0 ? 0 : summary.gridConsumedKwh / filteredReadings.length;
+  const averageSolarPerDay = dailySummaries.length === 0 ? 0 : summary.solarGeneratedKwh / dailySummaries.length;
+  const averageGridPerDay = dailySummaries.length === 0 ? 0 : summary.gridConsumedKwh / dailySummaries.length;
   const solarContribution = summary.homeUsageKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.homeUsageKwh) * 100;
   const selfConsumptionShare = summary.solarGeneratedKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.solarGeneratedKwh) * 100;
-  const averageDailyGridCost = filteredReadings.length === 0 ? 0 : summary.estimatedGridCost / filteredReadings.length;
-  const highestSolarDay = filteredReadings.reduce<EnergyReading | undefined>((highest, reading) => {
+  const averageDailyGridCost = dailySummaries.length === 0 ? 0 : summary.estimatedGridCost / dailySummaries.length;
+  const highestSolarDay = dailySummaries.reduce<typeof dailySummaries[number] | undefined>((highest, reading) => {
     if (!highest || reading.solarGenerationKwh > highest.solarGenerationKwh) {
       return reading;
     }
 
     return highest;
   }, undefined);
-  const lowestSolarDay = filteredReadings.reduce<EnergyReading | undefined>((lowest, reading) => {
+  const lowestSolarDay = dailySummaries.reduce<typeof dailySummaries[number] | undefined>((lowest, reading) => {
     if (!lowest || reading.solarGenerationKwh < lowest.solarGenerationKwh) {
       return reading;
     }

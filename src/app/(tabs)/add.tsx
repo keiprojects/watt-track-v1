@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { ReadingForm } from '@/components/reading-form';
-import { createReadingRecord, findPreviousReading, readingToDraft } from '@/services/calculation.service';
+import { createReadingRecord, findPreviousReadings, readingToDraft } from '@/services/calculation.service';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { ReadingDraft } from '@/types/reading';
@@ -22,11 +22,11 @@ export default function AddReadingScreen() {
     }
 
     const createdAt = new Date().toISOString();
-    const previousReading = findPreviousReading(readings, draft);
+    const previousReadings = findPreviousReadings(readings, draft);
     const reading = createReadingRecord({
       draft,
       profile: systemProfile,
-      previousReading,
+      previousReadings,
       id: createId('reading'),
       createdAt,
     });
@@ -48,7 +48,7 @@ export default function AddReadingScreen() {
       description={
         duplicatedReading
           ? 'Start from a prior entry, then adjust the date, time, or meter readings before saving. Later cumulative readings will be recalculated automatically.'
-          : 'Log one daily check of your system. If you use cumulative mode, enter the meter numbers you see on the meter base and WattTrack will calculate the usage from the previous reading.'
+          : 'Log a system check whenever you want. Add a time for multiple entries on the same date. In cumulative mode, you can record one reading when PV starts and another when PV stops so WattTrack can calculate the day total from the interval.'
       }
       systemProfile={systemProfile}
       readings={readings}
