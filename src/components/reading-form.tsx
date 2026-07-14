@@ -9,7 +9,7 @@ import { buildReadingPreview, findPreviousReading } from '@/services/calculation
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { getTodayDateInputValue } from '@/utils/date';
-import { formatCurrency, formatKwh } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
 
 const optionalNumberField = z.preprocess(
@@ -103,6 +103,7 @@ export function ReadingForm({
   onSubmitDraft,
   onCancel,
 }: ReadingFormProps) {
+  const { formatCurrency, formatKwh } = useAppFormatters();
   const {
     control,
     handleSubmit,

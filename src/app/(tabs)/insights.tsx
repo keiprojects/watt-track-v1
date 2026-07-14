@@ -20,7 +20,7 @@ import { useSystemStore } from '@/stores/system.store';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import { formatShortDate, getTodayDateInputValue, isDateWithinRange } from '@/utils/date';
-import { formatCurrency, formatKwh, formatPercent } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 import { createId } from '@/utils/ids';
 
 const costSchema = z.object({
@@ -171,6 +171,7 @@ export default function InsightsScreen() {
   const updateCost = useCostsStore((state) => state.updateCost);
   const deleteCost = useCostsStore((state) => state.deleteCost);
   const systemProfile = useSystemStore((state) => state.systemProfile);
+  const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
 
   const [forecastWindow, setForecastWindow] = useState<PaybackForecastWindow>('30d');
   const [selectedRange, setSelectedRange] = useState<InsightsRange>('30d');

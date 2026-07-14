@@ -5,7 +5,7 @@ import { deletionAffectsLaterCumulativeReadings } from '@/services/calculation.s
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { formatShortDate } from '@/utils/date';
-import { formatCurrency, formatKwh } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
 
 function formatTimestamp(value: string): string {
@@ -54,6 +54,7 @@ export default function ReadingDetailScreen() {
   const readings = useReadingsStore((state) => state.readings);
   const deleteReading = useReadingsStore((state) => state.deleteReading);
   const systemProfile = useSystemStore((state) => state.systemProfile);
+  const { formatCurrency, formatKwh, formatRate } = useAppFormatters();
 
   const reading = readings.find((entry) => entry.id === params.readingId);
 
@@ -137,8 +138,8 @@ export default function ReadingDetailScreen() {
             </DetailCard>
 
             <DetailCard title="Rates and savings">
-              <DetailRow label="Import rate used" value={formatCurrency(reading.importRate)} />
-              <DetailRow label="Export rate used" value={typeof reading.exportRate === 'number' ? formatCurrency(reading.exportRate) : 'Disabled'} />
+              <DetailRow label="Import rate used" value={formatRate(reading.importRate)} />
+              <DetailRow label="Export rate used" value={typeof reading.exportRate === 'number' ? formatRate(reading.exportRate) : 'Disabled'} />
               <DetailRow label="Estimated savings" value={formatCurrency(reading.estimatedSavings)} />
               <DetailRow label="Estimated grid cost" value={formatCurrency(reading.estimatedGridCost)} />
             </DetailCard>

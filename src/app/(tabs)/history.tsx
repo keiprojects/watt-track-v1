@@ -5,7 +5,7 @@ import { Pressable, SectionList, Switch, Text, TextInput, View } from 'react-nat
 import { useReadingsStore } from '@/stores/readings.store';
 import type { EnergyReading } from '@/types/reading';
 import { formatMonthLabel, formatShortDate } from '@/utils/date';
-import { formatCurrency, formatKwh } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 
 function FilterField({
   label,
@@ -52,6 +52,7 @@ function buildSections(readings: EnergyReading[]) {
 
 export default function HistoryScreen() {
   const readings = useReadingsStore((state) => state.readings);
+  const { formatCurrency, formatKwh } = useAppFormatters();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [notesOnly, setNotesOnly] = useState(false);

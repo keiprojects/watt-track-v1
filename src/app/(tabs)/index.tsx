@@ -18,7 +18,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { DashboardPeriod } from '@/types/settings';
 import { addDaysToDate, formatMonthLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
-import { formatCurrency, formatKwh, formatPercent } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 
 const dashboardPeriodOptions: { label: string; value: DashboardPeriod }[] = [
   { label: '7d', value: '7d' },
@@ -67,6 +67,7 @@ export default function DashboardScreen() {
   const costs = useCostsStore((state) => state.costs);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const settings = useSettingsStore((state) => state.settings);
+  const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
 
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>(settings.defaultDashboardPeriod);
 

@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import { formatKwh } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 
 type EnergyChartDatum = {
   date: string;
@@ -20,6 +20,7 @@ function formatDayLabel(date: string): string {
 }
 
 export function EnergyChart({ data }: EnergyChartProps) {
+  const { formatKwh } = useAppFormatters();
   const maxValue = Math.max(1, ...data.flatMap((item) => [item.solarGenerationKwh, item.gridConsumptionKwh]));
 
   return (
@@ -61,7 +62,7 @@ export function EnergyChart({ data }: EnergyChartProps) {
                 <View style={{ width: 14, height: gridHeight, borderRadius: 999, backgroundColor: '#2563eb' }} />
               </View>
               <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '700' }}>{formatDayLabel(item.date)}</Text>
-              <Text style={{ color: '#94a3b8', fontSize: 11 }}>{formatKwh(item.solarGenerationKwh + item.gridConsumptionKwh, 1)}</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 11 }}>{formatKwh(item.solarGenerationKwh + item.gridConsumptionKwh)}</Text>
             </View>
           );
         })}

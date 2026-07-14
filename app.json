@@ -21,6 +21,9 @@
         "projectId": "94b69d50-1778-4481-912f-c5f068ebe648"
       }
     },
-    "owner": "keiprojects"
+    "owner": "keiprojects",
+    "android": {
+      "package": "com.keiprojects.watttrack"
+    }
   }
 }

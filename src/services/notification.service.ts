@@ -80,7 +80,7 @@ export const notificationService = {
     await Notifications.scheduleNotificationAsync({
       identifier: REMINDER_NOTIFICATION_ID,
       content: {
-        title: 'Time to log today’s reading',
+        title: "Time to log today's reading",
         body: 'Open WattTrack and save your latest solar and grid numbers.',
         sound: 'default',
         data: { route: '/(tabs)/add' },

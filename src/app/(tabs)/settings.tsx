@@ -10,7 +10,7 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import type { AppTheme, DashboardPeriod } from '@/types/settings';
-import { formatCurrency } from '@/utils/format';
+import { useAppFormatters } from '@/utils/format';
 
 const themeOptions: { label: string; value: AppTheme }[] = [
   { label: 'System', value: 'system' },
@@ -140,6 +140,7 @@ export default function SettingsScreen() {
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const setReadings = useReadingsStore((state) => state.setReadings);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
+  const { formatCurrency, formatRate } = useAppFormatters();
 
   const [theme, setTheme] = useState<AppTheme>(settings.theme);
   const [decimalPlaces, setDecimalPlaces] = useState(String(settings.decimalPlaces));
@@ -228,7 +229,12 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             void (async () => {
-              await storageService.importBackup(parsedBackup);
+              const importedBackup = await storageService.importBackup(parsedBackup);
+              if (importedBackup.appSettings.reminderEnabled && importedBackup.appSettings.reminderTime) {
+                await notificationService.enableDailyReminder(importedBackup.appSettings.reminderTime);
+              } else {
+                await notificationService.disableDailyReminder();
+              }
               await rehydrateAllStores();
               setStatusMessage('Backup imported successfully.');
             })().catch((error: unknown) => {
@@ -298,7 +304,7 @@ export default function SettingsScreen() {
           Initial system cost: {formatCurrency(systemProfile?.initialSystemCost ?? 0)}
         </Text>
         <Text style={{ color: '#334155', fontSize: 15 }}>
-          Default import rate: PHP {(systemProfile?.defaultImportRate ?? 0).toFixed(2)} / kWh
+          Default import rate: {formatRate(systemProfile?.defaultImportRate ?? 0)}
         </Text>
         <Text style={{ color: '#334155', fontSize: 15 }}>Grid input mode: {systemProfile?.gridInputMode ?? 'cumulative'}</Text>
         <Text style={{ color: '#334155', fontSize: 15 }}>Solar input mode: {systemProfile?.solarInputMode ?? 'cumulative'}</Text>
