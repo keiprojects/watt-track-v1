@@ -123,9 +123,9 @@ export default function ReadingDetailScreen() {
             ) : null}
 
             <DetailCard title="Original entered values">
-              <DetailRow label="Grid input" value={typeof reading.gridReading === 'number' ? formatKwh(reading.gridReading) : 'Not provided'} />
-              <DetailRow label="Solar input" value={typeof reading.solarReading === 'number' ? formatKwh(reading.solarReading) : 'Not provided'} />
-              <DetailRow label="Export input" value={typeof reading.exportReading === 'number' ? formatKwh(reading.exportReading) : 'Not provided'} />
+              <DetailRow label="Grid meter/input" value={typeof reading.gridReading === 'number' ? formatKwh(reading.gridReading) : 'Not provided'} />
+              <DetailRow label="Solar meter/input" value={typeof reading.solarReading === 'number' ? formatKwh(reading.solarReading) : 'Not provided'} />
+              <DetailRow label="Export meter/input" value={typeof reading.exportReading === 'number' ? formatKwh(reading.exportReading) : 'Not provided'} />
               <DetailRow label="Meter reset" value={reading.meterReset ? 'Yes' : 'No'} />
             </DetailCard>
 

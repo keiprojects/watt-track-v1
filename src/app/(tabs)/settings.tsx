@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import type { AppTheme, DashboardPeriod } from '@/types/settings';
+import type { ExportInputMode, ReadingInputMode } from '@/types/system';
 import { useAppFormatters } from '@/utils/format';
 
 const themeOptions: { label: string; value: AppTheme }[] = [
@@ -28,6 +29,22 @@ const dashboardPeriodOptions: { label: string; value: DashboardPeriod }[] = [
 ];
 
 const decimalOptions = ['0', '1', '2', '3'] as const;
+
+function formatReadingMode(mode?: ReadingInputMode): string {
+  return mode === 'daily' ? 'Daily usage' : 'Meter reading';
+}
+
+function formatExportMode(mode?: ExportInputMode): string {
+  if (mode === 'daily') {
+    return 'Daily export';
+  }
+
+  if (mode === 'cumulative') {
+    return 'Meter reading';
+  }
+
+  return 'Off';
+}
 
 function SettingsCard({
   title,
@@ -316,9 +333,9 @@ export default function SettingsScreen() {
         <Text style={{ color: theme.textMuted, fontSize: 15 }}>
           Default import rate: {formatRate(systemProfile?.defaultImportRate ?? 0)}
         </Text>
-        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Grid input mode: {systemProfile?.gridInputMode ?? 'cumulative'}</Text>
-        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Solar input mode: {systemProfile?.solarInputMode ?? 'cumulative'}</Text>
-        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Export mode: {systemProfile?.exportInputMode ?? 'disabled'}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Grid input mode: {formatReadingMode(systemProfile?.gridInputMode)}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Solar input mode: {formatReadingMode(systemProfile?.solarInputMode)}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15 }}>Export mode: {formatExportMode(systemProfile?.exportInputMode)}</Text>
         <ActionButton theme={theme} label="Edit system profile" onPress={() => router.push('/onboarding')} tone="secondary" />
       </SettingsCard>
 

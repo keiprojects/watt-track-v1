@@ -8,7 +8,7 @@ import { MetricCard } from '@/components/metric-card';
 import { buildReadingPreview, findPreviousReading } from '@/services/calculation.service';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
-import { getTodayDateInputValue } from '@/utils/date';
+import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
 
@@ -78,6 +78,14 @@ function Field({
   );
 }
 
+function formatPreviousReadingLabel(reading?: EnergyReading): string | undefined {
+  if (!reading) {
+    return undefined;
+  }
+
+  return reading.time ? `${formatShortDate(reading.date)} at ${reading.time}` : formatShortDate(reading.date);
+}
+
 type ReadingFormProps = {
   title: string;
   description: string;
@@ -124,6 +132,10 @@ export function ReadingForm({
   }, [initialDraft, reset, systemProfile]);
 
   const watchedValues = watch();
+  const comparisonReadings = useMemo(
+    () => readings.filter((reading) => reading.id !== duplicateDateIgnoreId),
+    [duplicateDateIgnoreId, readings],
+  );
 
   const draft = useMemo<ReadingDraft | null>(() => {
     if (!systemProfile) {
@@ -148,13 +160,18 @@ export function ReadingForm({
       return null;
     }
 
-    const previousReading = findPreviousReading(
-      readings.filter((reading) => reading.id !== duplicateDateIgnoreId),
-      draft,
-    );
+    const previousReading = findPreviousReading(comparisonReadings, draft);
 
     return buildReadingPreview({ draft, profile: systemProfile, previousReading });
-  }, [draft, duplicateDateIgnoreId, readings, systemProfile]);
+  }, [comparisonReadings, draft, systemProfile]);
+
+  const previousReading = useMemo(() => {
+    if (!draft) {
+      return undefined;
+    }
+
+    return findPreviousReading(comparisonReadings, draft);
+  }, [comparisonReadings, draft]);
 
   if (!systemProfile) {
     return (
@@ -174,6 +191,21 @@ export function ReadingForm({
   const gridLabel = systemProfile.gridInputMode === 'cumulative' ? 'Grid meter reading' : 'Grid usage (kWh)';
   const solarLabel = systemProfile.solarInputMode === 'cumulative' ? 'Solar meter reading' : 'Solar generation (kWh)';
   const exportLabel = systemProfile.exportInputMode === 'cumulative' ? 'Export meter reading' : 'Exported energy (kWh)';
+  const previousReadingLabel = formatPreviousReadingLabel(previousReading);
+  const gridHelper =
+    systemProfile.gridInputMode === 'cumulative'
+      ? previousReadingLabel
+        ? `Enter the meter-base number you see now. WattTrack will subtract the previous grid reading from ${previousReadingLabel}.`
+        : 'Enter the meter-base number you see now. The first cumulative entry sets your baseline, so daily grid usage starts on the next reading.'
+      : 'Enter the kWh you used since your last reading.';
+  const solarHelper =
+    systemProfile.solarInputMode === 'cumulative'
+      ? 'Enter the solar meter number you see now.'
+      : 'Enter the kWh your system generated since your last reading.';
+  const exportHelper =
+    systemProfile.exportInputMode === 'cumulative'
+      ? 'Enter the export meter number you see now.'
+      : 'Enter the kWh exported since your last reading.';
 
   const submitValues = async (values: ReadingFormValues, stayOnForm: boolean) => {
     const nextDraft: ReadingDraft = {
@@ -286,7 +318,7 @@ export function ReadingForm({
           />
         </Field>
 
-        <Field label={gridLabel} error={errors.gridReading?.message}>
+        <Field label={gridLabel} helper={gridHelper} error={errors.gridReading?.message}>
           <Controller
             control={control}
             name="gridReading"
@@ -308,7 +340,7 @@ export function ReadingForm({
           />
         </Field>
 
-        <Field label={solarLabel} error={errors.solarReading?.message}>
+        <Field label={solarLabel} helper={solarHelper} error={errors.solarReading?.message}>
           <Controller
             control={control}
             name="solarReading"
@@ -331,7 +363,7 @@ export function ReadingForm({
         </Field>
 
         {systemProfile.exportInputMode !== 'disabled' ? (
-          <Field label={exportLabel} error={errors.exportReading?.message}>
+          <Field label={exportLabel} helper={exportHelper} error={errors.exportReading?.message}>
             <Controller
               control={control}
               name="exportReading"
@@ -456,6 +488,24 @@ export function ReadingForm({
       {preview ? (
         <View style={{ gap: 10 }}>
           <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>Preview</Text>
+          {systemProfile.gridInputMode === 'cumulative' ? (
+            <View
+              style={{
+                gap: 6,
+                borderRadius: 8,
+                borderCurve: 'continuous',
+                backgroundColor: '#eff6ff',
+                padding: 14,
+              }}
+            >
+              <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '800' }}>Grid meter check</Text>
+              <Text style={{ color: '#1e3a8a', fontSize: 13, lineHeight: 18 }}>
+                {previousReadingLabel
+                  ? `Current reading ${formatKwh(draft?.gridReading ?? 0)} minus previous reading ${formatKwh(previousReading?.gridReading ?? 0)} from ${previousReadingLabel} equals ${formatKwh(preview.gridConsumptionKwh)} grid usage.`
+                  : `This is your baseline grid meter reading. Grid usage will start calculating after you save a later reading.`}
+              </Text>
+            </View>
+          ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <MetricCard label="Grid consumption" value={formatKwh(preview.gridConsumptionKwh)} />
             <MetricCard label="Solar generation" value={formatKwh(preview.solarGenerationKwh)} tone="accent" />

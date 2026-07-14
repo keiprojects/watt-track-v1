@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 
+import { recalculateReadings } from '@/services/calculation.service';
 import { storageService } from '@/services/storage.service';
+import { useReadingsStore } from '@/stores/readings.store';
 import type { SystemProfile } from '@/types/system';
+import { sortReadingsDescending } from '@/utils/date';
 
 type SystemState = {
   systemProfile: SystemProfile | null;
@@ -18,7 +21,14 @@ export const useSystemStore = create<SystemState>((set) => ({
     set({ systemProfile, hasHydrated: true });
   },
   saveProfile: async (profile) => {
+    const existingReadings = useReadingsStore.getState().readings;
+    const recalculatedReadings = sortReadingsDescending(recalculateReadings({ readings: existingReadings, profile }));
+
     set({ systemProfile: profile });
-    await storageService.saveSystemProfile(profile);
+    useReadingsStore.setState({ readings: recalculatedReadings });
+    await Promise.all([
+      storageService.saveSystemProfile(profile),
+      storageService.setEnergyReadings(recalculatedReadings),
+    ]);
   },
 }));
