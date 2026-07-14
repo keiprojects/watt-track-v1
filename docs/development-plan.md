@@ -29,7 +29,8 @@ Current implementation observed in `src/`:
 - Home, History, and Insights provide baseline summaries and empty states.
 - System cost CRUD and payback forecasting now exist in Insights.
 - Settings now supports display preferences, CSV export, JSON backup export/import, local reminder scheduling, delete-all-readings, and full reset flows.
-- History detail/edit/delete flows and dashboard charts/filters are still not implemented.
+- History now supports month grouping, date/note/warning filters, detail view, edit, duplicate, and delete flows with cumulative recalculation safeguards.
+- Dashboard charts/filters and expanded insights range controls are still not implemented.
 
 ## Source-of-Truth Rules
 
@@ -179,7 +180,7 @@ Definition of done:
 
 ### Milestone 3: History and Readings Management
 
-Status: partial
+Status: completed
 
 Goal:
 Make stored readings reviewable, editable, and safe to correct.
@@ -319,7 +320,7 @@ Use this section as the release gate. Mark each item only when verified in app b
 - [ ] App calculates daily solar generation automatically.
 - [ ] App calculates estimated savings from stored rates.
 - [ ] Dashboard displays daily and monthly summaries.
-- [ ] History supports view, edit, and delete.
+- [x] History supports view, edit, and delete.
 - [ ] Insights displays totals, savings, ROI, and payback.
 - [ ] Additional system costs can be recorded.
 - [ ] Data persists after app close and reopen.
@@ -342,3 +343,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - The current scaffold will be refactored toward the PRD rather than extended as-is.
 - System cost management and forecast-based payback estimation were added in Insights as the next finance-focused delivery slice.
 - Settings, local reminder scheduling, CSV export, JSON backup import/export, and destructive reset flows were added as the next offline data-safety delivery slice.
+- History filters, reading detail/edit/duplicate/delete flows, and downstream cumulative recalculation safeguards were added as the next readings-management delivery slice.

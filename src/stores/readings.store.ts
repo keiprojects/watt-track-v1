@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 
+import { recalculateReadings } from '@/services/calculation.service';
 import { storageService } from '@/services/storage.service';
 import type { EnergyReading } from '@/types/reading';
+import type { SystemProfile } from '@/types/system';
 import { sortReadingsDescending } from '@/utils/date';
 
 type ReadingsState = {
@@ -9,9 +11,9 @@ type ReadingsState = {
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
   setReadings: (readings: EnergyReading[]) => Promise<void>;
-  saveReading: (reading: EnergyReading) => Promise<void>;
-  updateReading: (reading: EnergyReading) => Promise<void>;
-  deleteReading: (readingId: string) => Promise<void>;
+  saveReading: (reading: EnergyReading, profile: SystemProfile) => Promise<void>;
+  updateReading: (reading: EnergyReading, profile: SystemProfile) => Promise<void>;
+  deleteReading: (readingId: string, profile: SystemProfile) => Promise<void>;
 };
 
 export const useReadingsStore = create<ReadingsState>((set, get) => ({
@@ -26,20 +28,28 @@ export const useReadingsStore = create<ReadingsState>((set, get) => ({
     set({ readings: sorted });
     await storageService.setEnergyReadings(sorted);
   },
-  saveReading: async (reading) => {
-    const readings = sortReadingsDescending([reading, ...get().readings]);
+  saveReading: async (reading, profile) => {
+    const readings = sortReadingsDescending(recalculateReadings({ readings: [reading, ...get().readings], profile }));
     set({ readings });
     await storageService.setEnergyReadings(readings);
   },
-  updateReading: async (reading) => {
+  updateReading: async (reading, profile) => {
     const readings = sortReadingsDescending(
-      get().readings.map((currentReading) => (currentReading.id === reading.id ? reading : currentReading)),
+      recalculateReadings({
+        readings: get().readings.map((currentReading) => (currentReading.id === reading.id ? reading : currentReading)),
+        profile,
+      }),
     );
     set({ readings });
     await storageService.setEnergyReadings(readings);
   },
-  deleteReading: async (readingId) => {
-    const readings = get().readings.filter((reading) => reading.id !== readingId);
+  deleteReading: async (readingId, profile) => {
+    const readings = sortReadingsDescending(
+      recalculateReadings({
+        readings: get().readings.filter((reading) => reading.id !== readingId),
+        profile,
+      }),
+    );
     set({ readings });
     await storageService.setEnergyReadings(readings);
   },

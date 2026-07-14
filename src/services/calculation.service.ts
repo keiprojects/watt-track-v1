@@ -292,6 +292,78 @@ export function summarizeReadings(readings: EnergyReading[]) {
   };
 }
 
+export function readingToDraft(reading: EnergyReading): ReadingDraft {
+  return {
+    date: reading.date,
+    time: reading.time,
+    gridReading: reading.gridReading,
+    solarReading: reading.solarReading,
+    exportReading: reading.exportReading,
+    importRate: reading.importRate,
+    exportRate: reading.exportRate,
+    notes: reading.notes,
+    meterReset: reading.meterReset,
+  };
+}
+
+export function recalculateReadings({
+  readings,
+  profile,
+}: {
+  readings: EnergyReading[];
+  profile: SystemProfile;
+}): EnergyReading[] {
+  const recalculated: EnergyReading[] = [];
+
+  for (const reading of sortReadingsAscending(readings)) {
+    const previousReading = recalculated.at(-1);
+    const preview = buildReadingPreview({
+      draft: readingToDraft(reading),
+      profile,
+      previousReading,
+    });
+
+    recalculated.push({
+      ...reading,
+      gridConsumptionKwh: preview.gridConsumptionKwh,
+      solarGenerationKwh: preview.solarGenerationKwh,
+      exportedEnergyKwh: preview.exportedEnergyKwh,
+      selfConsumedSolarKwh: preview.selfConsumedSolarKwh,
+      estimatedHomeUsageKwh: preview.estimatedHomeUsageKwh,
+      importRate: preview.importRate,
+      exportRate: preview.exportRate,
+      estimatedSavings: preview.estimatedSavings,
+      estimatedGridCost: preview.estimatedGridCost,
+      warningCodes: preview.warningCodes.length > 0 ? preview.warningCodes : undefined,
+    });
+  }
+
+  return recalculated;
+}
+
+export function deletionAffectsLaterCumulativeReadings({
+  readings,
+  reading,
+  profile,
+}: {
+  readings: EnergyReading[];
+  reading: EnergyReading;
+  profile: SystemProfile;
+}): boolean {
+  const hasCumulativeMode =
+    profile.gridInputMode === 'cumulative' ||
+    profile.solarInputMode === 'cumulative' ||
+    profile.exportInputMode === 'cumulative';
+
+  if (!hasCumulativeMode) {
+    return false;
+  }
+
+  const sorted = sortReadingsAscending(readings);
+  const readingIndex = sorted.findIndex((entry) => entry.id === reading.id);
+  return readingIndex >= 0 && readingIndex < sorted.length - 1;
+}
+
 export function calculateSolarContribution(reading?: Pick<EnergyReading, 'estimatedHomeUsageKwh' | 'selfConsumedSolarKwh'>): number {
   if (!reading || reading.estimatedHomeUsageKwh === 0) {
     return 0;
