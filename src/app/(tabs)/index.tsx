@@ -8,6 +8,7 @@ import {
   OverlaySheet,
   Panel,
   SectionTitle,
+  useScreenContentContainerStyle,
 } from '@/components/app-ui';
 import { MetricCard } from '@/components/metric-card';
 import { PowerOrb } from '@/components/power-orb';
@@ -225,6 +226,7 @@ export default function DashboardScreen() {
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const settings = useSettingsStore((state) => state.settings);
   const { formatCurrency, formatKwh } = useAppFormatters();
+  const contentContainerStyle = useScreenContentContainerStyle();
 
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>(settings.defaultDashboardPeriod);
   const [showGuide, setShowGuide] = useState(false);
@@ -274,7 +276,7 @@ export default function DashboardScreen() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={contentContainerStyle}
       >
         <MotionSection index={0}>
           <Panel tone="inverse" style={{ backgroundColor: theme.header }}>

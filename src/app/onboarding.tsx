@@ -5,6 +5,7 @@ import { Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View } fr
 import { z } from 'zod';
 
 import { SegmentedControl } from '@/components/segmented-control';
+import { useScreenContentContainerStyle } from '@/components/app-ui';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
@@ -101,6 +102,7 @@ export default function OnboardingScreen() {
   const settingsHydrated = useSettingsStore((state) => state.hasHydrated);
   const systemHydrated = useSystemStore((state) => state.hasHydrated);
   const settings = useSettingsStore((state) => state.settings);
+  const contentContainerStyle = useScreenContentContainerStyle({ gap: 20 });
 
   const {
     control,
@@ -194,7 +196,7 @@ export default function OnboardingScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: '#f8fafc' }}
-      contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: 40 }}
+      contentContainerStyle={contentContainerStyle}
     >
       <View style={{ gap: 8 }}>
         <Image

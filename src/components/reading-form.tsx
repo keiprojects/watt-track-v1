@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'rea
 import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
+import { useScreenContentContainerStyle } from '@/components/app-ui';
 import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
 import { useAppTheme } from '@/theme/use-app-theme';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
@@ -123,6 +124,8 @@ export function ReadingForm({
 }: ReadingFormProps) {
   const theme = useAppTheme();
   const { formatCurrency, formatKwh } = useAppFormatters();
+  const emptyStateContentContainerStyle = useScreenContentContainerStyle({ gap: 16, bottomPadding: 20 });
+  const contentContainerStyle = useScreenContentContainerStyle();
   const {
     control,
     handleSubmit,
@@ -191,7 +194,7 @@ export function ReadingForm({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={{ gap: 16, padding: 20 }}
+        contentContainerStyle={emptyStateContentContainerStyle}
       >
         <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>{title}</Text>
         <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
@@ -279,7 +282,7 @@ export function ReadingForm({
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
+      contentContainerStyle={contentContainerStyle}
     >
       <View style={{ gap: 6 }}>
         <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>{title}</Text>

@@ -1,8 +1,8 @@
 import { Stack, router } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
-import { LoadingScreen } from '@/components/loading-screen';
 import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
@@ -13,6 +13,15 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore duplicate calls when Fast Refresh remounts the layout.
+});
+
+SplashScreen.setOptions({
+  duration: 300,
+  fade: true,
+});
+
 export default function RootLayout() {
   const theme = useAppTheme();
   const hydrateCosts = useCostsStore((state) => state.hydrate);
@@ -20,17 +29,19 @@ export default function RootLayout() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const [hasBooted, setHasBooted] = useState(false);
-  const [hasShownSplash, setHasShownSplash] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    const splashTimer = setTimeout(() => {
-      if (isMounted) {
-        setHasShownSplash(true);
-      }
-    }, 1600);
 
-    void Promise.all([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]).then(() => {
+    void Promise.allSettled([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]).then((results) => {
+      if (__DEV__) {
+        results.forEach((result) => {
+          if (result.status === 'rejected') {
+            console.error('Hydration error:', result.reason);
+          }
+        });
+      }
+
       if (isMounted) {
         setHasBooted(true);
       }
@@ -38,9 +49,18 @@ export default function RootLayout() {
 
     return () => {
       isMounted = false;
-      clearTimeout(splashTimer);
     };
   }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
+
+  useEffect(() => {
+    if (!hasBooted) {
+      return;
+    }
+
+    void SplashScreen.hideAsync().catch(() => {
+      // Ignore duplicate hides when Fast Refresh remounts the layout.
+    });
+  }, [hasBooted]);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,13 +107,8 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!hasBooted || !hasShownSplash) {
-    return (
-      <>
-        <LoadingScreen label="Powering up your solar dashboard..." />
-        <StatusBar style="light" />
-      </>
-    );
+  if (!hasBooted) {
+    return null;
   }
 
   return (

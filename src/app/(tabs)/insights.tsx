@@ -11,6 +11,7 @@ import {
   Panel,
   SectionTitle,
   StatPill,
+  useScreenContentContainerStyle,
 } from '@/components/app-ui';
 import { BreakdownDonut } from '@/components/breakdown-donut';
 import { MetricCard } from '@/components/metric-card';
@@ -151,6 +152,7 @@ export default function InsightsScreen() {
   const deleteCost = useCostsStore((state) => state.deleteCost);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
+  const contentContainerStyle = useScreenContentContainerStyle();
 
   const [forecastWindow, setForecastWindow] = useState<PaybackForecastWindow>('30d');
   const [selectedRange, setSelectedRange] = useState<InsightsRange>('30d');
@@ -314,7 +316,7 @@ export default function InsightsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
+      contentContainerStyle={contentContainerStyle}
     >
       <MotionSection index={0}>
         <Panel tone="inverse" style={{ backgroundColor: theme.header }}>

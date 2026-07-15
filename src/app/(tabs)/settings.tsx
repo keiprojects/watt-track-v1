@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 
-import { AppButton, IconBadge, MotionSection, Panel, SectionTitle } from '@/components/app-ui';
+import { AppButton, IconBadge, MotionSection, Panel, SectionTitle, useScreenContentContainerStyle } from '@/components/app-ui';
 import { SegmentedControl } from '@/components/segmented-control';
 import { exportService } from '@/services/export.service';
 import { notificationService } from '@/services/notification.service';
@@ -100,6 +100,7 @@ export default function SettingsScreen() {
   const setReadings = useReadingsStore((state) => state.setReadings);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const { formatCurrency, formatRate } = useAppFormatters();
+  const contentContainerStyle = useScreenContentContainerStyle();
 
   const [themePreference, setThemePreference] = useState<AppTheme>(settings.theme);
   const [decimalPlaces, setDecimalPlaces] = useState(String(settings.decimalPlaces));
@@ -251,7 +252,7 @@ export default function SettingsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
+      contentContainerStyle={contentContainerStyle}
     >
       <MotionSection index={0}>
         <Panel tone="inverse" style={{ backgroundColor: theme.header }}>

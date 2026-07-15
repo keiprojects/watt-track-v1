@@ -80,6 +80,13 @@ type OverlaySheetProps = {
   footer?: ReactNode;
 };
 
+type ScreenContentContainerOptions = {
+  gap?: number;
+  horizontalPadding?: number;
+  topPadding?: number;
+  bottomPadding?: number;
+};
+
 function getIconColors(
   tone: IconBadgeProps['tone'],
   theme: ReturnType<typeof useAppTheme>,
@@ -323,6 +330,23 @@ export function SkeletonBlock({
       ]}
     />
   );
+}
+
+export function useScreenContentContainerStyle({
+  gap = 18,
+  horizontalPadding = 20,
+  topPadding = 20,
+  bottomPadding = 40,
+}: ScreenContentContainerOptions = {}): ViewStyle {
+  const insets = useSafeAreaInsets();
+  const topInset = process.env.EXPO_OS === 'ios' ? 0 : insets.top;
+
+  return {
+    gap,
+    paddingHorizontal: horizontalPadding,
+    paddingTop: topPadding + topInset,
+    paddingBottom: bottomPadding + insets.bottom,
+  };
 }
 
 export function OverlaySheet({

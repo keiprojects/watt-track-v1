@@ -7,12 +7,16 @@
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/branding/logo-full.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#04111d"
-    },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/logo-full.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#04111d",
+          "imageWidth": 220
+        }
+      ],
       "expo-router",
       "expo-document-picker",
       "expo-file-system",

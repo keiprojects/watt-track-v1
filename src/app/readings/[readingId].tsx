@@ -1,6 +1,7 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useScreenContentContainerStyle } from '@/components/app-ui';
 import { deletionAffectsLaterCumulativeReadings } from '@/services/calculation.service';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
@@ -61,6 +62,7 @@ export default function ReadingDetailScreen() {
   const deleteReading = useReadingsStore((state) => state.deleteReading);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const { formatCurrency, formatKwh, formatRate } = useAppFormatters();
+  const contentContainerStyle = useScreenContentContainerStyle({ gap: 16 });
 
   const reading = readings.find((entry) => entry.id === params.readingId);
 
@@ -101,7 +103,7 @@ export default function ReadingDetailScreen() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={contentContainerStyle}
       >
         {!reading ? (
           <DetailCard title="Reading not found">

@@ -27,6 +27,7 @@
     "expo-notifications": "~57.0.3",
     "expo-router": "latest",
     "expo-sharing": "~57.0.3",
+    "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "latest",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

@@ -10,6 +10,7 @@ import {
   Panel,
   SectionTitle,
   StatPill,
+  useScreenContentContainerStyle,
 } from '@/components/app-ui';
 import { TrendLineChart } from '@/components/trend-line-chart';
 import { useReadingsStore } from '@/stores/readings.store';
@@ -69,6 +70,7 @@ export default function HistoryScreen() {
   const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
   const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
+  const contentContainerStyle = useScreenContentContainerStyle({ gap: 16 });
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [notesOnly, setNotesOnly] = useState(false);
@@ -126,7 +128,7 @@ export default function HistoryScreen() {
       <SectionList
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={contentContainerStyle}
         sections={sections}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled={false}
