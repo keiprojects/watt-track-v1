@@ -1,7 +1,8 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { Platform } from 'react-native';
 
 export function isNotificationsSupported(): boolean {
-  return Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+  return Platform.OS !== 'web' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 }
 
 export async function loadNotificationsModule() {

@@ -4,8 +4,18 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-nativ
 import { Controller, type Resolver, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import {
+  AppButton,
+  IconBadge,
+  MotionSection,
+  Panel,
+  SectionTitle,
+  StatPill,
+} from '@/components/app-ui';
+import { BreakdownDonut } from '@/components/breakdown-donut';
 import { MetricCard } from '@/components/metric-card';
 import { SegmentedControl } from '@/components/segmented-control';
+import { SparkBars } from '@/components/spark-bars';
 import {
   aggregateReadingsByDate,
   estimatePaybackForecast,
@@ -21,7 +31,6 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
-import type { EnergyReading } from '@/types/reading';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { createId } from '@/utils/ids';
@@ -37,20 +46,20 @@ const costSchema = z.object({
 
 type CostFormValues = z.infer<typeof costSchema>;
 
-const forecastOptions: { label: string; value: PaybackForecastWindow }[] = [
-  { label: '30 days', value: '30d' },
-  { label: '90 days', value: '90d' },
-  { label: 'All time', value: 'all' },
+const forecastOptions: { label: string; value: PaybackForecastWindow; icon: 'trending-up-outline' }[] = [
+  { label: '30 days', value: '30d', icon: 'trending-up-outline' },
+  { label: '90 days', value: '90d', icon: 'trending-up-outline' },
+  { label: 'All time', value: 'all', icon: 'trending-up-outline' },
 ];
 
-const rangeOptions: { label: string; value: InsightsRange }[] = [
-  { label: '7d', value: '7d' },
-  { label: '30d', value: '30d' },
-  { label: 'This month', value: 'current-month' },
-  { label: 'Last month', value: 'previous-month' },
-  { label: 'This year', value: 'current-year' },
-  { label: 'All', value: 'all' },
-  { label: 'Custom', value: 'custom' },
+const rangeOptions: { label: string; value: InsightsRange; icon: 'calendar-outline' | 'pulse-outline' }[] = [
+  { label: '7d', value: '7d', icon: 'pulse-outline' },
+  { label: '30d', value: '30d', icon: 'pulse-outline' },
+  { label: 'This month', value: 'current-month', icon: 'calendar-outline' },
+  { label: 'Last month', value: 'previous-month', icon: 'calendar-outline' },
+  { label: 'This year', value: 'current-year', icon: 'calendar-outline' },
+  { label: 'All', value: 'all', icon: 'calendar-outline' },
+  { label: 'Custom', value: 'custom', icon: 'calendar-outline' },
 ];
 
 const costCategoryOptions: { label: string; value: SystemCostCategory }[] = [
@@ -92,7 +101,7 @@ function Field({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: theme.text, fontSize: 14, fontWeight: '800' }}>{label}</Text>
       {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
       {children}
       {error ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>{error}</Text> : null}
@@ -100,75 +109,37 @@ function Field({
   );
 }
 
-function SectionCard({
-  title,
-  description,
-  children,
+function InsightRow({
+  label,
+  value,
+  accent = false,
 }: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
+  label: string;
+  value: string;
+  accent?: boolean;
 }) {
   const theme = useAppTheme();
 
   return (
-    <View
-      style={{
-        gap: 14,
-        borderRadius: 8,
-        borderCurve: 'continuous',
-        backgroundColor: theme.surface,
-        padding: 18,
-        boxShadow: theme.shadow,
-      }}
-    >
-      <View style={{ gap: 4 }}>
-        <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{title}</Text>
-        {description ? <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 21 }}>{description}</Text> : null}
-      </View>
-      {children}
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>{label}</Text>
+      <Text selectable style={{ color: accent ? theme.accent : theme.text, fontSize: 14, fontWeight: '800' }}>
+        {value}
+      </Text>
     </View>
   );
 }
 
-function getForecastHelper(window: PaybackForecastWindow): string {
-  if (window === '30d') {
-    return 'Projected from the most recent 30 days with saved readings.';
-  }
-
-  if (window === '90d') {
-    return 'Projected from the most recent 90 days with saved readings.';
-  }
-
-  return 'Projected from every saved reading on this device.';
-}
-
-function getRangeHelper(range: InsightsRange): string {
-  if (range === '7d') {
-    return 'Showing the most recent 7 days of readings.';
-  }
-
-  if (range === '30d') {
-    return 'Showing the most recent 30 days of readings.';
-  }
-
-  if (range === 'current-month') {
-    return 'Showing readings from the current month.';
-  }
-
-  if (range === 'previous-month') {
-    return 'Showing readings from the previous month.';
-  }
-
-  if (range === 'current-year') {
-    return 'Showing readings from the current year.';
-  }
-
-  if (range === 'custom') {
-    return 'Filter readings and costs to a specific start and end date.';
-  }
-
-  return 'Showing all locally saved readings and tracked costs.';
+function inputStyle(theme: ReturnType<typeof useAppTheme>) {
+  return {
+    borderRadius: 16,
+    borderCurve: 'continuous' as const,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceRaised,
+    padding: 14,
+    color: theme.text,
+  };
 }
 
 export default function InsightsScreen() {
@@ -238,7 +209,6 @@ export default function InsightsScreen() {
   const averageDailySavings = dailySummaries.length === 0 ? 0 : summary.estimatedSavings / dailySummaries.length;
   const averageMonthlySavings = averageDailySavings * 30;
   const averageSolarPerDay = dailySummaries.length === 0 ? 0 : summary.solarGeneratedKwh / dailySummaries.length;
-  const averageGridPerDay = dailySummaries.length === 0 ? 0 : summary.gridConsumedKwh / dailySummaries.length;
   const solarContribution = summary.homeUsageKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.homeUsageKwh) * 100;
   const selfConsumptionShare = summary.solarGeneratedKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.solarGeneratedKwh) * 100;
   const averageDailyGridCost = dailySummaries.length === 0 ? 0 : summary.estimatedGridCost / dailySummaries.length;
@@ -256,6 +226,21 @@ export default function InsightsScreen() {
 
     return lowest;
   }, undefined);
+
+  const chartValues = useMemo(
+    () => dailySummaries.slice(-7).map((reading) => reading.estimatedHomeUsageKwh),
+    [dailySummaries],
+  );
+  const chartLabels = useMemo(
+    () =>
+      dailySummaries.slice(-7).map((reading) =>
+        new Intl.DateTimeFormat('en-PH', {
+          weekday: 'short',
+          timeZone: 'Asia/Manila',
+        }).format(new Date(`${reading.date}T00:00:00`)),
+      ),
+    [dailySummaries],
+  );
 
   const startEditingCost = (cost: SystemCost) => {
     setEditingCostId(cost.id);
@@ -317,16 +302,13 @@ export default function InsightsScreen() {
     ]);
   };
 
-  const rangeHasInvalidCustomDates = selectedRange === 'custom' && Boolean(customStartDate && customEndDate && customStartDate > customEndDate);
-  const capitalBreakdownHelper =
-    systemProfile && systemProfile.initialSystemCost > 0
-      ? `${formatCurrency(systemProfile.initialSystemCost)} initial + ${formatCurrency(roi.additionalCapitalCosts)} added`
-      : `${formatCurrency(roi.additionalCapitalCosts)} added capital costs`;
+  const rangeHasInvalidCustomDates =
+    selectedRange === 'custom' && Boolean(customStartDate && customEndDate && customStartDate > customEndDate);
   const paybackStatusHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Not enough savings data'
     : overallRoi.remainingAmount === 0
       ? 'Investment recovered'
-      : `${paybackForecast.basedOnReadingCount} reading(s) in forecast`;
+      : `${paybackForecast.basedOnReadingCount} reading day(s) in forecast`;
 
   return (
     <ScrollView
@@ -334,340 +316,341 @@ export default function InsightsScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{ gap: 18, padding: 20, paddingBottom: 40 }}
     >
-      <View style={{ gap: 6 }}>
-        <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>Insights</Text>
-        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
-          Review energy and financial performance over a selected date range, then manage the costs feeding ROI and payback.
-        </Text>
-      </View>
-
-      <SectionCard title="Time range" description={getRangeHelper(selectedRange)}>
-        <SegmentedControl options={rangeOptions} value={selectedRange} onChange={setSelectedRange} />
-        {selectedRange === 'custom' ? (
-          <View style={{ gap: 12 }}>
-            <Field label="Start date" helper="Use YYYY-MM-DD">
-              <TextInput
-                value={customStartDate}
-                onChangeText={setCustomStartDate}
-                placeholder="2026-07-01"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            </Field>
-            <Field label="End date" helper="Use YYYY-MM-DD">
-              <TextInput
-                value={customEndDate}
-                onChangeText={setCustomEndDate}
-                placeholder="2026-07-14"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            </Field>
-            {rangeHasInvalidCustomDates ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>End date must be on or after the start date.</Text> : null}
-          </View>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard title="Payback forecast" description={getForecastHelper(forecastWindow)}>
-        <SegmentedControl options={forecastOptions} value={forecastWindow} onChange={setForecastWindow} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <MetricCard label="Remaining to recover" value={formatCurrency(overallRoi.remainingAmount)} />
-          <MetricCard label="Forecast daily savings" value={formatCurrency(paybackForecast.averageDailySavings)} helper="Estimated" tone="accent" />
-          <MetricCard
-            label="Projected payback"
-            value={paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD'}
-            helper={
-              paybackForecast.hasEnoughSavingsData
-                ? overallRoi.remainingAmount === 0
-                  ? 'Investment recovered'
-                  : `${paybackForecast.basedOnReadingCount} reading(s) in forecast`
-                : 'Not enough savings data'
-            }
+      <MotionSection index={0}>
+        <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
+          <SectionTitle
+            title="Insights"
+            description="Analytics, payback, and cost tracking in the dark energy-console style."
+            icon="bar-chart-outline"
           />
-        </View>
-      </SectionCard>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <StatPill icon="calendar-outline" label="Range" value={selectedRange === 'custom' ? 'Custom' : selectedRange.replace('-', ' ')} tone="accent" />
+            <StatPill icon="wallet-outline" label="Avg month" value={formatCurrency(averageMonthlySavings)} />
+            <StatPill icon="rocket-outline" label="Payback" value={formatPercent(roi.paybackProgress)} tone="warning" />
+          </View>
+        </Panel>
+      </MotionSection>
+
+      <MotionSection index={1}>
+        <Panel tone="muted" padding={18}>
+          <SectionTitle title="Time range" description="Choose the period you want to analyze." icon="options-outline" />
+          <SegmentedControl options={rangeOptions} value={selectedRange} onChange={setSelectedRange} />
+          {selectedRange === 'custom' ? (
+            <View style={{ gap: 12 }}>
+              <FilterField label="Start date" value={customStartDate} onChangeText={setCustomStartDate} />
+              <FilterField label="End date" value={customEndDate} onChangeText={setCustomEndDate} />
+              {rangeHasInvalidCustomDates ? (
+                <Text style={{ color: theme.dangerText, fontSize: 13 }}>End date must be on or after the start date.</Text>
+              ) : null}
+            </View>
+          ) : null}
+        </Panel>
+      </MotionSection>
+
+      <MotionSection index={2}>
+        <Panel tone="muted" padding={18}>
+          <SectionTitle
+            title="Payback forecast"
+            description="Projected from your saved readings and tracked costs."
+            icon="trending-up-outline"
+          />
+          <SegmentedControl options={forecastOptions} value={forecastWindow} onChange={setForecastWindow} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <MetricCard
+              label="Remaining to recover"
+              value={formatCurrency(overallRoi.remainingAmount)}
+              helper="Capital still unrecovered"
+              icon="construct-outline"
+            />
+            <MetricCard
+              label="Forecast daily savings"
+              value={formatCurrency(paybackForecast.averageDailySavings)}
+              helper="Estimated"
+              tone="accent"
+              icon="cash-outline"
+            />
+            <MetricCard
+              label="Projected payback"
+              value={paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD'}
+              helper={paybackStatusHelper}
+              icon="time-outline"
+            />
+          </View>
+        </Panel>
+      </MotionSection>
 
       {filteredReadings.length === 0 ? (
-        <SectionCard title="No readings in range" description="Change the selected range or add readings to populate energy insights for this time window.">
-          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
-            WattTrack keeps your saved history intact. This range just does not include any matching readings yet, so energy metrics are empty for now.
-          </Text>
-        </SectionCard>
+        <Panel>
+          <SectionTitle
+            title="No readings in range"
+            description="Change the selected range or add more readings to populate this view."
+            icon="hourglass-outline"
+          />
+        </Panel>
       ) : (
-        <View style={{ gap: 10 }}>
-          <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Energy</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            <MetricCard label="Solar generated" value={formatKwh(summary.solarGeneratedKwh)} tone="accent" />
-            <MetricCard label="Avg solar per day" value={formatKwh(averageSolarPerDay)} />
-            <MetricCard label="Highest day" value={highestSolarDay ? formatKwh(highestSolarDay.solarGenerationKwh) : formatKwh(0)} helper={highestSolarDay ? formatShortDate(highestSolarDay.date) : 'No readings'} />
-            <MetricCard label="Lowest day" value={lowestSolarDay ? formatKwh(lowestSolarDay.solarGenerationKwh) : formatKwh(0)} helper={lowestSolarDay ? formatShortDate(lowestSolarDay.date) : 'No readings'} />
-            <MetricCard label="Grid consumed" value={formatKwh(summary.gridConsumedKwh)} />
-            <MetricCard label="Avg grid per day" value={formatKwh(averageGridPerDay)} />
-            <MetricCard label="Home usage" value={formatKwh(summary.homeUsageKwh)} helper="Estimated from grid + self-consumed solar" />
-            <MetricCard label="Solar contribution" value={formatPercent(solarContribution)} />
-            <MetricCard label="Self-consumption" value={formatPercent(selfConsumptionShare)} helper="Estimated" />
-            <MetricCard label="Avg daily grid cost" value={formatCurrency(averageDailyGridCost)} helper="Estimated" />
-          </View>
-        </View>
+        <>
+          <MotionSection index={3}>
+            <Panel>
+              <SectionTitle
+                title="Energy Breakdown"
+                description="A more literal analytics card, closer to your reference."
+                icon="pie-chart-outline"
+              />
+              <BreakdownDonut
+                centerValue={summary.homeUsageKwh.toFixed(1)}
+                centerLabel="kWh"
+                segments={[
+                  { color: theme.accent, label: 'Solar', value: formatKwh(summary.solarGeneratedKwh) },
+                  { color: '#52a3ff', label: 'Grid', value: formatKwh(summary.gridConsumedKwh) },
+                  { color: '#9b5cff', label: 'Self-use', value: formatKwh(summary.selfConsumedSolarKwh) },
+                  { color: '#ff9f2e', label: 'Usage', value: formatKwh(summary.homeUsageKwh) },
+                ]}
+              />
+            </Panel>
+          </MotionSection>
+
+          <MotionSection index={4}>
+            <Panel>
+              <SectionTitle
+                title="Peak Usage"
+                description={highestSolarDay ? `${formatKwh(highestSolarDay.solarGenerationKwh)} on ${formatShortDate(highestSolarDay.date)}` : 'Recent trend'}
+                icon="trending-up-outline"
+              />
+              <SparkBars values={chartValues} highlightIndex={Math.max(0, chartValues.length - 3)} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                {chartLabels.map((label) => (
+                  <Text key={label} style={{ flex: 1, textAlign: 'center', color: theme.textSubtle, fontSize: 11, fontWeight: '700' }}>
+                    {label}
+                  </Text>
+                ))}
+              </View>
+            </Panel>
+          </MotionSection>
+
+          <MotionSection index={5}>
+            <Panel>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontWeight: '800' }}>Total Usage</Text>
+                  <Text selectable style={{ color: theme.text, fontSize: 34, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+                    {formatKwh(summary.homeUsageKwh)}
+                  </Text>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
+                    {averageDailySavings > 0 ? `${formatCurrency(averageDailySavings)} avg daily savings` : 'Estimated from saved readings'}
+                  </Text>
+                </View>
+                <IconBadge icon="bar-chart-outline" size={56} />
+              </View>
+            </Panel>
+          </MotionSection>
+
+          <MotionSection index={6} style={{ gap: 12 }}>
+            <SectionTitle
+              title="Financial breakdown"
+              description="Savings, ROI, and cost pressure in a cleaner set of rows."
+              icon="wallet-outline"
+            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Within range" tone="accent" icon="cash-outline" />
+              <MetricCard label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" icon="calendar-outline" />
+              <MetricCard label="ROI" value={formatPercent(roi.roiPercentage)} helper="Net benefit / capital" icon="trending-up-outline" />
+              <MetricCard label="Remaining to recover" value={formatCurrency(roi.remainingAmount)} helper="Unrecovered capital" icon="construct-outline" />
+            </View>
+            <Panel tone="muted" padding={16}>
+              <InsightRow label="Total capital invested" value={formatCurrency(roi.totalCapitalInvestment)} />
+              <InsightRow label="Additional capital costs" value={formatCurrency(roi.additionalCapitalCosts)} />
+              <InsightRow label="Maintenance expenses" value={formatCurrency(roi.maintenanceCosts)} />
+              <InsightRow label="Net financial benefit" value={formatCurrency(roi.netSavings)} accent />
+              <InsightRow label="Solar contribution" value={formatPercent(solarContribution)} />
+              <InsightRow label="Self-consumption" value={formatPercent(selfConsumptionShare)} />
+              <InsightRow label="Avg solar / day" value={formatKwh(averageSolarPerDay)} />
+              <InsightRow label="Avg daily grid cost" value={formatCurrency(averageDailyGridCost)} />
+              <InsightRow label="Lowest day" value={lowestSolarDay ? `${formatKwh(lowestSolarDay.solarGenerationKwh)} on ${formatShortDate(lowestSolarDay.date)}` : 'No readings'} />
+            </Panel>
+          </MotionSection>
+        </>
       )}
 
-      <View style={{ gap: 10 }}>
-        <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Financial</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Estimated" tone="accent" />
-          <MetricCard label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" />
-          <MetricCard label="Avg monthly savings" value={formatCurrency(averageMonthlySavings)} helper="Estimated" />
-          <MetricCard label="Total capital invested" value={formatCurrency(roi.totalCapitalInvestment)} helper={capitalBreakdownHelper} />
-          <MetricCard label="Additional capital costs" value={formatCurrency(roi.additionalCapitalCosts)} />
-          <MetricCard label="Maintenance expenses" value={formatCurrency(roi.maintenanceCosts)} />
-          <MetricCard label="Net financial benefit" value={formatCurrency(roi.netSavings)} helper="Estimated savings minus maintenance" />
-          <MetricCard label="ROI" value={formatPercent(roi.roiPercentage)} />
-          <MetricCard label="Payback progress" value={formatPercent(roi.paybackProgress)} />
-          <MetricCard label="Remaining to recover" value={formatCurrency(roi.remainingAmount)} />
-          <MetricCard
-            label="Estimated payback date"
-            value={paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD'}
-            helper={paybackStatusHelper}
+      <MotionSection index={7}>
+        <Panel>
+          <SectionTitle
+            title={editingCostId ? 'Edit tracked cost' : 'Track a system cost'}
+            description="Keep capital and maintenance separated so ROI stays honest."
+            icon="card-outline"
           />
-        </View>
-      </View>
 
-      <SectionCard
-        title={editingCostId ? 'Edit system cost' : 'Add system cost'}
-        description="Track one-off investment and ongoing maintenance separately so ROI stays accurate."
-      >
-        <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
-          <Controller
-            control={control}
-            name="date"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
-          />
-        </Field>
+          <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
+            <Controller
+              control={control}
+              name="date"
+              render={({ field: { onChange, value } }) => (
+                <TextInput value={value} onChangeText={onChange} style={inputStyle(theme)} placeholderTextColor={theme.textSubtle} />
+              )}
+            />
+          </Field>
 
-        <Field label="Category" error={errors.category?.message}>
-          <Controller
-            control={control}
-            name="category"
-            render={({ field: { onChange, value } }) => <SegmentedControl options={costCategoryOptions} value={value} onChange={onChange} />}
-          />
-        </Field>
+          <Field label="Category" error={errors.category?.message}>
+            <Controller
+              control={control}
+              name="category"
+              render={({ field: { onChange, value } }) => (
+                <SegmentedControl options={costCategoryOptions} value={value} onChange={onChange} />
+              )}
+            />
+          </Field>
 
-        <Field label="Treatment" helper="Capital affects investment; maintenance reduces net savings." error={errors.costTreatment?.message}>
-          <Controller
-            control={control}
-            name="costTreatment"
-            render={({ field: { onChange, value } }) => <SegmentedControl options={costTreatmentOptions} value={value} onChange={onChange} />}
-          />
-        </Field>
+          <Field label="Treatment" helper="Capital affects investment. Maintenance reduces net savings." error={errors.costTreatment?.message}>
+            <Controller
+              control={control}
+              name="costTreatment"
+              render={({ field: { onChange, value } }) => (
+                <SegmentedControl options={costTreatmentOptions} value={value} onChange={onChange} />
+              )}
+            />
+          </Field>
 
-        <Field label="Description" error={errors.description?.message}>
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                placeholder="Inverter replacement"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
-          />
-        </Field>
+          <Field label="Description" error={errors.description?.message}>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Inverter replacement"
+                  placeholderTextColor={theme.textSubtle}
+                  style={inputStyle(theme)}
+                />
+              )}
+            />
+          </Field>
 
-        <Field label="Amount" error={errors.amount?.message}>
-          <Controller
-            control={control}
-            name="amount"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={String(value ?? '')}
-                onChangeText={onChange}
-                keyboardType="numeric"
-                placeholder="0"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
-          />
-        </Field>
+          <Field label="Amount" error={errors.amount?.message}>
+            <Controller
+              control={control}
+              name="amount"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  value={String(value ?? '')}
+                  onChangeText={onChange}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={theme.textSubtle}
+                  style={inputStyle(theme)}
+                />
+              )}
+            />
+          </Field>
 
-        <Field label="Notes" helper="Optional" error={errors.notes?.message}>
-          <Controller
-            control={control}
-            name="notes"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                placeholder="Warranty work, labor, supplier..."
-                multiline
-                style={{
-                  minHeight: 84,
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  textAlignVertical: 'top',
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
-          />
-        </Field>
+          <Field label="Notes" helper="Optional" error={errors.notes?.message}>
+            <Controller
+              control={control}
+              name="notes"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Labor, supplier, warranty..."
+                  placeholderTextColor={theme.textSubtle}
+                  multiline
+                  style={[inputStyle(theme), { minHeight: 88, textAlignVertical: 'top' }]}
+                />
+              )}
+            />
+          </Field>
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <Pressable
-            onPress={handleSubmit(onSubmit)}
-            disabled={isSubmitting}
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              backgroundColor: theme.accent,
-              padding: 16,
-            }}
-          >
-            <Text style={{ color: theme.textOnDark, fontSize: 16, fontWeight: '800' }}>{editingCostId ? 'Update cost' : 'Save cost'}</Text>
-          </Pressable>
-
-          {editingCostId ? (
-            <Pressable
-              onPress={cancelEditing}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-                borderCurve: 'continuous',
-                backgroundColor: theme.neutralSoft,
-                padding: 16,
-              }}
-            >
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>Cancel edit</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </SectionCard>
-
-      <SectionCard title="Tracked costs" description="These entries feed directly into ROI, net benefit, and payback calculations.">
-        {costs.length === 0 ? (
-          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>
-            No extra costs saved yet. Add maintenance, repair, upgrade, or other capital items when they happen.
-          </Text>
-        ) : (
-          <View style={{ gap: 12 }}>
-            {costs.map((cost) => (
-              <View
-                key={cost.id}
-                style={{
-                  gap: 10,
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  backgroundColor: theme.surfaceMuted,
-                  padding: 14,
-                }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{cost.description}</Text>
-                    <Text style={{ color: theme.textMuted, fontSize: 14 }}>
-                      {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
-                    </Text>
-                  </View>
-                  <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{formatCurrency(cost.amount)}</Text>
-                </View>
-
-                {cost.notes ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{cost.notes}</Text> : null}
-
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable
-                    onPress={() => startEditingCost(cost)}
-                    style={{
-                      flex: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 8,
-                      borderCurve: 'continuous',
-                      backgroundColor: theme.surfaceAccent,
-                      padding: 12,
-                    }}
-                  >
-                    <Text style={{ color: theme.accentText, fontSize: 14, fontWeight: '700' }}>Edit</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => onDeleteCost(cost)}
-                    style={{
-                      flex: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 8,
-                      borderCurve: 'continuous',
-                      backgroundColor: theme.dangerSoft,
-                      padding: 12,
-                    }}
-                  >
-                    <Text style={{ color: theme.dangerText, fontSize: 14, fontWeight: '700' }}>Delete</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <AppButton
+              label={editingCostId ? 'Update cost' : 'Save cost'}
+              icon="save-outline"
+              onPress={() => void handleSubmit(onSubmit)()}
+              disabled={isSubmitting}
+              fullWidth={false}
+              style={{ flex: 1 }}
+            />
+            {editingCostId ? (
+              <AppButton label="Cancel" icon="close-outline" tone="secondary" fullWidth={false} style={{ flex: 1 }} onPress={cancelEditing} />
+            ) : null}
           </View>
-        )}
-      </SectionCard>
+        </Panel>
+      </MotionSection>
+
+      <MotionSection index={8}>
+        <Panel>
+          <SectionTitle
+            title="Tracked costs"
+            description="These rows feed directly into ROI, net benefit, and payback."
+            icon="receipt-outline"
+          />
+          {costs.length === 0 ? (
+            <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 20 }}>
+              No extra costs saved yet. Add maintenance, repair, or capital items when they happen.
+            </Text>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {costs.map((cost) => (
+                <View
+                  key={cost.id}
+                  style={{
+                    gap: 12,
+                    borderRadius: 20,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    backgroundColor: theme.surfaceRaised,
+                    padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 12, flex: 1 }}>
+                      <IconBadge icon="card-outline" tone={cost.costTreatment === 'capital' ? 'accent' : 'muted'} />
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>{cost.description}</Text>
+                        <Text style={{ color: theme.textSubtle, fontSize: 13 }}>
+                          {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={{ color: theme.accent, fontSize: 15, fontWeight: '800' }}>{formatCurrency(cost.amount)}</Text>
+                  </View>
+
+                  {cost.notes ? <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18 }}>{cost.notes}</Text> : null}
+
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <AppButton label="Edit" icon="create-outline" tone="secondary" fullWidth={false} style={{ flex: 1 }} onPress={() => startEditingCost(cost)} />
+                    <AppButton label="Delete" icon="trash-outline" tone="danger" fullWidth={false} style={{ flex: 1 }} onPress={() => onDeleteCost(cost)} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </Panel>
+      </MotionSection>
     </ScrollView>
+  );
+}
+
+function FilterField({
+  label,
+  value,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor={theme.textSubtle}
+        style={inputStyle(theme)}
+      />
+    </View>
   );
 }

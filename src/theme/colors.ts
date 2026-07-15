@@ -2,8 +2,10 @@ export type AppPalette = {
   mode: 'light' | 'dark';
   background: string;
   surface: string;
+  surfaceRaised: string;
   surfaceMuted: string;
   surfaceAccent: string;
+  surfaceOverlay: string;
   header: string;
   border: string;
   text: string;
@@ -12,9 +14,12 @@ export type AppPalette = {
   textOnDark: string;
   accent: string;
   accentSoft: string;
+  accentGlow: string;
   accentText: string;
   primaryChart: string;
   secondaryChart: string;
+  chartGrid: string;
+  ringTrack: string;
   warningSoft: string;
   warningText: string;
   dangerSoft: string;
@@ -23,58 +28,74 @@ export type AppPalette = {
   shadow: string;
   statusBackground: string;
   statusText: string;
+  scrim: string;
+  skeleton: string;
 };
 
 export const lightPalette: AppPalette = {
   mode: 'light',
-  background: '#f8fafc',
+  background: '#f3f7fb',
   surface: '#ffffff',
-  surfaceMuted: '#f8fafc',
-  surfaceAccent: '#ecfeff',
-  header: '#0f172a',
-  border: '#cbd5e1',
-  text: '#0f172a',
-  textMuted: '#475569',
-  textSubtle: '#64748b',
-  textOnDark: '#f8fafc',
-  accent: '#0f766e',
-  accentSoft: '#ccfbf1',
-  accentText: '#115e59',
-  primaryChart: '#0f766e',
-  secondaryChart: '#2563eb',
-  warningSoft: '#fff7ed',
-  warningText: '#9a3412',
-  dangerSoft: '#fee2e2',
-  dangerText: '#b91c1c',
-  neutralSoft: '#e2e8f0',
-  shadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
-  statusBackground: '#ecfeff',
-  statusText: '#155e75',
+  surfaceRaised: '#fcfdff',
+  surfaceMuted: '#eef3f9',
+  surfaceAccent: '#eefad8',
+  surfaceOverlay: 'rgba(255, 255, 255, 0.96)',
+  header: '#0a101b',
+  border: '#dce4ee',
+  text: '#0a1324',
+  textMuted: '#44566f',
+  textSubtle: '#73849a',
+  textOnDark: '#f7fbff',
+  accent: '#b8f229',
+  accentSoft: '#f1ffd0',
+  accentGlow: 'rgba(184, 242, 41, 0.2)',
+  accentText: '#355200',
+  primaryChart: '#b8f229',
+  secondaryChart: '#6da6ff',
+  chartGrid: 'rgba(10, 19, 36, 0.08)',
+  ringTrack: 'rgba(10, 19, 36, 0.1)',
+  warningSoft: '#fff4d9',
+  warningText: '#8a5700',
+  dangerSoft: '#ffe2df',
+  dangerText: '#b42318',
+  neutralSoft: '#d9e4ef',
+  shadow: '0 18px 40px rgba(10, 19, 36, 0.08)',
+  statusBackground: '#f1ffd0',
+  statusText: '#355200',
+  scrim: 'rgba(7, 10, 18, 0.56)',
+  skeleton: '#e5edf5',
 };
 
 export const darkPalette: AppPalette = {
   mode: 'dark',
-  background: '#020617',
-  surface: '#0f172a',
-  surfaceMuted: '#111827',
-  surfaceAccent: '#082f49',
-  header: '#111827',
-  border: '#334155',
-  text: '#e2e8f0',
-  textMuted: '#cbd5e1',
-  textSubtle: '#94a3b8',
-  textOnDark: '#f8fafc',
-  accent: '#2dd4bf',
-  accentSoft: '#134e4a',
-  accentText: '#99f6e4',
-  primaryChart: '#2dd4bf',
-  secondaryChart: '#60a5fa',
-  warningSoft: '#431407',
-  warningText: '#fdba74',
-  dangerSoft: '#450a0a',
-  dangerText: '#fca5a5',
-  neutralSoft: '#1e293b',
-  shadow: '0 1px 2px rgba(2, 6, 23, 0.45)',
-  statusBackground: '#164e63',
-  statusText: '#cffafe',
+  background: '#070b14',
+  surface: '#111723',
+  surfaceRaised: '#171d2a',
+  surfaceMuted: '#0d121d',
+  surfaceAccent: '#1b2511',
+  surfaceOverlay: 'rgba(17, 23, 35, 0.98)',
+  header: '#090d16',
+  border: 'rgba(255, 255, 255, 0.06)',
+  text: '#f6f8fc',
+  textMuted: '#b5bfd0',
+  textSubtle: '#7d8798',
+  textOnDark: '#f6f8fc',
+  accent: '#c9ff2f',
+  accentSoft: '#25340d',
+  accentGlow: 'rgba(201, 255, 47, 0.22)',
+  accentText: '#d8ff75',
+  primaryChart: '#c9ff2f',
+  secondaryChart: '#4d78ff',
+  chartGrid: 'rgba(255, 255, 255, 0.06)',
+  ringTrack: 'rgba(255, 255, 255, 0.08)',
+  warningSoft: '#33250a',
+  warningText: '#ffc857',
+  dangerSoft: '#321317',
+  dangerText: '#ff8f8f',
+  neutralSoft: '#1b2230',
+  shadow: '0 20px 44px rgba(0, 0, 0, 0.36)',
+  statusBackground: '#1f2d0e',
+  statusText: '#d8ff75',
+  scrim: 'rgba(3, 5, 10, 0.72)',
+  skeleton: '#1d2433',
 };

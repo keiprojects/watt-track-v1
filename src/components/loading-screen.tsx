@@ -10,6 +10,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { SkeletonBlock } from '@/components/app-ui';
+
 const logoMark = require('../../assets/branding/logo-mark.png');
 const logoT = require('../../assets/branding/logo-t.png');
 const BRAND_BACKGROUND = '#04111d';
@@ -136,6 +138,19 @@ export function LoadingScreen({ label = 'Powering up Watt Track...' }: LoadingSc
         </Animated.View>
       </View>
       <Text style={{ color: '#e2e8f0', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{label}</Text>
+      <View
+        style={{
+          width: 320,
+          maxWidth: '100%',
+          gap: 14,
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <SkeletonBlock height={92} style={{ flex: 1, backgroundColor: 'rgba(22, 31, 46, 0.92)' }} />
+          <SkeletonBlock height={92} style={{ flex: 1, backgroundColor: 'rgba(22, 31, 46, 0.92)' }} />
+        </View>
+        <SkeletonBlock height={148} style={{ backgroundColor: 'rgba(22, 31, 46, 0.92)' }} />
+      </View>
     </View>
   );
 }

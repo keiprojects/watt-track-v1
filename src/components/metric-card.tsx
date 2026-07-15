@@ -1,37 +1,64 @@
 import { Text, View } from 'react-native';
 
+import { IconBadge, type AppIconName } from '@/components/app-ui';
 import { useAppTheme } from '@/theme/use-app-theme';
 
 type MetricCardProps = {
   label: string;
   value: string;
-  tone?: 'default' | 'accent';
+  icon?: AppIconName;
+  tone?: 'default' | 'accent' | 'warning' | 'danger';
   helper?: string;
 };
 
-export function MetricCard({ label, value, tone = 'default', helper }: MetricCardProps) {
+export function MetricCard({ label, value, icon = 'stats-chart-outline', tone = 'default', helper }: MetricCardProps) {
   const theme = useAppTheme();
-  const backgroundColor = tone === 'accent' ? theme.surfaceAccent : theme.surface;
-  const valueColor = tone === 'accent' ? theme.accentText : theme.text;
+  const palette =
+    tone === 'danger'
+      ? { backgroundColor: theme.dangerSoft, valueColor: theme.dangerText, iconTone: 'danger' as const }
+      : tone === 'warning'
+        ? { backgroundColor: theme.warningSoft, valueColor: theme.warningText, iconTone: 'warning' as const }
+        : tone === 'accent'
+          ? { backgroundColor: theme.surfaceAccent, valueColor: theme.accent, iconTone: 'accent' as const }
+          : { backgroundColor: theme.surfaceRaised, valueColor: theme.text, iconTone: 'muted' as const };
 
   return (
     <View
       style={{
         flex: 1,
-        minWidth: 148,
-        gap: 8,
-        borderRadius: 8,
+        minWidth: 156,
+        gap: 12,
+        borderRadius: 20,
         borderCurve: 'continuous',
-        backgroundColor,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: palette.backgroundColor,
         padding: 16,
         boxShadow: theme.shadow,
       }}
     >
-      <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
-      <Text selectable style={{ color: valueColor, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <Text selectable style={{ flex: 1, color: theme.textMuted, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 }}>
+          {label}
+        </Text>
+        <IconBadge icon={icon} tone={palette.iconTone} size={34} />
+      </View>
+      <Text
+        selectable
+        style={{
+          color: palette.valueColor,
+          fontSize: 26,
+          fontWeight: '800',
+          fontVariant: ['tabular-nums'],
+        }}
+      >
         {value}
       </Text>
-      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 12, lineHeight: 18 }}>{helper}</Text> : null}
+      {helper ? (
+        <Text selectable style={{ color: theme.textSubtle, fontSize: 12, lineHeight: 18 }}>
+          {helper}
+        </Text>
+      ) : null}
     </View>
   );
 }

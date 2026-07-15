@@ -1,10 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/theme/use-app-theme';
+import type { AppIconName } from '@/components/app-ui';
 
 type SegmentedControlOption<T extends string> = {
   label: string;
   value: T;
+  icon?: AppIconName;
 };
 
 type SegmentedControlProps<T extends string> = {
@@ -21,7 +24,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
       style={{
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 10,
       }}
     >
       {options.map((option) => {
@@ -31,22 +34,33 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
           <Pressable
             key={option.value}
             onPress={() => onChange(option.value)}
-            style={{
-              minWidth: 88,
+            style={({ pressed }) => ({
+              minWidth: 84,
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 8,
+              borderRadius: 16,
               borderCurve: 'continuous',
               borderWidth: 1,
               borderColor: selected ? theme.accent : theme.border,
-              backgroundColor: selected ? theme.accentSoft : theme.surface,
+              backgroundColor: selected ? theme.accent : theme.surfaceRaised,
               paddingHorizontal: 14,
-              paddingVertical: 10,
-            }}
+              paddingVertical: 11,
+              opacity: pressed ? 0.88 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            })}
           >
-            <Text style={{ color: selected ? theme.accentText : theme.textMuted, fontSize: 14, fontWeight: '700' }}>
-              {option.label}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {option.icon ? (
+                <Ionicons
+                  name={option.icon}
+                  size={14}
+                  color={selected ? '#0a101b' : theme.textMuted}
+                />
+              ) : null}
+              <Text style={{ color: selected ? '#0a101b' : theme.textMuted, fontSize: 13, fontWeight: '800' }}>
+                {option.label}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
