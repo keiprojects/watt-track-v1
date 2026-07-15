@@ -230,11 +230,11 @@ export function ReadingForm({
     const nextDraft: ReadingDraft = {
       date: values.date,
       time: values.time || undefined,
-      gridReading: values.gridReading,
-      solarReading: values.solarReading,
-      exportReading: systemProfile.exportInputMode === 'disabled' ? undefined : values.exportReading,
-      importRate: values.importRate,
-      exportRate: values.exportRate,
+      gridReading: parseOptionalNumber(values.gridReading),
+      solarReading: parseOptionalNumber(values.solarReading),
+      exportReading: systemProfile.exportInputMode === 'disabled' ? undefined : parseOptionalNumber(values.exportReading),
+      importRate: parseOptionalNumber(values.importRate),
+      exportRate: parseOptionalNumber(values.exportRate),
       notes: values.notes,
       meterReset: values.meterReset,
     };
@@ -403,7 +403,7 @@ export function ReadingForm({
             name="importRate"
             render={({ field: { onChange, value } }) => (
                 <TextInput
-                  value={typeof value === 'number' ? String(value) : ''}
+                  value={value == null ? '' : String(value)}
                   onChangeText={onChange}
                   keyboardType="numeric"
                   placeholder={String(systemProfile.defaultImportRate)}
@@ -421,7 +421,7 @@ export function ReadingForm({
               name="exportRate"
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  value={typeof value === 'number' ? String(value) : ''}
+                  value={value == null ? '' : String(value)}
                   onChangeText={onChange}
                   keyboardType="numeric"
                   placeholder={String(systemProfile.defaultExportRate ?? '')}

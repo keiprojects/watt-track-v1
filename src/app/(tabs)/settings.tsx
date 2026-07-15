@@ -261,7 +261,7 @@ export default function SettingsScreen() {
             icon="person-outline"
             title={systemProfile?.systemName ?? 'WattTrack profile'}
             subtitle={systemProfile?.location ?? 'Set your location'}
-            action={<AppButton label="Edit" icon="create-outline" tone="ghost" fullWidth={false} onPress={() => router.push('/onboarding')} />}
+            action={<AppButton label="Edit" icon="create-outline" tone="ghost" fullWidth={false} onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })} />}
           />
         </Panel>
       </MotionSection>

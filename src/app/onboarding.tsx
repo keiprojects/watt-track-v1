@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
 import { Alert, Image, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
@@ -100,6 +100,7 @@ function Field({
 
 export default function OnboardingScreen() {
   const theme = useAppTheme();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const readings = useReadingsStore((state) => state.readings);
   const saveProfile = useSystemStore((state) => state.saveProfile);
   const systemProfile = useSystemStore((state) => state.systemProfile);
@@ -136,7 +137,9 @@ export default function OnboardingScreen() {
 
   const exportEnabled = watch('exportEnabled');
 
-  if (settingsHydrated && systemHydrated && settings.onboardingCompleted && systemProfile) {
+  const isEditingProfile = params.mode === 'edit';
+
+  if (!isEditingProfile && settingsHydrated && systemHydrated && settings.onboardingCompleted && systemProfile) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -166,7 +169,7 @@ export default function OnboardingScreen() {
     });
 
     await completeOnboarding();
-    router.replace('/(tabs)');
+    router.replace(isEditingProfile ? '/(tabs)/settings' : '/(tabs)');
   };
 
   const onSubmit = async (values: OnboardingFormValues) => {
@@ -245,10 +248,12 @@ export default function OnboardingScreen() {
             Local-first setup
           </Text>
           <Text style={{ color: theme.textOnDark, fontSize: 34, fontFamily: fontFamilies.display }}>
-            Set up WattTrack
+            {isEditingProfile ? 'Edit WattTrack profile' : 'Set up WattTrack'}
           </Text>
           <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22, fontFamily: fontFamilies.body }}>
-            Save your system profile locally so logging, savings estimates, and ROI can work offline from day one.
+            {isEditingProfile
+              ? 'Update your local system profile, rates, capacities, and reading modes.'
+              : 'Save your system profile locally so logging, savings estimates, and ROI can work offline from day one.'}
           </Text>
         </Panel>
       </MotionSection>
@@ -508,7 +513,7 @@ export default function OnboardingScreen() {
       </MotionSection>
 
       <AppButton
-        label={isSubmitting ? 'Saving...' : 'Save and continue'}
+        label={isSubmitting ? 'Saving...' : isEditingProfile ? 'Save profile' : 'Save and continue'}
         icon="arrow-forward-outline"
         onPress={() => void handleSubmit(onSubmit)()}
         disabled={isSubmitting}
