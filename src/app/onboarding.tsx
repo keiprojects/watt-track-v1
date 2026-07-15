@@ -1,14 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Redirect, router } from 'expo-router';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Image, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { SegmentedControl } from '@/components/segmented-control';
-import { useScreenContentContainerStyle } from '@/components/app-ui';
+import { AppButton, MotionSection, Panel, SectionTitle, useScreenContentContainerStyle } from '@/components/app-ui';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
+import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 import type { ExportInputMode, ReadingInputMode } from '@/types/system';
 import { getTodayDateInputValue } from '@/utils/date';
 import { createId } from '@/utils/ids';
@@ -84,17 +86,20 @@ function Field({
   children: React.ReactNode;
   error?: string;
 }) {
+  const theme = useAppTheme();
+
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>{label}</Text>
-      {helper ? <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{helper}</Text> : null}
       {children}
-      {error ? <Text style={{ color: '#b91c1c', fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>{error}</Text> : null}
     </View>
   );
 }
 
 export default function OnboardingScreen() {
+  const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
   const saveProfile = useSystemStore((state) => state.saveProfile);
   const systemProfile = useSystemStore((state) => state.systemProfile);
@@ -192,34 +197,65 @@ export default function OnboardingScreen() {
     await persistProfile(values);
   };
 
+  const inputStyle = {
+    borderRadius: 18,
+    borderCurve: 'continuous' as const,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceRaised,
+    padding: 14,
+    color: theme.text,
+    fontFamily: fontFamilies.body,
+  };
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={contentContainerStyle}
     >
-      <View style={{ gap: 8 }}>
-        <Image
-          source={fullLogo}
-          resizeMode="contain"
-          style={{ width: 240, height: 130, alignSelf: 'center', marginBottom: 8 }}
-        />
-        <Text style={{ color: '#0f172a', fontSize: 32, fontWeight: '800' }}>Set up WattTrack</Text>
-        <Text style={{ color: '#475569', fontSize: 16, lineHeight: 24 }}>
-          We&apos;ll save your system profile locally on this device so daily logging, savings estimates, and ROI can work offline.
-        </Text>
-      </View>
+      <MotionSection index={0}>
+        <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: -44,
+              right: -26,
+              height: 160,
+              width: 160,
+              borderRadius: 999,
+              backgroundColor: theme.accentGlow,
+            }}
+          />
+          <Image
+            source={fullLogo}
+            resizeMode="contain"
+            style={{ width: 200, height: 102, alignSelf: 'center', marginBottom: 4 }}
+          />
+          <Text
+            style={{
+              color: theme.accent,
+              fontSize: 11,
+              fontFamily: fontFamilies.bodyStrong,
+              letterSpacing: 1.4,
+              textTransform: 'uppercase',
+            }}
+          >
+            Local-first setup
+          </Text>
+          <Text style={{ color: theme.textOnDark, fontSize: 34, fontFamily: fontFamilies.display }}>
+            Set up WattTrack
+          </Text>
+          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22, fontFamily: fontFamilies.body }}>
+            Save your system profile locally so logging, savings estimates, and ROI can work offline from day one.
+          </Text>
+        </Panel>
+      </MotionSection>
 
-      <View
-        style={{
-          gap: 20,
-          borderRadius: 8,
-          borderCurve: 'continuous',
-          backgroundColor: '#ffffff',
-          padding: 18,
-          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+      <MotionSection index={1}>
+        <Panel style={{ gap: 20 }}>
+          <SectionTitle title="System profile" description="Tell WattTrack what system you are tracking." icon="home-outline" eyebrow="Basics" />
         <Field label="System name" error={errors.systemName?.message}>
           <Controller
             control={control}
@@ -229,14 +265,8 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 placeholder="Rooftop solar"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -251,14 +281,8 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 placeholder="Quezon City"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -273,14 +297,8 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 autoCapitalize="none"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -295,14 +313,8 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 autoCapitalize="none"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -310,29 +322,23 @@ export default function OnboardingScreen() {
 
         <View
           style={{
-            borderRadius: 8,
+            borderRadius: 20,
             borderCurve: 'continuous',
-            backgroundColor: '#f8fafc',
+            backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
-          <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Currency</Text>
-          <Text selectable style={{ color: '#475569', marginTop: 4 }}>
+          <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Currency</Text>
+          <Text selectable style={{ color: theme.textMuted, marginTop: 4, fontFamily: fontFamilies.body }}>
             PHP (fixed for the MVP)
           </Text>
         </View>
-      </View>
+        </Panel>
+      </MotionSection>
 
-      <View
-        style={{
-          gap: 20,
-          borderRadius: 8,
-          borderCurve: 'continuous',
-          backgroundColor: '#ffffff',
-          padding: 18,
-          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+      <MotionSection index={2}>
+        <Panel style={{ gap: 20 }}>
+          <SectionTitle title="Rates and capacity" description="Add the baseline numbers WattTrack will use for cost and ROI math." icon="cash-outline" eyebrow="Economics" />
         <Field label="Initial system cost" error={errors.initialSystemCost?.message}>
           <Controller
             control={control}
@@ -343,14 +349,8 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="0"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -366,14 +366,8 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="0"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -389,14 +383,8 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -412,14 +400,8 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
@@ -435,30 +417,18 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: 14,
-                }}
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
-      </View>
+        </Panel>
+      </MotionSection>
 
-      <View
-        style={{
-          gap: 20,
-          borderRadius: 8,
-          borderCurve: 'continuous',
-          backgroundColor: '#ffffff',
-          padding: 18,
-          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+      <MotionSection index={3}>
+        <Panel style={{ gap: 20 }}>
+          <SectionTitle title="Reading modes" description="Choose whether you log direct daily kWh or the meter's running total." icon="analytics-outline" eyebrow="Inputs" />
         <Field label="Grid input mode" helper="Choose Daily usage if you type kWh directly, or Meter reading if you type the running number shown on the meter base." error={errors.gridInputMode?.message}>
           <Controller
             control={control}
@@ -485,22 +455,22 @@ export default function OnboardingScreen() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            borderRadius: 8,
+            borderRadius: 20,
             borderCurve: 'continuous',
-            backgroundColor: '#f8fafc',
+            backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '700' }}>Track exported energy</Text>
-            <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Track exported energy</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
               Turn this on if you want separate export credits in savings calculations.
             </Text>
           </View>
           <Controller
             control={control}
             name="exportEnabled"
-            render={({ field: { onChange, value } }) => <Switch value={value} onValueChange={onChange} trackColor={{ true: '#0f766e' }} />}
+            render={({ field: { onChange, value } }) => <Switch value={value} onValueChange={onChange} trackColor={{ true: theme.accent }} />}
           />
         </View>
 
@@ -526,36 +496,23 @@ export default function OnboardingScreen() {
                     onChangeText={onChange}
                     keyboardType="numeric"
                     placeholder="0"
-                    style={{
-                      borderRadius: 8,
-                      borderCurve: 'continuous',
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      backgroundColor: '#ffffff',
-                      padding: 14,
-                    }}
+                    style={inputStyle}
+                    placeholderTextColor={theme.textSubtle}
                   />
                 )}
               />
             </Field>
           </>
         ) : null}
-      </View>
+        </Panel>
+      </MotionSection>
 
-      <Pressable
-        onPress={handleSubmit(onSubmit)}
+      <AppButton
+        label={isSubmitting ? 'Saving...' : 'Save and continue'}
+        icon="arrow-forward-outline"
+        onPress={() => void handleSubmit(onSubmit)()}
         disabled={isSubmitting}
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 8,
-          borderCurve: 'continuous',
-          backgroundColor: '#0f766e',
-          padding: 16,
-        }}
-      >
-        <Text style={{ color: '#f0fdfa', fontSize: 16, fontWeight: '800' }}>{isSubmitting ? 'Saving...' : 'Save and continue'}</Text>
-      </Pressable>
+      />
     </ScrollView>
   );
 }

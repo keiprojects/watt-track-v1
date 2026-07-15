@@ -47,8 +47,8 @@ export default function AddReadingScreen() {
       title={duplicatedReading ? 'Duplicate reading' : 'Add reading'}
       description={
         duplicatedReading
-          ? 'Start from a prior entry, then adjust the date, time, or meter readings before saving. Later cumulative readings will be recalculated automatically.'
-          : 'Log a system check whenever you want. Add a time for multiple entries on the same date. In cumulative mode, you can record one reading when PV starts and another when PV stops so WattTrack can calculate the day total from the interval.'
+          ? 'Start from a prior entry, adjust the details you need, and save the updated snapshot.'
+          : 'Log the meter values you can see right now and let WattTrack update your energy picture.'
       }
       systemProfile={systemProfile}
       readings={readings}

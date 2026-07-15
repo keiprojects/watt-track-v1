@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 
 type WeeklyBarChartDatum = {
   label: string;
@@ -19,7 +20,7 @@ export function WeeklyBarChart({
   data,
   highlightIndex = Math.max(0, data.length - 4),
   valueLabel,
-  title = 'Daily Usage',
+  title,
   unitLabel = 'kWh',
 }: WeeklyBarChartProps) {
   const theme = useAppTheme();
@@ -34,7 +35,11 @@ export function WeeklyBarChart({
   return (
     <View style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-        <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>{title}</Text>
+        {title ? (
+          <Text style={{ color: theme.text, fontSize: 18, fontFamily: fontFamilies.displayMedium }}>{title}</Text>
+        ) : (
+          <View />
+        )}
         <View
           style={{
             flexDirection: 'row',
@@ -52,10 +57,10 @@ export function WeeklyBarChart({
               paddingVertical: 6,
             }}
           >
-            <Text style={{ color: '#0a101b', fontSize: 11, fontWeight: '800' }}>{unitLabel}</Text>
+            <Text style={{ color: '#0a101b', fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{unitLabel}</Text>
           </View>
           <View style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-            <Text style={{ color: theme.textSubtle, fontSize: 11, fontWeight: '800' }}>$</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>$</Text>
           </View>
         </View>
       </View>
@@ -63,7 +68,7 @@ export function WeeklyBarChart({
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 14 }}>
         <View style={{ gap: 18, paddingBottom: 20 }}>
           {axisValues.map((value) => (
-            <Text key={value} style={{ color: theme.textSubtle, fontSize: 10, fontWeight: '700' }}>
+            <Text key={value} style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.bodyStrong }}>
               {value}
             </Text>
           ))}
@@ -86,7 +91,7 @@ export function WeeklyBarChart({
                         paddingVertical: 4,
                       }}
                     >
-                      <Text selectable style={{ color: theme.text, fontSize: 11, fontWeight: '800' }}>
+                      <Text selectable style={{ color: theme.text, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>
                         {valueLabel ?? `${highlight?.value.toFixed(1)} kWh`}
                       </Text>
                     </View>
@@ -109,7 +114,16 @@ export function WeeklyBarChart({
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
             {normalizedData.map((item) => (
-              <Text key={item.label} style={{ flex: 1, textAlign: 'center', color: theme.textSubtle, fontSize: 11, fontWeight: '700' }}>
+              <Text
+                key={item.label}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  color: theme.textSubtle,
+                  fontSize: 11,
+                  fontFamily: fontFamilies.bodyStrong,
+                }}
+              >
                 {item.label}
               </Text>
             ))}

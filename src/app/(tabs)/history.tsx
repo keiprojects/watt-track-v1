@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, SectionList, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, SectionList, Text, TextInput, View } from 'react-native';
 
 import {
   AppButton,
@@ -10,11 +10,13 @@ import {
   Panel,
   SectionTitle,
   StatPill,
+  ToggleChip,
   useScreenContentContainerStyle,
 } from '@/components/app-ui';
 import { TrendLineChart } from '@/components/trend-line-chart';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading } from '@/types/reading';
 import { formatMonthLabel, formatShortDate } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
@@ -32,7 +34,16 @@ function FilterField({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 }}>{label}</Text>
+      <Text
+        style={{
+          color: theme.textMuted,
+          fontSize: 12,
+          fontFamily: fontFamilies.bodyStrong,
+          letterSpacing: 0.3,
+        }}
+      >
+        {label}
+      </Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -46,6 +57,7 @@ function FilterField({
           backgroundColor: theme.surfaceRaised,
           padding: 14,
           color: theme.text,
+          fontFamily: fontFamilies.body,
         }}
       />
     </View>
@@ -138,8 +150,9 @@ export default function HistoryScreen() {
               <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
                 <SectionTitle
                   title="History"
-                  description="Your logged timeline in the reference app style, minus the clutter."
+                  description="Your saved readings, warnings, and notes in one cleaner timeline."
                   icon="time-outline"
+                  eyebrow="Timeline"
                   action={
                     <AppButton
                       label="Filters"
@@ -155,6 +168,14 @@ export default function HistoryScreen() {
                   <StatPill icon="warning-outline" label="Warnings" value={String(warningCount)} tone="warning" />
                   <StatPill icon="document-text-outline" label="Notes" value={String(filteredReadings.filter((reading) => reading.notes?.trim()).length)} />
                 </View>
+                {hasActiveFilters ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {fromDate ? <ToggleChip label={`From ${fromDate}`} selected onPress={() => setFromDate('')} icon="calendar-outline" /> : null}
+                    {toDate ? <ToggleChip label={`To ${toDate}`} selected onPress={() => setToDate('')} icon="calendar-outline" /> : null}
+                    {notesOnly ? <ToggleChip label="Notes only" selected onPress={() => setNotesOnly(false)} icon="document-text-outline" /> : null}
+                    {warningsOnly ? <ToggleChip label="Warnings only" selected onPress={() => setWarningsOnly(false)} icon="warning-outline" /> : null}
+                  </View>
+                ) : null}
               </Panel>
             </MotionSection>
 
@@ -165,10 +186,18 @@ export default function HistoryScreen() {
                     <Text style={{ color: theme.textMuted, fontSize: 14, fontWeight: '700' }}>
                       {latestReading ? formatShortDate(latestReading.date) : 'No date'}
                     </Text>
-                    <Text selectable style={{ color: theme.text, fontSize: 38, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+                    <Text
+                      selectable
+                      style={{
+                        color: theme.text,
+                        fontSize: 38,
+                        fontFamily: fontFamilies.display,
+                        fontVariant: ['tabular-nums'],
+                      }}
+                    >
                       {formatKwh(latestReading?.estimatedHomeUsageKwh ?? 0)}
                     </Text>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
                       {latestReading ? `${formatCurrency(latestReading.estimatedSavings)} estimated savings` : 'No savings yet'}
                     </Text>
                   </View>
@@ -226,7 +255,15 @@ export default function HistoryScreen() {
           </Panel>
         }
         renderSectionHeader={({ section: { title } }) => (
-          <Text style={{ color: theme.textMuted, fontSize: 15, fontWeight: '800', marginTop: 8, marginBottom: 10 }}>
+          <Text
+            style={{
+              color: theme.textMuted,
+              fontSize: 15,
+              fontFamily: fontFamilies.bodyStrong,
+              marginTop: 8,
+              marginBottom: 10,
+            }}
+          >
             {title}
           </Text>
         )}
@@ -254,18 +291,18 @@ export default function HistoryScreen() {
                     tone={item.warningCodes?.length ? 'warning' : 'accent'}
                   />
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{formatShortDate(item.date)}</Text>
-                    <Text style={{ color: theme.textSubtle, fontSize: 13 }}>
+                    <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyStrong }}>{formatShortDate(item.date)}</Text>
+                    <Text style={{ color: theme.textSubtle, fontSize: 13, fontFamily: fontFamilies.body }}>
                       {item.time ? `${item.time} | ` : ''}
                       Solar {formatKwh(item.solarGenerationKwh)} | Grid {formatKwh(item.gridConsumptionKwh)}
                     </Text>
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={{ color: theme.accent, fontSize: 15, fontWeight: '800' }}>
+                  <Text style={{ color: theme.accent, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>
                     {formatCurrency(item.estimatedSavings)}
                   </Text>
-                  <Text style={{ color: theme.textSubtle, fontSize: 12 }}>Savings</Text>
+                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>Savings</Text>
                 </View>
               </View>
 
@@ -282,16 +319,22 @@ export default function HistoryScreen() {
                   paddingVertical: 12,
                 }}
               >
-                <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>
+                <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
                   Grid cost {formatCurrency(item.estimatedGridCost)}
                 </Text>
-                <Text style={{ color: item.warningCodes?.length ? theme.warningText : theme.textSubtle, fontSize: 12, fontWeight: '800' }}>
+                <Text
+                  style={{
+                    color: item.warningCodes?.length ? theme.warningText : theme.textSubtle,
+                    fontSize: 12,
+                    fontFamily: fontFamilies.bodyStrong,
+                  }}
+                >
                   {item.warningCodes?.length ? `${item.warningCodes.length} warning(s)` : 'No warnings'}
                 </Text>
               </View>
 
               {item.notes ? (
-                <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18 }}>{item.notes}</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{item.notes}</Text>
               ) : null}
             </Pressable>
           </MotionSection>
@@ -324,26 +367,15 @@ export default function HistoryScreen() {
       >
         <FilterField label="From date" value={fromDate} onChangeText={setFromDate} />
         <FilterField label="To date" value={toDate} onChangeText={setToDate} />
-
-        <Panel tone="muted" padding={16}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Notes only</Text>
-              <Text style={{ color: theme.textSubtle, fontSize: 13 }}>Show entries with written notes.</Text>
-            </View>
-            <Switch value={notesOnly} onValueChange={setNotesOnly} trackColor={{ true: theme.accent }} />
+        <View style={{ gap: 10 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            Quick filters
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <ToggleChip label="Notes only" selected={notesOnly} onPress={() => setNotesOnly((current) => !current)} icon="document-text-outline" />
+            <ToggleChip label="Warnings only" selected={warningsOnly} onPress={() => setWarningsOnly((current) => !current)} icon="warning-outline" />
           </View>
-        </Panel>
-
-        <Panel tone="muted" padding={16}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Warnings only</Text>
-              <Text style={{ color: theme.textSubtle, fontSize: 13 }}>Focus on readings that need review.</Text>
-            </View>
-            <Switch value={warningsOnly} onValueChange={setWarningsOnly} trackColor={{ true: theme.accent }} />
-          </View>
-        </Panel>
+        </View>
       </OverlaySheet>
     </>
   );

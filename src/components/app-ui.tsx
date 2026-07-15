@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 
 export type AppIconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -80,6 +81,13 @@ type OverlaySheetProps = {
   footer?: ReactNode;
 };
 
+type ToggleChipProps = {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  icon?: AppIconName;
+};
+
 type ScreenContentContainerOptions = {
   gap?: number;
   horizontalPadding?: number;
@@ -138,13 +146,13 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
       style={[
         {
           gap: 16,
-          borderRadius: 24,
+          borderRadius: 28,
           borderCurve: 'continuous',
           borderWidth: 1,
-          borderColor: theme.border,
+          borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : theme.border,
           backgroundColor,
-          padding,
-          boxShadow: theme.shadow,
+          padding: padding + 2,
+          boxShadow: tone === 'inverse' ? '0 26px 70px rgba(1, 3, 10, 0.46)' : theme.shadow,
           overflow: 'hidden',
         },
         style,
@@ -169,6 +177,8 @@ export function IconBadge({ icon, tone = 'accent', size = 42 }: IconBadgeProps) 
         borderRadius: Math.max(16, size / 2.4),
         borderCurve: 'continuous',
         backgroundColor: palette.backgroundColor,
+        borderWidth: 1,
+        borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}
     >
       <Ionicons name={icon} size={Math.max(18, size * 0.44)} color={palette.color} />
@@ -187,7 +197,7 @@ export function SectionTitle({ title, description, icon, action, eyebrow }: Sect
             style={{
               color: theme.accent,
               fontSize: 11,
-              fontWeight: '800',
+              fontFamily: fontFamilies.bodyStrong,
               letterSpacing: 1.4,
               textTransform: 'uppercase',
             }}
@@ -197,12 +207,28 @@ export function SectionTitle({ title, description, icon, action, eyebrow }: Sect
         ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           {icon ? <IconBadge icon={icon} size={36} /> : null}
-          <Text selectable style={{ flexShrink: 1, color: theme.text, fontSize: 20, fontWeight: '800' }}>
+          <Text
+            selectable
+            style={{
+              flexShrink: 1,
+              color: theme.text,
+              fontSize: 22,
+              fontFamily: fontFamilies.displayMedium,
+            }}
+          >
             {title}
           </Text>
         </View>
         {description ? (
-          <Text selectable style={{ color: theme.textMuted, fontSize: 14, lineHeight: 20 }}>
+          <Text
+            selectable
+            style={{
+              color: theme.textMuted,
+              fontSize: 14,
+              lineHeight: 20,
+              fontFamily: fontFamilies.body,
+            }}
+          >
             {description}
           </Text>
         ) : null}
@@ -242,13 +268,13 @@ export function AppButton({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 10,
-          borderRadius: 18,
+          borderRadius: 999,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: palette.borderColor,
           backgroundColor: palette.backgroundColor,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
+          paddingHorizontal: 18,
+          paddingVertical: 13,
           opacity: disabled ? 0.6 : pressed ? 0.88 : 1,
           transform: [{ scale: pressed ? 0.985 : 1 }],
         },
@@ -256,7 +282,7 @@ export function AppButton({
       ]}
     >
       {icon ? <Ionicons name={icon} size={18} color={palette.color} /> : null}
-      <Text style={{ color: palette.color, fontSize: 15, fontWeight: '800' }}>{label}</Text>
+      <Text style={{ color: palette.color, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
     </Pressable>
   );
 }
@@ -271,24 +297,73 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
         minWidth: 124,
         flex: 1,
         gap: 8,
-        borderRadius: 18,
+        borderRadius: 22,
         borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.border,
-        backgroundColor: theme.surfaceRaised,
+        backgroundColor: theme.surface,
         padding: 14,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBadge icon={icon} tone={tone === 'accent' ? 'accent' : tone === 'warning' ? 'warning' : 'muted'} size={32} />
-        <Text selectable style={{ color: theme.textMuted, fontSize: 12, fontWeight: '700' }}>
+        <Text
+          selectable
+          style={{
+            color: theme.textMuted,
+            fontSize: 12,
+            fontFamily: fontFamilies.bodyStrong,
+          }}
+        >
           {label}
         </Text>
       </View>
-      <Text selectable style={{ color: highlightColor, fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
+      <Text
+        selectable
+        style={{
+          color: highlightColor,
+          fontSize: 19,
+          fontFamily: fontFamilies.bodyHeavy,
+          fontVariant: ['tabular-nums'],
+        }}
+      >
         {value}
       </Text>
     </View>
+  );
+}
+
+export function ToggleChip({ label, selected, onPress, icon }: ToggleChipProps) {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderRadius: 999,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: selected ? theme.accent : theme.border,
+        backgroundColor: selected ? theme.accentSoft : theme.surfaceRaised,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        opacity: pressed ? 0.88 : 1,
+      })}
+    >
+      {icon ? <Ionicons name={icon} size={14} color={selected ? theme.accent : theme.textMuted} /> : null}
+      <Text
+        style={{
+          color: selected ? theme.accent : theme.textMuted,
+          fontSize: 13,
+          fontFamily: fontFamilies.bodyStrong,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -335,8 +410,8 @@ export function SkeletonBlock({
 export function useScreenContentContainerStyle({
   gap = 18,
   horizontalPadding = 20,
-  topPadding = 20,
-  bottomPadding = 40,
+  topPadding = 18,
+  bottomPadding = 112,
 }: ScreenContentContainerOptions = {}): ViewStyle {
   const insets = useSafeAreaInsets();
   const topInset = process.env.EXPO_OS === 'ios' ? 0 : insets.top;
@@ -392,12 +467,12 @@ export function OverlaySheet({
             width: '100%',
             alignSelf: 'center',
             gap: 16,
-            borderRadius: 28,
+            borderRadius: 32,
             borderCurve: 'continuous',
             borderWidth: 1,
             borderColor: theme.border,
             backgroundColor: theme.surfaceOverlay,
-            padding: 20,
+            padding: 22,
             paddingBottom: Math.max(insets.bottom, 16),
             boxShadow: theme.shadow,
           }}

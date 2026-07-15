@@ -5,7 +5,6 @@ import { ScrollView, Text, View } from 'react-native';
 import {
   AppButton,
   MotionSection,
-  OverlaySheet,
   Panel,
   SectionTitle,
   useScreenContentContainerStyle,
@@ -24,6 +23,7 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading } from '@/types/reading';
 import type { DashboardPeriod } from '@/types/settings';
 import {
@@ -229,7 +229,6 @@ export default function DashboardScreen() {
   const contentContainerStyle = useScreenContentContainerStyle();
 
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>(settings.defaultDashboardPeriod);
-  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     setDashboardPeriod(settings.defaultDashboardPeriod);
@@ -272,219 +271,292 @@ export default function DashboardScreen() {
   const chartHighlightLabel = formatKwh(chartBars[chartHighlightIndex]?.value ?? 0);
 
   return (
-    <>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={contentContainerStyle}
-      >
-        <MotionSection index={0}>
-          <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 16 }}>
-              <View style={{ flex: 1, gap: 6 }}>
-                <Text style={{ color: theme.textOnDark, fontSize: 28, fontWeight: '800' }}>
-                  {systemProfile?.systemName ?? 'WattTrack'}
-                </Text>
-                <Text style={{ color: theme.textMuted, fontSize: 14 }}>
-                  {systemProfile?.location ? `${systemProfile.location} | ` : ''}
-                  {formatMonthLabel(today)}
-                </Text>
-              </View>
-              <AppButton label="Guide" icon="sparkles-outline" onPress={() => setShowGuide(true)} tone="ghost" fullWidth={false} />
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ flex: 1, backgroundColor: theme.background }}
+      contentContainerStyle={contentContainerStyle}
+    >
+      <MotionSection index={0}>
+        <Panel tone="inverse" style={{ backgroundColor: theme.header, gap: 20 }}>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: -48,
+              right: -20,
+              height: 180,
+              width: 180,
+              borderRadius: 999,
+              backgroundColor: theme.accentGlow,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              bottom: -70,
+              left: -30,
+              height: 160,
+              width: 160,
+              borderRadius: 999,
+              backgroundColor: 'rgba(104, 162, 255, 0.12)',
+            }}
+          />
+
+          <View style={{ gap: 8 }}>
+            <Text
+              style={{
+                color: theme.accent,
+                fontSize: 11,
+                fontFamily: fontFamilies.bodyStrong,
+                letterSpacing: 1.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              Energy workspace
+            </Text>
+            <Text
+              style={{
+                color: theme.textOnDark,
+                fontSize: 31,
+                fontFamily: fontFamilies.display,
+              }}
+            >
+              {systemProfile?.systemName ?? 'WattTrack'}
+            </Text>
+            <Text
+              style={{
+                color: theme.textMuted,
+                fontSize: 14,
+                fontFamily: fontFamilies.body,
+              }}
+            >
+              {systemProfile?.location ? `${systemProfile.location} | ` : ''}
+              {formatMonthLabel(today)}
+            </Text>
+          </View>
+
+          {readings.length === 0 ? (
+            <View style={{ gap: 14 }}>
+              <Text style={{ color: theme.textOnDark, fontSize: 21, fontFamily: fontFamilies.displayMedium }}>
+                Start your first energy snapshot.
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 20, fontFamily: fontFamilies.body }}>
+                Add one reading to unlock the daily view, trend tracking, and payback analytics.
+              </Text>
+              <AppButton label="Add first reading" icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} fullWidth={false} />
             </View>
-
-            {readings.length === 0 ? (
-              <View style={{ gap: 14 }}>
-                <Text style={{ color: theme.textOnDark, fontSize: 18, fontWeight: '700' }}>
-                  Start your first energy snapshot.
-                </Text>
-                <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 20 }}>
-                  Add one reading to unlock the live-style dashboard, charts, and payback tracking.
-                </Text>
-                <AppButton label="Add first reading" icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} />
+          ) : (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+                <View style={{ flex: 1, gap: 10 }}>
+                  <Text
+                    style={{
+                      color: theme.accent,
+                      fontSize: 11,
+                      fontFamily: fontFamilies.bodyStrong,
+                      letterSpacing: 1.2,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Today&apos;s solar
+                  </Text>
+                  <Text
+                    selectable
+                    style={{
+                      color: theme.textOnDark,
+                      fontSize: 46,
+                      fontFamily: fontFamilies.display,
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
+                    {formatKwh(todayReading?.solarGenerationKwh ?? 0)}
+                  </Text>
+                  <Text style={{ color: theme.textMuted, fontSize: 14, fontFamily: fontFamilies.body }}>
+                    {todayReading ? `Logged on ${formatShortDate(todayReading.date)}` : 'No reading saved today'}
+                  </Text>
+                </View>
+                <PowerOrb size={116} />
               </View>
-            ) : (
-              <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-                  <View style={{ flex: 1, gap: 10 }}>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.8 }}>
-                      TODAY'S SOLAR
-                    </Text>
-                    <Text
-                      selectable
-                      style={{
-                        color: theme.textOnDark,
-                        fontSize: 40,
-                        fontWeight: '900',
-                        fontVariant: ['tabular-nums'],
-                      }}
-                    >
-                      {formatKwh(todayReading?.solarGenerationKwh ?? 0)}
-                    </Text>
-                    <Text style={{ color: theme.textMuted, fontSize: 14 }}>
-                      {todayReading ? `Logged on ${formatShortDate(todayReading.date)}` : 'No reading saved today'}
-                    </Text>
-                  </View>
-                  <PowerOrb />
-                </View>
 
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View
-                    style={{
-                      flex: 1,
-                      gap: 8,
-                      borderRadius: 22,
-                      borderCurve: 'continuous',
-                      backgroundColor: theme.surface,
-                      padding: 16,
-                    }}
-                  >
-                    <Text style={{ color: theme.textSubtle, fontSize: 12, fontWeight: '800' }}>Today&apos;s Usage</Text>
-                    <Text selectable style={{ color: theme.textOnDark, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-                      {formatKwh(todayReading?.estimatedHomeUsageKwh ?? 0)}
-                    </Text>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
-                      {previousLoggedDay ? getUsageChangeLabel(todayReading?.estimatedHomeUsageKwh ?? 0, previousLoggedDay.estimatedHomeUsageKwh) : 'First tracked day'}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flex: 1,
-                      gap: 8,
-                      borderRadius: 22,
-                      borderCurve: 'continuous',
-                      backgroundColor: theme.surface,
-                      padding: 16,
-                    }}
-                  >
-                    <Text style={{ color: theme.textSubtle, fontSize: 12, fontWeight: '800' }}>Estimated Bill</Text>
-                    <Text selectable style={{ color: theme.textOnDark, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-                      {formatCurrency(todayReading?.estimatedGridCost ?? 0)}
-                    </Text>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
-                      {periodSummary.estimatedGridCost > 0 ? `${formatCurrency(periodSummary.estimatedGridCost)} in ${getPeriodLabel(dashboardPeriod).toLowerCase()}` : 'Estimated from your saved rates'}
-                    </Text>
-                  </View>
-                </View>
-              </>
-            )}
-          </Panel>
-        </MotionSection>
-
-        {readings.length > 0 ? (
-          <>
-            <MotionSection index={1}>
-              <Panel tone="muted" padding={18}>
-                <SectionTitle
-                  title="Dashboard view"
-                  description={getPeriodLabel(dashboardPeriod)}
-                  icon="options-outline"
-                />
+              <View
+                style={{
+                  gap: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255, 255, 255, 0.08)',
+                  paddingTop: 16,
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.textMuted,
+                    fontSize: 12,
+                    fontFamily: fontFamilies.bodyStrong,
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Range
+                </Text>
                 <SegmentedControl options={dashboardPeriodOptions} value={dashboardPeriod} onChange={setDashboardPeriod} />
-              </Panel>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    gap: 8,
+                    borderRadius: 22,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    padding: 16,
+                  }}
+                >
+                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+                    Today&apos;s usage
+                  </Text>
+                  <Text
+                    selectable
+                    style={{
+                      color: theme.textOnDark,
+                      fontSize: 24,
+                      fontFamily: fontFamilies.bodyHeavy,
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
+                    {formatKwh(todayReading?.estimatedHomeUsageKwh ?? 0)}
+                  </Text>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
+                    {previousLoggedDay
+                      ? getUsageChangeLabel(
+                          todayReading?.estimatedHomeUsageKwh ?? 0,
+                          previousLoggedDay.estimatedHomeUsageKwh,
+                        )
+                      : 'First tracked day'}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flex: 1,
+                    gap: 8,
+                    borderRadius: 22,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    padding: 16,
+                  }}
+                >
+                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+                    Estimated bill
+                  </Text>
+                  <Text
+                    selectable
+                    style={{
+                      color: theme.textOnDark,
+                      fontSize: 24,
+                      fontFamily: fontFamilies.bodyHeavy,
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
+                    {formatCurrency(todayReading?.estimatedGridCost ?? 0)}
+                  </Text>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
+                    {periodSummary.estimatedGridCost > 0
+                      ? `${formatCurrency(periodSummary.estimatedGridCost)} in ${getPeriodLabel(dashboardPeriod).toLowerCase()}`
+                      : 'Estimated from your saved rates'}
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
+        </Panel>
+      </MotionSection>
+
+      {readings.length > 0 ? (
+        rangeHasData ? (
+          <>
+            <MotionSection index={1} style={{ gap: 14 }}>
+              <SectionTitle
+                title={getPeriodSummaryTitle(dashboardPeriod)}
+                description={periodDescription}
+                icon="stats-chart-outline"
+                eyebrow="At a glance"
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                <MetricCard
+                  label="Solar generated"
+                  value={formatKwh(periodSummary.solarGeneratedKwh)}
+                  helper={
+                    comparisonLabel
+                      ? `${solarDelta >= 0 ? '+' : '-'}${formatKwh(Math.abs(solarDelta))} vs ${comparisonLabel}`
+                      : 'Estimated from logged readings'
+                  }
+                  tone="accent"
+                  icon="sunny-outline"
+                />
+                <MetricCard
+                  label="Home usage"
+                  value={formatKwh(periodSummary.homeUsageKwh)}
+                  helper={
+                    comparisonLabel
+                      ? `${usageDelta >= 0 ? '+' : '-'}${formatKwh(Math.abs(usageDelta))} vs ${comparisonLabel}`
+                      : 'Solar self-use plus grid consumption'
+                  }
+                  icon="flash-outline"
+                />
+                <MetricCard
+                  label="Estimated savings"
+                  value={formatCurrency(periodSummary.estimatedSavings)}
+                  helper={
+                    comparisonLabel
+                      ? `${savingsDelta >= 0 ? '+' : '-'}${formatCurrency(Math.abs(savingsDelta))} vs ${comparisonLabel}`
+                      : 'Estimated from your saved rates'
+                  }
+                  tone="warning"
+                  icon="wallet-outline"
+                />
+              </View>
             </MotionSection>
 
-            {rangeHasData ? (
-              <>
-                <MotionSection index={2}>
-                  <Panel>
-                    <SectionTitle
-                      title={getPeriodSummaryTitle(dashboardPeriod)}
-                      description={periodDescription}
-                      icon="stats-chart-outline"
-                    />
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                      <MetricCard
-                        label="Solar generated"
-                        value={formatKwh(periodSummary.solarGeneratedKwh)}
-                        helper={
-                          comparisonLabel
-                            ? `${solarDelta >= 0 ? '+' : '-'}${formatKwh(Math.abs(solarDelta))} vs ${comparisonLabel}`
-                            : 'Estimated from logged readings'
-                        }
-                        tone="accent"
-                        icon="sunny-outline"
-                      />
-                      <MetricCard
-                        label="Home usage"
-                        value={formatKwh(periodSummary.homeUsageKwh)}
-                        helper={
-                          comparisonLabel
-                            ? `${usageDelta >= 0 ? '+' : '-'}${formatKwh(Math.abs(usageDelta))} vs ${comparisonLabel}`
-                            : 'Solar self-use plus grid consumption'
-                        }
-                        icon="flash-outline"
-                      />
-                      <MetricCard
-                        label="Estimated savings"
-                        value={formatCurrency(periodSummary.estimatedSavings)}
-                        helper={
-                          comparisonLabel
-                            ? `${savingsDelta >= 0 ? '+' : '-'}${formatCurrency(Math.abs(savingsDelta))} vs ${comparisonLabel}`
-                            : 'Estimated from your saved rates'
-                        }
-                        tone="warning"
-                        icon="wallet-outline"
-                      />
-                    </View>
-                  </Panel>
-                </MotionSection>
-
-                <MotionSection index={3}>
-                  <Panel>
-                    <WeeklyBarChart
-                      data={chartBars}
-                      title={getUsageTrendTitle(dashboardPeriod)}
-                      highlightIndex={chartHighlightIndex}
-                      valueLabel={chartHighlightLabel}
-                    />
-                    <AppButton label="View detailed analytics" icon="arrow-forward-outline" onPress={() => router.push('/(tabs)/insights')} />
-                  </Panel>
-                </MotionSection>
-              </>
-            ) : (
-              <MotionSection index={2}>
-                <Panel>
-                  <SectionTitle
-                    title="No readings in this range"
-                    description={`You have saved readings, but none fall inside ${getPeriodLabel(dashboardPeriod).toLowerCase()}. Change the range or add a new reading.`}
-                    icon="hourglass-outline"
-                  />
-                  <AppButton label="Add a reading" icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} />
-                </Panel>
-              </MotionSection>
-            )}
+            <MotionSection index={2}>
+              <Panel>
+                <SectionTitle
+                  title={getUsageTrendTitle(dashboardPeriod)}
+                  description="Recent logged movement, simplified into one stronger analytics surface."
+                  icon="pulse-outline"
+                  eyebrow="Trend"
+                />
+                <WeeklyBarChart
+                  data={chartBars}
+                  title={getUsageTrendTitle(dashboardPeriod)}
+                  highlightIndex={chartHighlightIndex}
+                  valueLabel={chartHighlightLabel}
+                />
+                <AppButton
+                  label="View detailed analytics"
+                  icon="arrow-forward-outline"
+                  onPress={() => router.push('/(tabs)/insights')}
+                  fullWidth={false}
+                />
+              </Panel>
+            </MotionSection>
           </>
-        ) : null}
-      </ScrollView>
-
-      <OverlaySheet
-        visible={showGuide}
-        onClose={() => setShowGuide(false)}
-        title="How this layout works"
-        description="The new home screen follows the dark energy-console style from your reference, but keeps the numbers grounded in your real data."
-        variant="dialog"
-        footer={<AppButton label="Close guide" onPress={() => setShowGuide(false)} icon="close-outline" />}
-      >
-        <Panel tone="muted" padding={16}>
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Hero card</Text>
-          <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19 }}>
-            It surfaces one dominant number instead of four equal-weight cards competing for attention.
-          </Text>
-        </Panel>
-        <Panel tone="muted" padding={16}>
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Charts first</Text>
-          <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19 }}>
-            Recent solar and grid movement now sits in a stronger visual block, so trend reading is faster.
-          </Text>
-        </Panel>
-        <Panel tone="muted" padding={16}>
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Icon-led scanning</Text>
-          <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19 }}>
-            Each metric now carries a dedicated icon and contrast treatment to match the energy app aesthetic.
-          </Text>
-        </Panel>
-      </OverlaySheet>
-    </>
+        ) : (
+          <MotionSection index={1}>
+            <Panel>
+              <SectionTitle
+                title="No readings in this range"
+                description={`You have saved readings, but none fall inside ${getPeriodLabel(dashboardPeriod).toLowerCase()}. Change the range or add a new reading.`}
+                icon="hourglass-outline"
+              />
+              <AppButton label="Add a reading" icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} fullWidth={false} />
+            </Panel>
+          </MotionSection>
+        )
+      ) : null}
+    </ScrollView>
   );
 }

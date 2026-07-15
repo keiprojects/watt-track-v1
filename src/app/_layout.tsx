@@ -1,7 +1,17 @@
 import { Stack, router } from 'expo-router';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import {
+  Manrope_500Medium,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope';
+import {
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 
 import {
   getNotificationsUnavailableMessage,
@@ -29,6 +39,13 @@ export default function RootLayout() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const [hasBooted, setHasBooted] = useState(false);
+  const [fontsLoaded] = useFonts({
+    Manrope_500Medium,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -53,14 +70,14 @@ export default function RootLayout() {
   }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
 
   useEffect(() => {
-    if (!hasBooted) {
+    if (!hasBooted || !fontsLoaded) {
       return;
     }
 
     void SplashScreen.hideAsync().catch(() => {
       // Ignore duplicate hides when Fast Refresh remounts the layout.
     });
-  }, [hasBooted]);
+  }, [fontsLoaded, hasBooted]);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,7 +124,7 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!hasBooted) {
+  if (!hasBooted || !fontsLoaded) {
     return null;
   }
 

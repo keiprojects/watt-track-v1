@@ -1,13 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo } from 'react';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
-import { useScreenContentContainerStyle } from '@/components/app-ui';
+import { CurrentWeatherCard } from '@/components/current-weather-card';
+import { DateTimePickerField } from '@/components/date-time-picker-field';
+import { AppButton, Panel, SectionTitle, useScreenContentContainerStyle } from '@/components/app-ui';
 import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
@@ -77,10 +80,10 @@ function Field({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>{label}</Text>
-      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{helper}</Text> : null}
       {children}
-      {error ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>{error}</Text> : null}
     </View>
   );
 }
@@ -278,6 +281,17 @@ export function ReadingForm({
     );
   };
 
+  const inputStyle = {
+    borderRadius: 18,
+    borderCurve: 'continuous' as const,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceRaised,
+    padding: 14,
+    color: theme.text,
+    fontFamily: fontFamilies.body,
+  };
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -285,38 +299,24 @@ export function ReadingForm({
       contentContainerStyle={contentContainerStyle}
     >
       <View style={{ gap: 6 }}>
-        <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>{title}</Text>
-        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22 }}>{description}</Text>
+        <Text style={{ color: theme.text, fontSize: 30, fontFamily: fontFamilies.display }}>{title}</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22, fontFamily: fontFamilies.body }}>{description}</Text>
       </View>
 
-      <View
-        style={{
-          gap: 18,
-          borderRadius: 8,
-          borderCurve: 'continuous',
-          backgroundColor: theme.surface,
-          padding: 18,
-          boxShadow: theme.shadow,
-        }}
-      >
-        <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
+      <Panel style={{ gap: 18 }}>
+        <CurrentWeatherCard location={systemProfile.location} />
+
+        <Field label="Date" helper="Pick the day for this reading." error={errors.date?.message}>
           <Controller
             control={control}
             name="date"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
+              <DateTimePickerField
+                mode="date"
+                value={value ?? ''}
+                displayValue={value ? formatShortDate(value) : ''}
+                placeholder="Pick a date"
+                onChange={onChange}
               />
             )}
           />
@@ -326,8 +326,8 @@ export function ReadingForm({
           label="Time"
           helper={
             sameDateReadings.length > 0
-              ? 'Use HH:MM. Add a time when saving multiple readings on the same date.'
-              : 'Optional, use HH:MM'
+              ? 'Pick a time when saving multiple readings on the same date.'
+              : 'Optional'
           }
           error={errors.time?.message}
         >
@@ -335,20 +335,13 @@ export function ReadingForm({
             control={control}
             name="time"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                placeholder="18:30"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
+              <DateTimePickerField
+                mode="time"
+                value={value ?? ''}
+                displayValue={value ?? ''}
+                placeholder="Pick a time"
+                onChange={onChange}
+                allowClear
               />
             )}
           />
@@ -363,15 +356,7 @@ export function ReadingForm({
                 value={String(value ?? '')}
                 onChangeText={onChange}
                 keyboardType="numeric"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
+                style={inputStyle}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
@@ -387,15 +372,7 @@ export function ReadingForm({
                 value={String(value ?? '')}
                 onChangeText={onChange}
                 keyboardType="numeric"
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
+                style={inputStyle}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
@@ -412,15 +389,7 @@ export function ReadingForm({
                   value={typeof value === 'number' ? String(value) : ''}
                   onChangeText={onChange}
                   keyboardType="numeric"
-                  style={{
-                    borderRadius: 8,
-                    borderCurve: 'continuous',
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    backgroundColor: theme.surface,
-                    padding: 14,
-                    color: theme.text,
-                  }}
+                  style={inputStyle}
                   placeholderTextColor={theme.textSubtle}
                 />
               )}
@@ -433,23 +402,15 @@ export function ReadingForm({
             control={control}
             name="importRate"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
-                onChangeText={onChange}
-                keyboardType="numeric"
-                placeholder={String(systemProfile.defaultImportRate)}
-                style={{
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
+                <TextInput
+                  value={typeof value === 'number' ? String(value) : ''}
+                  onChangeText={onChange}
+                  keyboardType="numeric"
+                  placeholder={String(systemProfile.defaultImportRate)}
+                  style={inputStyle}
+                  placeholderTextColor={theme.textSubtle}
+                />
+              )}
           />
         </Field>
 
@@ -464,15 +425,7 @@ export function ReadingForm({
                   onChangeText={onChange}
                   keyboardType="numeric"
                   placeholder={String(systemProfile.defaultExportRate ?? '')}
-                  style={{
-                    borderRadius: 8,
-                    borderCurve: 'continuous',
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    backgroundColor: theme.surface,
-                    padding: 14,
-                    color: theme.text,
-                  }}
+                  style={inputStyle}
                   placeholderTextColor={theme.textSubtle}
                 />
               )}
@@ -485,25 +438,19 @@ export function ReadingForm({
             control={control}
             name="notes"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                placeholder="Cloudy day, maintenance, outage..."
-                multiline
-                style={{
-                  minHeight: 92,
-                  borderRadius: 8,
-                  borderCurve: 'continuous',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  padding: 14,
-                  textAlignVertical: 'top',
-                  color: theme.text,
-                }}
-                placeholderTextColor={theme.textSubtle}
-              />
-            )}
+                <TextInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Cloudy day, maintenance, outage..."
+                  multiline
+                  style={{
+                    ...inputStyle,
+                    minHeight: 92,
+                    textAlignVertical: 'top',
+                  }}
+                  placeholderTextColor={theme.textSubtle}
+                />
+              )}
           />
         </Field>
 
@@ -513,15 +460,15 @@ export function ReadingForm({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            borderRadius: 8,
+            borderRadius: 20,
             borderCurve: 'continuous',
             backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>Meter reset or replacement</Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Meter reset or replacement</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
               Turn this on when a cumulative meter has rolled over or been replaced.
             </Text>
           </View>
@@ -531,23 +478,23 @@ export function ReadingForm({
             render={({ field: { onChange, value } }) => <Switch value={Boolean(value)} onValueChange={onChange} trackColor={{ true: theme.accent }} />}
           />
         </View>
-      </View>
+      </Panel>
 
       {preview ? (
         <View style={{ gap: 10 }}>
-          <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>Preview</Text>
+          <SectionTitle title="Preview" description="Check the derived usage before you save." icon="eye-outline" eyebrow="Validate" />
           {systemProfile.gridInputMode === 'cumulative' && typeof draft?.gridReading === 'number' ? (
             <View
               style={{
                 gap: 6,
-                borderRadius: 8,
+                borderRadius: 20,
                 borderCurve: 'continuous',
                 backgroundColor: theme.surfaceAccent,
                 padding: 14,
               }}
             >
-              <Text style={{ color: theme.accentText, fontSize: 15, fontWeight: '800' }}>Grid meter check</Text>
-              <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18 }}>
+              <Text style={{ color: theme.accentText, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Grid meter check</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
                 {previousGridReadingLabel
                   ? `Current reading ${formatKwh(draft.gridReading)} minus previous reading ${formatKwh(previousReadings?.grid?.gridReading ?? 0)} from ${previousGridReadingLabel} equals ${formatKwh(preview.gridConsumptionKwh)} grid usage.`
                   : `This is your baseline grid meter reading. Grid usage will start calculating after you save a later reading.`}
@@ -566,15 +513,15 @@ export function ReadingForm({
             <View
               style={{
                 gap: 6,
-                borderRadius: 8,
+                borderRadius: 20,
                 borderCurve: 'continuous',
                 backgroundColor: theme.warningSoft,
                 padding: 14,
               }}
             >
-              <Text style={{ color: theme.warningText, fontSize: 15, fontWeight: '800' }}>Warnings</Text>
+              <Text style={{ color: theme.warningText, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Warnings</Text>
               {preview.warningCodes.map((warning) => (
-                <Text key={warning} style={{ color: theme.warningText, fontSize: 13, lineHeight: 18 }}>
+                <Text key={warning} style={{ color: theme.warningText, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
                   {getWarningLabel(warning)}
                 </Text>
               ))}
@@ -584,55 +531,35 @@ export function ReadingForm({
       ) : null}
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Pressable
-          onPress={handleSubmit((values) => submitValues(values, false))}
+        <AppButton
+          label={primaryActionLabel}
+          icon="save-outline"
+          onPress={() => void handleSubmit((values) => submitValues(values, false))()}
           disabled={isSubmitting}
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            backgroundColor: theme.accent,
-            padding: 16,
-          }}
-        >
-          <Text style={{ color: theme.textOnDark, fontSize: 16, fontWeight: '800' }}>{primaryActionLabel}</Text>
-        </Pressable>
+          fullWidth={false}
+          style={{ flex: 1 }}
+        />
 
         {secondaryActionLabel ? (
-          <Pressable
-            onPress={handleSubmit((values) => submitValues(values, true))}
+          <AppButton
+            label={secondaryActionLabel}
+            icon="add-outline"
+            tone="secondary"
+            onPress={() => void handleSubmit((values) => submitValues(values, true))()}
             disabled={isSubmitting}
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              backgroundColor: theme.neutralSoft,
-              padding: 16,
-            }}
-          >
-            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{secondaryActionLabel}</Text>
-          </Pressable>
+            fullWidth={false}
+            style={{ flex: 1 }}
+          />
         ) : null}
       </View>
 
       {onCancel ? (
-        <Pressable
+        <AppButton
+          label="Cancel"
+          icon="close-outline"
+          tone="ghost"
           onPress={onCancel}
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            backgroundColor: theme.surface,
-            padding: 16,
-          }}
-        >
-          <Text style={{ color: theme.textMuted, fontSize: 15, fontWeight: '700' }}>Cancel</Text>
-        </Pressable>
+        />
       ) : null}
     </ScrollView>
   );

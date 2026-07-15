@@ -5,6 +5,7 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 
 export default function TabsLayout() {
   const theme = useAppTheme();
@@ -29,17 +30,28 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.textSubtle,
         sceneStyle: { backgroundColor: theme.background },
         tabBarStyle: {
-          height: 72,
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 14,
+          height: 74,
           borderTopWidth: 1,
           borderTopColor: theme.border,
-          backgroundColor: theme.header,
+          borderRadius: 28,
+          backgroundColor: theme.surfaceOverlay,
           paddingTop: 8,
           paddingBottom: 8,
+          paddingHorizontal: 10,
+          boxShadow: theme.shadow,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '700',
+          fontFamily: fontFamilies.bodyStrong,
           marginBottom: 2,
+        },
+        tabBarItemStyle: {
+          borderRadius: 18,
+          marginVertical: 4,
         },
         tabBarIconStyle: { marginTop: 2 },
       }}

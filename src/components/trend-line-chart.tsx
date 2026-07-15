@@ -1,6 +1,7 @@
 import { Text, View, useWindowDimensions } from 'react-native';
 
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 
 type TrendLineChartProps = {
   values: number[];
@@ -107,7 +108,7 @@ export function TrendLineChart({
             paddingVertical: 6,
           }}
         >
-          <Text selectable style={{ color: theme.text, fontSize: 12, fontWeight: '800' }}>
+          <Text selectable style={{ color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
             {callout ?? `${highlight.value.toFixed(2)} kWh`}
           </Text>
         </View>
@@ -115,7 +116,7 @@ export function TrendLineChart({
 
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between' }}>
         {labels.map((label) => (
-          <Text key={label} style={{ color: theme.textSubtle, fontSize: 11, fontWeight: '700' }}>
+          <Text key={label} style={{ color: theme.textSubtle, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>
             {label}
           </Text>
         ))}

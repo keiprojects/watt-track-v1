@@ -31,6 +31,7 @@ import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { fontFamilies } from '@/theme/typography';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
@@ -102,10 +103,10 @@ function Field({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.text, fontSize: 14, fontWeight: '800' }}>{label}</Text>
-      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18 }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{helper}</Text> : null}
       {children}
-      {error ? <Text style={{ color: theme.dangerText, fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>{error}</Text> : null}
     </View>
   );
 }
@@ -123,8 +124,15 @@ function InsightRow({
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>{label}</Text>
-      <Text selectable style={{ color: accent ? theme.accent : theme.text, fontSize: 14, fontWeight: '800' }}>
+      <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
+      <Text
+        selectable
+        style={{
+          color: accent ? theme.accent : theme.text,
+          fontSize: 14,
+          fontFamily: fontFamilies.bodyStrong,
+        }}
+      >
         {value}
       </Text>
     </View>
@@ -140,6 +148,7 @@ function inputStyle(theme: ReturnType<typeof useAppTheme>) {
     backgroundColor: theme.surfaceRaised,
     padding: 14,
     color: theme.text,
+    fontFamily: fontFamilies.body,
   };
 }
 
@@ -322,8 +331,9 @@ export default function InsightsScreen() {
         <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
           <SectionTitle
             title="Insights"
-            description="Analytics, payback, and cost tracking in the dark energy-console style."
+            description="Savings, ROI, and payback signals built around your real readings."
             icon="bar-chart-outline"
+            eyebrow="Analytics"
           />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <StatPill icon="calendar-outline" label="Range" value={selectedRange === 'custom' ? 'Custom' : selectedRange.replace('-', ' ')} tone="accent" />
@@ -333,20 +343,36 @@ export default function InsightsScreen() {
         </Panel>
       </MotionSection>
 
-      <MotionSection index={1}>
-        <Panel tone="muted" padding={18}>
-          <SectionTitle title="Time range" description="Choose the period you want to analyze." icon="options-outline" />
+      <MotionSection index={1} style={{ gap: 12 }}>
+        <View style={{ gap: 10 }}>
+          <Text
+            style={{
+              color: theme.textMuted,
+              fontSize: 12,
+              fontFamily: fontFamilies.bodyStrong,
+              letterSpacing: 0.8,
+              textTransform: 'uppercase',
+            }}
+          >
+            Time range
+          </Text>
           <SegmentedControl options={rangeOptions} value={selectedRange} onChange={setSelectedRange} />
-          {selectedRange === 'custom' ? (
-            <View style={{ gap: 12 }}>
+        </View>
+        {selectedRange === 'custom' ? (
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
               <FilterField label="Start date" value={customStartDate} onChangeText={setCustomStartDate} />
-              <FilterField label="End date" value={customEndDate} onChangeText={setCustomEndDate} />
-              {rangeHasInvalidCustomDates ? (
-                <Text style={{ color: theme.dangerText, fontSize: 13 }}>End date must be on or after the start date.</Text>
-              ) : null}
             </View>
-          ) : null}
-        </Panel>
+            <View style={{ flex: 1 }}>
+              <FilterField label="End date" value={customEndDate} onChangeText={setCustomEndDate} />
+            </View>
+          </View>
+        ) : null}
+        {rangeHasInvalidCustomDates ? (
+          <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>
+            End date must be on or after the start date.
+          </Text>
+        ) : null}
       </MotionSection>
 
       <MotionSection index={2}>
@@ -355,6 +381,7 @@ export default function InsightsScreen() {
             title="Payback forecast"
             description="Projected from your saved readings and tracked costs."
             icon="trending-up-outline"
+            eyebrow="Finance"
           />
           <SegmentedControl options={forecastOptions} value={forecastWindow} onChange={setForecastWindow} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -395,8 +422,9 @@ export default function InsightsScreen() {
             <Panel>
               <SectionTitle
                 title="Energy Breakdown"
-                description="A more literal analytics card, closer to your reference."
+                description="How solar, grid, and self-consumption are splitting the load."
                 icon="pie-chart-outline"
+                eyebrow="Flow"
               />
               <BreakdownDonut
                 centerValue={summary.homeUsageKwh.toFixed(1)}
@@ -417,11 +445,21 @@ export default function InsightsScreen() {
                 title="Peak Usage"
                 description={highestSolarDay ? `${formatKwh(highestSolarDay.solarGenerationKwh)} on ${formatShortDate(highestSolarDay.date)}` : 'Recent trend'}
                 icon="trending-up-outline"
+                eyebrow="Pattern"
               />
               <SparkBars values={chartValues} highlightIndex={Math.max(0, chartValues.length - 3)} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
                 {chartLabels.map((label) => (
-                  <Text key={label} style={{ flex: 1, textAlign: 'center', color: theme.textSubtle, fontSize: 11, fontWeight: '700' }}>
+                  <Text
+                    key={label}
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      color: theme.textSubtle,
+                      fontSize: 11,
+                      fontFamily: fontFamilies.bodyStrong,
+                    }}
+                  >
                     {label}
                   </Text>
                 ))}
@@ -433,11 +471,19 @@ export default function InsightsScreen() {
             <Panel>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontWeight: '800' }}>Total Usage</Text>
-                  <Text selectable style={{ color: theme.text, fontSize: 34, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Total Usage</Text>
+                  <Text
+                    selectable
+                    style={{
+                      color: theme.text,
+                      fontSize: 34,
+                      fontFamily: fontFamilies.display,
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
                     {formatKwh(summary.homeUsageKwh)}
                   </Text>
-                  <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
                     {averageDailySavings > 0 ? `${formatCurrency(averageDailySavings)} avg daily savings` : 'Estimated from saved readings'}
                   </Text>
                 </View>
@@ -449,8 +495,9 @@ export default function InsightsScreen() {
           <MotionSection index={6} style={{ gap: 12 }}>
             <SectionTitle
               title="Financial breakdown"
-              description="Savings, ROI, and cost pressure in a cleaner set of rows."
+              description="Savings, ROI, and cost pressure in one operational view."
               icon="wallet-outline"
+              eyebrow="Return"
             />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               <MetricCard label="Estimated savings" value={formatCurrency(roi.totalEstimatedSavings)} helper="Within range" tone="accent" icon="cash-outline" />
@@ -479,6 +526,7 @@ export default function InsightsScreen() {
             title={editingCostId ? 'Edit tracked cost' : 'Track a system cost'}
             description="Keep capital and maintenance separated so ROI stays honest."
             icon="card-outline"
+            eyebrow="Costs"
           />
 
           <Field label="Date" helper="Use YYYY-MM-DD" error={errors.date?.message}>
@@ -583,6 +631,7 @@ export default function InsightsScreen() {
             title="Tracked costs"
             description="These rows feed directly into ROI, net benefit, and payback."
             icon="receipt-outline"
+            eyebrow="Ledger"
           />
           {costs.length === 0 ? (
             <Text style={{ color: theme.textMuted, fontSize: 14, lineHeight: 20 }}>
@@ -607,16 +656,16 @@ export default function InsightsScreen() {
                     <View style={{ flexDirection: 'row', gap: 12, flex: 1 }}>
                       <IconBadge icon="card-outline" tone={cost.costTreatment === 'capital' ? 'accent' : 'muted'} />
                       <View style={{ flex: 1, gap: 4 }}>
-                        <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>{cost.description}</Text>
-                        <Text style={{ color: theme.textSubtle, fontSize: 13 }}>
+                        <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>{cost.description}</Text>
+                        <Text style={{ color: theme.textSubtle, fontSize: 13, fontFamily: fontFamilies.body }}>
                           {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
                         </Text>
                       </View>
                     </View>
-                    <Text style={{ color: theme.accent, fontSize: 15, fontWeight: '800' }}>{formatCurrency(cost.amount)}</Text>
+                    <Text style={{ color: theme.accent, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>{formatCurrency(cost.amount)}</Text>
                   </View>
 
-                  {cost.notes ? <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18 }}>{cost.notes}</Text> : null}
+                  {cost.notes ? <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{cost.notes}</Text> : null}
 
                   <View style={{ flexDirection: 'row', gap: 12 }}>
                     <AppButton label="Edit" icon="create-outline" tone="secondary" fullWidth={false} style={{ flex: 1 }} onPress={() => startEditingCost(cost)} />
@@ -645,7 +694,16 @@ function FilterField({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 }}>{label}</Text>
+      <Text
+        style={{
+          color: theme.textMuted,
+          fontSize: 12,
+          fontFamily: fontFamilies.bodyStrong,
+          letterSpacing: 0.3,
+        }}
+      >
+        {label}
+      </Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
