@@ -1,6 +1,6 @@
 # WattTrack Development Plan
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 Status owner: project repository
 
 ## Purpose
@@ -33,6 +33,7 @@ Current implementation observed in `src/`:
 - Backup import validation now checks the full payload shape before replacing local data, and restored reminder settings are re-applied to the device schedule during import.
 - History now supports month grouping, date/note/warning filters, detail view, edit, duplicate, and delete flows with cumulative recalculation safeguards.
 - Dashboard period filters, seven-day energy charting, and expanded insights range controls are now implemented.
+- Dashboard range selection now drives the visible summary, comparison copy, chart data, and empty-range messaging instead of acting as a cosmetic toggle.
 
 ## Source-of-Truth Rules
 
@@ -263,7 +264,7 @@ Definition of done:
 
 ### Milestone 7: QA, Hardening, and Release Readiness
 
-Status: pending
+Status: in progress
 
 Goal:
 Stabilize the MVP against the acceptance criteria before broader polishing.
@@ -274,6 +275,11 @@ Scope:
 - Type-safety and validation review.
 - Edge-case checks for zero values, missing data, duplicate dates, invalid imports, and reset handling.
 - Acceptance-criteria audit against the PRD.
+
+Progress notes:
+
+- Dashboard period selection now updates range summaries, comparison helpers, chart windows, and no-data states.
+- Dashboard chart scaling now adapts to the active range instead of relying on fixed y-axis labels.
 
 Definition of done:
 
@@ -350,3 +356,4 @@ Use this section as the release gate. Mark each item only when verified in app b
 - History filters, reading detail/edit/duplicate/delete flows, and downstream cumulative recalculation safeguards were added as the next readings-management delivery slice.
 - Dashboard period filters, seven-day solar-vs-grid charting, and range-based insights summaries were added to complete the dashboard and core insights milestone.
 - Insights cost filtering, capital-versus-maintenance breakdowns, and payback date visibility were tightened to complete the costs, ROI, and payback milestone.
+- Dashboard range cards and charts were hardened so the selected period now changes the underlying data, comparison messaging, and empty filtered states.

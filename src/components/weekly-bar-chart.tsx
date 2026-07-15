@@ -11,21 +11,30 @@ type WeeklyBarChartProps = {
   data: WeeklyBarChartDatum[];
   highlightIndex?: number;
   valueLabel?: string;
+  title?: string;
+  unitLabel?: string;
 };
 
 export function WeeklyBarChart({
   data,
   highlightIndex = Math.max(0, data.length - 4),
   valueLabel,
+  title = 'Daily Usage',
+  unitLabel = 'kWh',
 }: WeeklyBarChartProps) {
   const theme = useAppTheme();
-  const maxValue = Math.max(1, ...data.map((item) => item.value));
-  const highlight = data[highlightIndex];
+  const normalizedData = data.length > 0 ? data : [{ label: '-', value: 0 }];
+  const maxValue = Math.max(1, ...normalizedData.map((item) => item.value));
+  const safeHighlightIndex = Math.min(Math.max(0, highlightIndex), normalizedData.length - 1);
+  const highlight = normalizedData[safeHighlightIndex];
+  const axisValues = [maxValue, (maxValue * 2) / 3, maxValue / 3, 0].map((value) =>
+    value === 0 ? '0' : value >= 10 ? value.toFixed(0) : value.toFixed(1),
+  );
 
   return (
     <View style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-        <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>Daily Usage</Text>
+        <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>{title}</Text>
         <View
           style={{
             flexDirection: 'row',
@@ -43,7 +52,7 @@ export function WeeklyBarChart({
               paddingVertical: 6,
             }}
           >
-            <Text style={{ color: '#0a101b', fontSize: 11, fontWeight: '800' }}>kWh</Text>
+            <Text style={{ color: '#0a101b', fontSize: 11, fontWeight: '800' }}>{unitLabel}</Text>
           </View>
           <View style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
             <Text style={{ color: theme.textSubtle, fontSize: 11, fontWeight: '800' }}>$</Text>
@@ -53,7 +62,7 @@ export function WeeklyBarChart({
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 14 }}>
         <View style={{ gap: 18, paddingBottom: 20 }}>
-          {[24, 16, 8, 0].map((value) => (
+          {axisValues.map((value) => (
             <Text key={value} style={{ color: theme.textSubtle, fontSize: 10, fontWeight: '700' }}>
               {value}
             </Text>
@@ -61,9 +70,9 @@ export function WeeklyBarChart({
         </View>
         <View style={{ flex: 1, gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, minHeight: 150 }}>
-            {data.map((item, index) => {
+            {normalizedData.map((item, index) => {
               const barHeight = Math.max((item.value / maxValue) * 118, 18);
-              const active = index === highlightIndex;
+              const active = index === safeHighlightIndex;
 
               return (
                 <View key={item.label} style={{ flex: 1, alignItems: 'center', gap: 8 }}>
@@ -99,7 +108,7 @@ export function WeeklyBarChart({
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-            {data.map((item) => (
+            {normalizedData.map((item) => (
               <Text key={item.label} style={{ flex: 1, textAlign: 'center', color: theme.textSubtle, fontSize: 11, fontWeight: '700' }}>
                 {item.label}
               </Text>
