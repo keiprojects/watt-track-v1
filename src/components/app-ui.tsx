@@ -489,7 +489,14 @@ export function OverlaySheet({
             />
           ) : null}
           <SectionTitle title={title} description={description} />
-          <ScrollView contentContainerStyle={{ gap: 16 }}>{children}</ScrollView>
+          <ScrollView
+            contentContainerStyle={{ gap: 16 }}
+            showsVerticalScrollIndicator={false}
+            alwaysBounceVertical
+            overScrollMode="always"
+          >
+            {children}
+          </ScrollView>
           {footer ? footer : null}
         </Animated.View>
       </View>

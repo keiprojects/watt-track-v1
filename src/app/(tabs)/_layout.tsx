@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 
-import { LoadingScreen } from '@/components/loading-screen';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
@@ -9,14 +8,8 @@ import { fontFamilies } from '@/theme/typography';
 
 export default function TabsLayout() {
   const theme = useAppTheme();
-  const settingsHydrated = useSettingsStore((state) => state.hasHydrated);
   const onboardingCompleted = useSettingsStore((state) => state.settings.onboardingCompleted);
-  const systemHydrated = useSystemStore((state) => state.hasHydrated);
   const systemProfile = useSystemStore((state) => state.systemProfile);
-
-  if (!settingsHydrated || !systemHydrated) {
-    return <LoadingScreen />;
-  }
 
   if (!onboardingCompleted || !systemProfile) {
     return <Redirect href="/onboarding" />;

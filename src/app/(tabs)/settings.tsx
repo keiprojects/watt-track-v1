@@ -251,6 +251,9 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+      alwaysBounceVertical
+      overScrollMode="always"
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={contentContainerStyle}
     >

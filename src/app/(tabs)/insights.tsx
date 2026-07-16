@@ -329,6 +329,9 @@ export default function InsightsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+      alwaysBounceVertical
+      overScrollMode="always"
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={contentContainerStyle}
     >
@@ -437,10 +440,10 @@ export default function InsightsScreen() {
                 centerValue={summary.homeUsageKwh.toFixed(1)}
                 centerLabel="kWh"
                 segments={[
-                  { color: theme.accent, label: 'Solar', value: formatKwh(summary.solarGeneratedKwh) },
-                  { color: '#52a3ff', label: 'Grid', value: formatKwh(summary.gridConsumedKwh) },
-                  { color: '#9b5cff', label: 'Self-use', value: formatKwh(summary.selfConsumedSolarKwh) },
-                  { color: '#ff9f2e', label: 'Usage', value: formatKwh(summary.homeUsageKwh) },
+                  { color: theme.accent, label: 'Solar', amount: summary.solarGeneratedKwh, value: formatKwh(summary.solarGeneratedKwh) },
+                  { color: '#52a3ff', label: 'Grid', amount: summary.gridConsumedKwh, value: formatKwh(summary.gridConsumedKwh) },
+                  { color: '#9b5cff', label: 'Self-use', amount: summary.selfConsumedSolarKwh, value: formatKwh(summary.selfConsumedSolarKwh) },
+                  { color: '#ff9f2e', label: 'Usage', amount: summary.homeUsageKwh, value: formatKwh(summary.homeUsageKwh) },
                 ]}
               />
             </Panel>

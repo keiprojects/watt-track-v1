@@ -102,6 +102,9 @@ export default function ReadingDetailScreen() {
       <Stack.Screen options={{ headerShown: true, title: reading ? formatShortDate(reading.date) : 'Reading detail' }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        alwaysBounceVertical
+        overScrollMode="always"
         style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={contentContainerStyle}
       >
