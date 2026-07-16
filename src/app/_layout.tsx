@@ -13,6 +13,7 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 
+import { BootSplash } from '@/components/boot-splash';
 import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
@@ -22,6 +23,8 @@ import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
+
+const BOOT_SPLASH_MIN_DURATION_MS = 900;
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore duplicate calls when Fast Refresh remounts the layout.
@@ -39,6 +42,7 @@ export default function RootLayout() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const [hasBooted, setHasBooted] = useState(false);
+  const [showBootSplash, setShowBootSplash] = useState(true);
   const [fontsLoaded] = useFonts({
     Manrope_500Medium,
     Manrope_700Bold,
@@ -74,9 +78,21 @@ export default function RootLayout() {
       return;
     }
 
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setShowBootSplash(false);
+      }
+    }, BOOT_SPLASH_MIN_DURATION_MS);
+
     void SplashScreen.hideAsync().catch(() => {
       // Ignore duplicate hides when Fast Refresh remounts the layout.
     });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [fontsLoaded, hasBooted]);
 
   useEffect(() => {
@@ -124,8 +140,8 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!hasBooted || !fontsLoaded) {
-    return null;
+  if (!hasBooted || !fontsLoaded || showBootSplash) {
+    return <BootSplash />;
   }
 
   return (
