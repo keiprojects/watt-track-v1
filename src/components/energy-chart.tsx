@@ -3,6 +3,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { IconBadge, SectionTitle, StatPill } from '@/components/app-ui';
 import { useAppTheme } from '@/theme/use-app-theme';
+import { formatWeekdayLabel } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
 type EnergyChartDatum = {
@@ -18,10 +19,7 @@ type EnergyChartProps = {
 };
 
 function formatDayLabel(date: string): string {
-  return new Intl.DateTimeFormat('en-PH', {
-    weekday: 'short',
-    timeZone: 'Asia/Manila',
-  }).format(new Date(`${date}T00:00:00`));
+  return formatWeekdayLabel(date);
 }
 
 export function EnergyChart({

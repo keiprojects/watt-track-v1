@@ -1,6 +1,6 @@
 # WattTrack Development Plan
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 Status owner: project repository
 
 ## Purpose
@@ -280,6 +280,8 @@ Progress notes:
 
 - Dashboard period selection now updates range summaries, comparison helpers, chart windows, and no-data states.
 - Dashboard chart scaling now adapts to the active range instead of relying on fixed y-axis labels.
+- Local storage hydration now falls back safely when persisted payloads are malformed, preventing boot-time stalls from invalid device data.
+- Asia/Manila date parsing and display formatting were tightened across dashboard, history, insights, and reading chronology utilities.
 
 Definition of done:
 

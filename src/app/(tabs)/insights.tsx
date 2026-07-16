@@ -33,12 +33,16 @@ import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
-import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
+import { formatShortDate, formatWeekdayLabel, getTodayDateInputValue, isValidDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { createId } from '@/utils/ids';
 
 const costSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+    .refine(isValidDateInputValue, 'Use a real calendar date')
+    .refine((value) => value <= getTodayDateInputValue(), 'Cost date cannot be in the future'),
   category: z.enum(['installation', 'maintenance', 'repair', 'upgrade', 'other'] satisfies SystemCostCategory[]),
   description: z.string().trim().min(1, 'Description is required'),
   amount: z.coerce.number().min(0, 'Amount cannot be negative'),
@@ -168,6 +172,10 @@ export default function InsightsScreen() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState(getTodayDateInputValue());
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
+  const hasInvalidCustomStartDate = Boolean(customStartDate) && !isValidDateInputValue(customStartDate);
+  const hasInvalidCustomEndDate = Boolean(customEndDate) && !isValidDateInputValue(customEndDate);
+  const effectiveCustomStartDate = hasInvalidCustomStartDate ? undefined : customStartDate || undefined;
+  const effectiveCustomEndDate = hasInvalidCustomEndDate ? undefined : customEndDate || undefined;
 
   const {
     control,
@@ -187,10 +195,10 @@ export default function InsightsScreen() {
         readings,
         today,
         range: selectedRange,
-        customStartDate: selectedRange === 'custom' ? customStartDate || undefined : undefined,
-        customEndDate: selectedRange === 'custom' ? customEndDate || undefined : undefined,
+        customStartDate: selectedRange === 'custom' ? effectiveCustomStartDate : undefined,
+        customEndDate: selectedRange === 'custom' ? effectiveCustomEndDate : undefined,
       }),
-    [customEndDate, customStartDate, readings, selectedRange, today],
+    [effectiveCustomEndDate, effectiveCustomStartDate, readings, selectedRange, today],
   );
 
   const filteredCosts = useMemo(
@@ -199,10 +207,10 @@ export default function InsightsScreen() {
         costs,
         today,
         range: selectedRange,
-        customStartDate: selectedRange === 'custom' ? customStartDate || undefined : undefined,
-        customEndDate: selectedRange === 'custom' ? customEndDate || undefined : undefined,
+        customStartDate: selectedRange === 'custom' ? effectiveCustomStartDate : undefined,
+        customEndDate: selectedRange === 'custom' ? effectiveCustomEndDate : undefined,
       }),
-    [costs, customEndDate, customStartDate, selectedRange, today],
+    [costs, effectiveCustomEndDate, effectiveCustomStartDate, selectedRange, today],
   );
 
   const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
@@ -243,13 +251,7 @@ export default function InsightsScreen() {
     [dailySummaries],
   );
   const chartLabels = useMemo(
-    () =>
-      dailySummaries.slice(-7).map((reading) =>
-        new Intl.DateTimeFormat('en-PH', {
-          weekday: 'short',
-          timeZone: 'Asia/Manila',
-        }).format(new Date(`${reading.date}T00:00:00`)),
-      ),
+    () => dailySummaries.slice(-7).map((reading) => formatWeekdayLabel(reading.date)),
     [dailySummaries],
   );
 
@@ -314,7 +316,10 @@ export default function InsightsScreen() {
   };
 
   const rangeHasInvalidCustomDates =
-    selectedRange === 'custom' && Boolean(customStartDate && customEndDate && customStartDate > customEndDate);
+    selectedRange === 'custom' &&
+    (hasInvalidCustomStartDate ||
+      hasInvalidCustomEndDate ||
+      Boolean(effectiveCustomStartDate && effectiveCustomEndDate && effectiveCustomStartDate > effectiveCustomEndDate));
   const paybackStatusHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Not enough savings data'
     : overallRoi.remainingAmount === 0
@@ -370,7 +375,9 @@ export default function InsightsScreen() {
         ) : null}
         {rangeHasInvalidCustomDates ? (
           <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>
-            End date must be on or after the start date.
+            {hasInvalidCustomStartDate || hasInvalidCustomEndDate
+              ? 'Enter real calendar dates in YYYY-MM-DD format.'
+              : 'End date must be on or after the start date.'}
           </Text>
         ) : null}
       </MotionSection>

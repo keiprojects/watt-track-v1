@@ -254,7 +254,7 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
                   fontVariant: ['tabular-nums'],
                 }}
               >
-                {Math.round(weather.temperatureC)}°C
+                {`${Math.round(weather.temperatureC)}\u00B0C`}
               </Text>
               <Text
                 style={{
@@ -279,7 +279,7 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
           </View>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <WeatherMetric label="Feels like" value={`${Math.round(weather.feelsLikeC)}°C`} />
+            <WeatherMetric label="Feels like" value={`${Math.round(weather.feelsLikeC)}\u00B0C`} />
             <WeatherMetric label="Humidity" value={`${Math.round(weather.humidityPercent)}%`} />
             <WeatherMetric label="Wind" value={`${Math.round(weather.windSpeedKph)} km/h`} />
             <WeatherMetric label="Rain" value={`${weather.precipitationMm.toFixed(1)} mm`} />

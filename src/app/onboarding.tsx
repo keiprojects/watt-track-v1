@@ -12,7 +12,7 @@ import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { ExportInputMode, ReadingInputMode } from '@/types/system';
-import { getTodayDateInputValue } from '@/utils/date';
+import { getTodayDateInputValue, isValidDateInputValue } from '@/utils/date';
 import { createId } from '@/utils/ids';
 
 const optionalPositiveNumber = z.preprocess(
@@ -27,6 +27,7 @@ const onboardingSchema = z
     installationDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+      .refine(isValidDateInputValue, 'Use a real calendar date')
       .refine((value) => value <= getTodayDateInputValue(), 'Installation date cannot be in the future'),
     timezone: z.string().trim().min(1, 'Timezone is required'),
     initialSystemCost: z.coerce.number().min(0, 'Initial system cost cannot be negative'),

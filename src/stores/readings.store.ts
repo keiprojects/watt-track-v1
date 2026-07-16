@@ -20,8 +20,16 @@ export const useReadingsStore = create<ReadingsState>((set, get) => ({
   readings: [],
   hasHydrated: false,
   hydrate: async () => {
-    const readings = await storageService.getEnergyReadings();
-    set({ readings: sortReadingsDescending(readings), hasHydrated: true });
+    try {
+      const readings = await storageService.getEnergyReadings();
+      set({ readings: sortReadingsDescending(readings), hasHydrated: true });
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to hydrate readings store.', error);
+      }
+
+      set({ readings: [], hasHydrated: true });
+    }
   },
   setReadings: async (readings) => {
     const sorted = sortReadingsDescending(readings);

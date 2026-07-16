@@ -18,7 +18,7 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading } from '@/types/reading';
-import { formatMonthLabel, formatShortDate } from '@/utils/date';
+import { formatMonthLabel, formatShortDate, formatWeekdayLabel, isValidDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
 function FilterField({
@@ -88,15 +88,21 @@ export default function HistoryScreen() {
   const [notesOnly, setNotesOnly] = useState(false);
   const [warningsOnly, setWarningsOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const hasInvalidFromDate = Boolean(fromDate) && !isValidDateInputValue(fromDate);
+  const hasInvalidToDate = Boolean(toDate) && !isValidDateInputValue(toDate);
+  const effectiveFromDate = hasInvalidFromDate ? '' : fromDate;
+  const effectiveToDate = hasInvalidToDate ? '' : toDate;
+  const hasReversedDateRange =
+    Boolean(effectiveFromDate && effectiveToDate) && effectiveFromDate > effectiveToDate;
 
   const filteredReadings = useMemo(
     () =>
       readings.filter((reading) => {
-        if (fromDate && reading.date < fromDate) {
+        if (effectiveFromDate && reading.date < effectiveFromDate) {
           return false;
         }
 
-        if (toDate && reading.date > toDate) {
+        if (effectiveToDate && reading.date > effectiveToDate) {
           return false;
         }
 
@@ -110,7 +116,7 @@ export default function HistoryScreen() {
 
         return true;
       }),
-    [fromDate, notesOnly, readings, toDate, warningsOnly],
+    [effectiveFromDate, effectiveToDate, notesOnly, readings, warningsOnly],
   );
 
   const sections = useMemo(() => buildSections(filteredReadings), [filteredReadings]);
@@ -122,13 +128,7 @@ export default function HistoryScreen() {
   );
   const trendValues = useMemo(() => trendReadings.map((reading) => reading.estimatedHomeUsageKwh), [trendReadings]);
   const trendLabels = useMemo(
-    () =>
-      trendReadings.map((reading) =>
-        new Intl.DateTimeFormat('en-PH', {
-          weekday: 'short',
-          timeZone: 'Asia/Manila',
-        }).format(new Date(`${reading.date}T00:00:00`)),
-      ),
+    () => trendReadings.map((reading) => formatWeekdayLabel(reading.date)),
     [trendReadings],
   );
   const latestReading = filteredReadings[0];
@@ -367,6 +367,13 @@ export default function HistoryScreen() {
       >
         <FilterField label="From date" value={fromDate} onChangeText={setFromDate} />
         <FilterField label="To date" value={toDate} onChangeText={setToDate} />
+        {hasInvalidFromDate || hasInvalidToDate || hasReversedDateRange ? (
+          <Text style={{ color: theme.warningText, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
+            {hasReversedDateRange
+              ? 'To date must be on or after the from date.'
+              : 'Enter filter dates as real calendar dates in YYYY-MM-DD format.'}
+          </Text>
+        ) : null}
         <View style={{ gap: 10 }}>
           <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong, letterSpacing: 0.6, textTransform: 'uppercase' }}>
             Quick filters

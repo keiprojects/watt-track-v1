@@ -20,8 +20,16 @@ export const useCostsStore = create<CostsState>((set, get) => ({
   costs: [],
   hasHydrated: false,
   hydrate: async () => {
-    const costs = await storageService.getSystemCosts();
-    set({ costs: sortCostsDescending(costs), hasHydrated: true });
+    try {
+      const costs = await storageService.getSystemCosts();
+      set({ costs: sortCostsDescending(costs), hasHydrated: true });
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to hydrate costs store.', error);
+      }
+
+      set({ costs: [], hasHydrated: true });
+    }
   },
   saveCost: async (cost) => {
     const costs = sortCostsDescending([cost, ...get().costs]);

@@ -1,7 +1,15 @@
 import type { SystemCost } from '@/types/cost';
 import type { EnergyReading, ReadingDraft, WarningCode } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
-import { addDaysToDate, differenceInCalendarDays, getMonthPrefix, getYearPrefix, isDateWithinRange, sortReadingsAscending } from '@/utils/date';
+import {
+  addDaysToDate,
+  differenceInCalendarDays,
+  getDateTimeTimestamp,
+  getMonthPrefix,
+  getYearPrefix,
+  isDateWithinRange,
+  sortReadingsAscending,
+} from '@/utils/date';
 
 type ReadingPreview = {
   gridConsumptionKwh: number;
@@ -147,11 +155,11 @@ function collectWarnings({
 
 export function findPreviousReading(readings: EnergyReading[], draft: Pick<ReadingDraft, 'date' | 'time'>): EnergyReading | undefined {
   const sorted = sortReadingsAscending(readings);
-  const currentDateTime = new Date(draft.time ? `${draft.date}T${draft.time}:00` : `${draft.date}T23:59:59`).getTime();
+  const currentDateTime = getDateTimeTimestamp(draft.date, draft.time);
 
   return sorted
     .filter((reading) => {
-      const readingDateTime = new Date(reading.time ? `${reading.date}T${reading.time}:00` : `${reading.date}T23:59:59`).getTime();
+      const readingDateTime = getDateTimeTimestamp(reading.date, reading.time);
       return readingDateTime < currentDateTime;
     })
     .at(-1);
@@ -163,11 +171,11 @@ function findPreviousReadingForField(
   field: ReadingValueField,
 ): EnergyReading | undefined {
   const sorted = sortReadingsAscending(readings);
-  const currentDateTime = new Date(draft.time ? `${draft.date}T${draft.time}:00` : `${draft.date}T23:59:59`).getTime();
+  const currentDateTime = getDateTimeTimestamp(draft.date, draft.time);
 
   return sorted
     .filter((reading) => {
-      const readingDateTime = new Date(reading.time ? `${reading.date}T${reading.time}:00` : `${reading.date}T23:59:59`).getTime();
+      const readingDateTime = getDateTimeTimestamp(reading.date, reading.time);
       return readingDateTime < currentDateTime && typeof reading[field] === 'number';
     })
     .at(-1);

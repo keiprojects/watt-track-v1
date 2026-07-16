@@ -29,6 +29,9 @@ import type { DashboardPeriod } from '@/types/settings';
 import {
   addDaysToDate,
   differenceInCalendarDays,
+  formatMonthDayLabel,
+  formatMonthShortLabel,
+  formatWeekdayLabel,
   formatMonthLabel,
   formatShortDate,
   getMonthPrefix,
@@ -111,28 +114,6 @@ function getUsageChangeLabel(currentValue: number, previousValue: number): strin
   return `${direction} ${Math.abs(delta).toFixed(1)}% vs previous logged day`;
 }
 
-function formatWeekdayLabel(date: string): string {
-  return new Intl.DateTimeFormat('en-PH', {
-    weekday: 'short',
-    timeZone: 'Asia/Manila',
-  }).format(new Date(`${date}T00:00:00`));
-}
-
-function formatDayLabel(date: string): string {
-  return new Intl.DateTimeFormat('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'Asia/Manila',
-  }).format(new Date(`${date}T00:00:00`));
-}
-
-function formatMonthShortLabel(monthPrefix: string): string {
-  return new Intl.DateTimeFormat('en-PH', {
-    month: 'short',
-    timeZone: 'Asia/Manila',
-  }).format(new Date(`${monthPrefix}-01T00:00:00`));
-}
-
 function buildChartBars({
   summaries,
   period,
@@ -165,13 +146,13 @@ function buildChartBars({
       .sort((left, right) => left[0].localeCompare(right[0]))
       .slice(-6)
       .map(([monthPrefix, value]) => ({
-        label: formatMonthShortLabel(monthPrefix),
+        label: formatMonthShortLabel(`${monthPrefix}-01`),
         value,
       }));
   }
 
   return summaries.slice(-10).map((summary) => ({
-    label: formatDayLabel(summary.date),
+    label: formatMonthDayLabel(summary.date),
     value: summary.estimatedHomeUsageKwh,
   }));
 }

@@ -17,9 +17,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: DEFAULT_APP_SETTINGS,
   hasHydrated: false,
   hydrate: async () => {
-    await storageService.ensureSchemaVersion();
-    const settings = await storageService.getAppSettings();
-    set({ settings, hasHydrated: true });
+    try {
+      await storageService.ensureSchemaVersion();
+      const settings = await storageService.getAppSettings();
+      set({ settings, hasHydrated: true });
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to hydrate settings store.', error);
+      }
+
+      set({ settings: DEFAULT_APP_SETTINGS, hasHydrated: true });
+    }
   },
   saveSettings: async (settings) => {
     set({ settings });

@@ -17,8 +17,16 @@ export const useSystemStore = create<SystemState>((set) => ({
   systemProfile: null,
   hasHydrated: false,
   hydrate: async () => {
-    const systemProfile = await storageService.getSystemProfile();
-    set({ systemProfile, hasHydrated: true });
+    try {
+      const systemProfile = await storageService.getSystemProfile();
+      set({ systemProfile, hasHydrated: true });
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to hydrate system store.', error);
+      }
+
+      set({ systemProfile: null, hasHydrated: true });
+    }
   },
   saveProfile: async (profile) => {
     const existingReadings = useReadingsStore.getState().readings;

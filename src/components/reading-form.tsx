@@ -13,7 +13,7 @@ import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
-import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
+import { formatShortDate, getTodayDateInputValue, isValidDateInputValue, isValidTimeInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
 
@@ -23,11 +23,15 @@ const optionalNumberField = z.preprocess(
 );
 
 const readingSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+    .refine(isValidDateInputValue, 'Use a real calendar date')
+    .refine((value) => value <= getTodayDateInputValue(), 'Reading date cannot be in the future'),
   time: z
     .string()
     .optional()
-    .refine((value) => !value || /^\d{2}:\d{2}$/.test(value), 'Use HH:MM if adding a time'),
+    .refine((value) => !value || isValidTimeInputValue(value), 'Use HH:MM if adding a time'),
   gridReading: optionalNumberField,
   solarReading: optionalNumberField,
   exportReading: optionalNumberField,

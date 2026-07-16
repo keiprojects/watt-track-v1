@@ -21,6 +21,11 @@ const systemCostCategorySchema = z.enum(['installation', 'maintenance', 'repair'
 const costTreatmentSchema = z.enum(['capital', 'maintenance']);
 const appThemeSchema = z.enum(['system', 'light', 'dark']);
 const dashboardPeriodSchema = z.enum(['7d', '30d', 'month', 'year', 'all']);
+const schemaVersionSchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(CURRENT_SCHEMA_VERSION, `Backups from newer schema versions than ${CURRENT_SCHEMA_VERSION} are not supported yet.`);
 
 const systemProfileSchema = z.object({
   id: z.string().min(1),
@@ -93,7 +98,7 @@ const appSettingsSchema = z
 
 const backupSchema = z.object({
   appName: z.literal('WattTrack'),
-  schemaVersion: z.number().int().min(1),
+  schemaVersion: schemaVersionSchema,
   exportedAt: z.string(),
   systemProfile: systemProfileSchema.nullable(),
   energyReadings: z.array(energyReadingSchema),
@@ -101,9 +106,30 @@ const backupSchema = z.object({
   appSettings: appSettingsSchema,
 });
 
-async function readJson<T>(key: StorageKey, fallback: T): Promise<T> {
+async function readJson<T>(key: StorageKey, fallback: T, schema?: z.ZodType<T>): Promise<T> {
   const value = await AsyncStorage.getItem(key);
-  return value ? (JSON.parse(value) as T) : fallback;
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!schema) {
+      return parsed as T;
+    }
+
+    const result = schema.safeParse(parsed);
+    if (result.success) {
+      return result.data;
+    }
+  } catch {
+    // Fall back below after clearing the invalid local value.
+  }
+
+  await AsyncStorage.removeItem(key).catch(() => {
+    // Ignore cleanup failures and continue booting with defaults.
+  });
+  return fallback;
 }
 
 async function writeJson<T>(key: StorageKey, value: T): Promise<void> {
@@ -112,60 +138,60 @@ async function writeJson<T>(key: StorageKey, value: T): Promise<void> {
 
 export const storageService = {
   async getSchemaVersion(): Promise<number> {
-    return readJson<number>(STORAGE_KEYS.schemaVersion, CURRENT_SCHEMA_VERSION);
+    return readJson<number>(STORAGE_KEYS.schemaVersion, CURRENT_SCHEMA_VERSION, schemaVersionSchema);
   },
   async ensureSchemaVersion(): Promise<void> {
     await writeJson(STORAGE_KEYS.schemaVersion, CURRENT_SCHEMA_VERSION);
   },
-  getSystemProfile: () => readJson<SystemProfile | null>(STORAGE_KEYS.systemProfile, null),
+  getSystemProfile: () => readJson<SystemProfile | null>(STORAGE_KEYS.systemProfile, null, systemProfileSchema.nullable()),
   saveSystemProfile: (systemProfile: SystemProfile) => writeJson(STORAGE_KEYS.systemProfile, systemProfile),
-  getEnergyReadings: () => readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, []),
+  getEnergyReadings: () => readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema)),
   async saveEnergyReading(reading: EnergyReading): Promise<void> {
-    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, []);
+    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema));
     await writeJson(STORAGE_KEYS.energyReadings, [reading, ...readings]);
   },
   setEnergyReadings: (readings: EnergyReading[]) => writeJson(STORAGE_KEYS.energyReadings, readings),
   async updateEnergyReading(updatedReading: EnergyReading): Promise<void> {
-    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, []);
+    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema));
     await writeJson(
       STORAGE_KEYS.energyReadings,
       readings.map((reading) => (reading.id === updatedReading.id ? updatedReading : reading)),
     );
   },
   async deleteEnergyReading(readingId: string): Promise<void> {
-    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, []);
+    const readings = await readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema));
     await writeJson(
       STORAGE_KEYS.energyReadings,
       readings.filter((reading) => reading.id !== readingId),
     );
   },
-  getSystemCosts: () => readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, []),
+  getSystemCosts: () => readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema)),
   async saveSystemCost(cost: SystemCost): Promise<void> {
-    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, []);
+    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema));
     await writeJson(STORAGE_KEYS.systemCosts, [cost, ...costs]);
   },
   async updateSystemCost(updatedCost: SystemCost): Promise<void> {
-    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, []);
+    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema));
     await writeJson(
       STORAGE_KEYS.systemCosts,
       costs.map((cost) => (cost.id === updatedCost.id ? updatedCost : cost)),
     );
   },
   async deleteSystemCost(costId: string): Promise<void> {
-    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, []);
+    const costs = await readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema));
     await writeJson(
       STORAGE_KEYS.systemCosts,
       costs.filter((cost) => cost.id !== costId),
     );
   },
-  getAppSettings: () => readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS),
+  getAppSettings: () => readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS, appSettingsSchema),
   saveAppSettings: (settings: AppSettings) => writeJson(STORAGE_KEYS.appSettings, settings),
   async exportBackup(): Promise<WattTrackBackup> {
     const [systemProfile, energyReadings, systemCosts, appSettings] = await Promise.all([
-      readJson<SystemProfile | null>(STORAGE_KEYS.systemProfile, null),
-      readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, []),
-      readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, []),
-      readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS),
+      readJson<SystemProfile | null>(STORAGE_KEYS.systemProfile, null, systemProfileSchema.nullable()),
+      readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema)),
+      readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema)),
+      readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS, appSettingsSchema),
     ]);
 
     return {
