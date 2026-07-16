@@ -1,8 +1,8 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { AppButton, SectionTitle, SkeletonBlock } from '@/components/app-ui';
-import { AnimatedWeatherIcon, getWeatherLabel, getWeatherVisualKind } from '@/components/weather-icon';
+import { SkeletonBlock } from '@/components/app-ui';
+import { AnimatedWeatherIcon, getWeatherVisualKind } from '@/components/weather-icon';
 import { fetchCurrentWeather, type CurrentWeatherSnapshot } from '@/services/weather.service';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
@@ -11,81 +11,16 @@ type CurrentWeatherCardProps = {
   location?: string;
 };
 
-function WeatherMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <View
-      style={{
-        minWidth: 108,
-        flex: 1,
-        gap: 4,
-        borderRadius: 18,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: theme.surface,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-      }}
-    >
-      <Text
-        style={{
-          color: theme.textSubtle,
-          fontSize: 11,
-          fontFamily: fontFamilies.bodyStrong,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-        }}
-      >
-        {label}
-      </Text>
-      <Text
-        style={{
-          color: theme.text,
-          fontSize: 17,
-          fontFamily: fontFamilies.bodyHeavy,
-          fontVariant: ['tabular-nums'],
-        }}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 function WeatherCardSkeleton() {
   return (
-    <View style={{ gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        <SkeletonBlock height={88} width={88} borderRadius={24} />
-        <View style={{ flex: 1, gap: 10 }}>
-          <SkeletonBlock height={18} width="42%" />
-          <SkeletonBlock height={40} width="58%" />
-          <SkeletonBlock height={16} width="74%" />
-        </View>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        <SkeletonBlock height={66} width="48%" borderRadius={18} />
-        <SkeletonBlock height={66} width="48%" borderRadius={18} />
-        <SkeletonBlock height={66} width="48%" borderRadius={18} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <SkeletonBlock height={76} width={76} borderRadius={22} />
+      <View style={{ gap: 8 }}>
+        <SkeletonBlock height={40} width={96} borderRadius={14} />
+        <SkeletonBlock height={14} width={120} borderRadius={10} />
       </View>
     </View>
   );
-}
-
-function buildWeatherNote(weather: CurrentWeatherSnapshot): string {
-  if (weather.isFallbackLocation) {
-    return 'Showing Manila until you save your system location.';
-  }
-
-  return `Live conditions for ${weather.resolvedLocation}.`;
 }
 
 export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
@@ -93,18 +28,15 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
   const [weather, setWeather] = useState<CurrentWeatherSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadWeather = useEffectEvent(async (forceRefresh: boolean, signal?: AbortSignal) => {
+  const loadWeather = useEffectEvent(async (signal?: AbortSignal) => {
     setErrorMessage(null);
-    setIsLoading(!forceRefresh);
-    setIsRefreshing(forceRefresh);
+    setIsLoading(true);
 
     try {
       const snapshot = await fetchCurrentWeather({
         location,
         signal,
-        forceRefresh,
       });
       setWeather(snapshot);
     } catch (error) {
@@ -116,7 +48,6 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to load current weather.');
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   });
 
@@ -126,32 +57,35 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
     setWeather(null);
     setErrorMessage(null);
     setIsLoading(true);
-    void loadWeather(false, controller.signal);
+    void loadWeather(controller.signal);
 
     return () => {
       controller.abort();
     };
   }, [loadWeather, location]);
 
-  const weatherLabel = weather ? getWeatherLabel(weather.weatherCode) : 'Current weather';
   const visualKind = weather ? getWeatherVisualKind(weather.weatherCode) : 'partly-cloudy';
   const accentTint =
     visualKind === 'storm'
       ? 'rgba(255, 191, 71, 0.12)'
       : visualKind === 'rain' || visualKind === 'snow'
         ? 'rgba(118, 168, 255, 0.12)'
-        : theme.accentSoft;
+        : 'rgba(201, 255, 69, 0.12)';
 
   return (
     <View
       style={{
-        gap: 16,
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
         borderRadius: 24,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: theme.surfaceRaised,
-        padding: 16,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         overflow: 'hidden',
       }}
     >
@@ -159,144 +93,56 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          top: -36,
-          right: -12,
-          height: 136,
-          width: 136,
+          top: -20,
+          right: -8,
+          height: 96,
+          width: 96,
           borderRadius: 999,
           backgroundColor: accentTint,
         }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          bottom: -46,
-          left: -22,
-          height: 118,
-          width: 118,
-          borderRadius: 999,
-          backgroundColor: 'rgba(104, 162, 255, 0.08)',
-        }}
-      />
-
-      <SectionTitle
-        title="Current weather"
-        description="Live sky context for the reading you are about to save."
-        icon="cloud-outline"
-        eyebrow="Now"
-        action={
-          <AppButton
-            label={isRefreshing ? 'Refreshing' : 'Refresh'}
-            icon="refresh-outline"
-            tone="ghost"
-            fullWidth={false}
-            disabled={isLoading || isRefreshing}
-            onPress={() => void loadWeather(true)}
-          />
-        }
       />
 
       {isLoading ? (
         <WeatherCardSkeleton />
       ) : errorMessage ? (
-        <View
+        <Text
+          selectable
           style={{
-            gap: 10,
-            borderRadius: 18,
-            borderCurve: 'continuous',
-            backgroundColor: theme.warningSoft,
-            padding: 14,
+            color: theme.textMuted,
+            fontSize: 13,
+            fontFamily: fontFamilies.bodyStrong,
           }}
         >
-          <Text
-            style={{
-              color: theme.warningText,
-              fontSize: 15,
-              fontFamily: fontFamilies.bodyStrong,
-            }}
-          >
-            Weather unavailable
-          </Text>
-          <Text
-            style={{
-              color: theme.warningText,
-              fontSize: 13,
-              lineHeight: 18,
-              fontFamily: fontFamilies.body,
-            }}
-          >
-            {errorMessage}
-          </Text>
-        </View>
+          Weather unavailable
+        </Text>
       ) : weather ? (
         <>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-            <AnimatedWeatherIcon weatherCode={weather.weatherCode} isDay={weather.isDay} size={92} />
-
-            <View style={{ flex: 1, gap: 6 }}>
-              <Text
-                style={{
-                  color: theme.textSubtle,
-                  fontSize: 12,
-                  fontFamily: fontFamilies.bodyStrong,
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {weather.resolvedLocation}
-              </Text>
-              <Text
-                style={{
-                  color: theme.text,
-                  fontSize: 42,
-                  fontFamily: fontFamilies.display,
-                  fontVariant: ['tabular-nums'],
-                }}
-              >
-                {`${Math.round(weather.temperatureC)}\u00B0C`}
-              </Text>
-              <Text
-                style={{
-                  color: theme.textMuted,
-                  fontSize: 16,
-                  fontFamily: fontFamilies.bodyStrong,
-                }}
-              >
-                {weatherLabel}
-              </Text>
-              <Text
-                style={{
-                  color: theme.textSubtle,
-                  fontSize: 13,
-                  lineHeight: 18,
-                  fontFamily: fontFamilies.body,
-                }}
-              >
-                {buildWeatherNote(weather)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <WeatherMetric label="Feels like" value={`${Math.round(weather.feelsLikeC)}\u00B0C`} />
-            <WeatherMetric label="Humidity" value={`${Math.round(weather.humidityPercent)}%`} />
-            <WeatherMetric label="Wind" value={`${Math.round(weather.windSpeedKph)} km/h`} />
-            <WeatherMetric label="Rain" value={`${weather.precipitationMm.toFixed(1)} mm`} />
-          </View>
-
-          {weather.isFallbackLocation ? (
+          <AnimatedWeatherIcon weatherCode={weather.weatherCode} isDay={weather.isDay} size={76} />
+          <View style={{ gap: 4 }}>
             <Text
+              selectable
               style={{
-                color: theme.textSubtle,
-                fontSize: 12,
-                lineHeight: 18,
-                fontFamily: fontFamilies.body,
+                color: theme.textOnDark,
+                fontSize: 36,
+                fontFamily: fontFamilies.display,
+                fontVariant: ['tabular-nums'],
               }}
             >
-              Add your site location in Profile details for weather that matches your system instead of the Manila fallback.
+              {`${Math.round(weather.temperatureC)}\u00B0C`}
             </Text>
-          ) : null}
+            <Text
+              selectable
+              numberOfLines={1}
+              style={{
+                maxWidth: 180,
+                color: theme.textMuted,
+                fontSize: 13,
+                fontFamily: fontFamilies.bodyStrong,
+              }}
+            >
+              {weather.resolvedLocation}
+            </Text>
+          </View>
         </>
       ) : null}
     </View>

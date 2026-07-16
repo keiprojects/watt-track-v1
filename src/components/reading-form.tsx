@@ -5,7 +5,6 @@ import { Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { MetricCard } from '@/components/metric-card';
-import { CurrentWeatherCard } from '@/components/current-weather-card';
 import { DateTimePickerField } from '@/components/date-time-picker-field';
 import { AppButton, Panel, SectionTitle, useScreenContentContainerStyle } from '@/components/app-ui';
 import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
@@ -308,8 +307,6 @@ export function ReadingForm({
       </View>
 
       <Panel style={{ gap: 18 }}>
-        <CurrentWeatherCard location={systemProfile.location} />
-
         <Field label="Date" helper="Pick the day for this reading." error={errors.date?.message}>
           <Controller
             control={control}

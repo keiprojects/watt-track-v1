@@ -9,6 +9,7 @@ import {
   SectionTitle,
   useScreenContentContainerStyle,
 } from '@/components/app-ui';
+import { CurrentWeatherCard } from '@/components/current-weather-card';
 import { MetricCard } from '@/components/metric-card';
 import { PowerOrb } from '@/components/power-orb';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -316,6 +317,8 @@ export default function DashboardScreen() {
               {formatMonthLabel(today)}
             </Text>
           </View>
+
+          <CurrentWeatherCard location={systemProfile?.location} />
 
           {readings.length === 0 ? (
             <View style={{ gap: 14 }}>
