@@ -16,7 +16,9 @@ import { SegmentedControl } from '@/components/segmented-control';
 import { WeeklyBarChart } from '@/components/weekly-bar-chart';
 import {
   aggregateReadingsByDate,
+  filterBillingCycleReadings,
   filterDashboardReadings,
+  getBillingCycleStartDate,
   summarizeReadings,
   type DailyReadingSummary,
 } from '@/services/calculation.service';
@@ -229,6 +231,20 @@ export default function DashboardScreen() {
   );
   const periodDailySummaries = useMemo(() => aggregateReadingsByDate(periodReadings), [periodReadings]);
   const periodSummary = useMemo(() => summarizeReadings(periodReadings), [periodReadings]);
+  const billingCycleStartDate = useMemo(
+    () => getBillingCycleStartDate(today, systemProfile?.billingCycleStartDay ?? 1),
+    [systemProfile?.billingCycleStartDay, today],
+  );
+  const billingCycleReadings = useMemo(
+    () =>
+      filterBillingCycleReadings({
+        readings,
+        today,
+        billingCycleStartDay: systemProfile?.billingCycleStartDay,
+      }),
+    [readings, systemProfile?.billingCycleStartDay, today],
+  );
+  const billingCycleSummary = useMemo(() => summarizeReadings(billingCycleReadings), [billingCycleReadings]);
   const comparisonWindow = useMemo(
     () => getComparisonWindow({ readings, today, period: dashboardPeriod }),
     [dashboardPeriod, readings, today],
@@ -451,8 +467,8 @@ export default function DashboardScreen() {
                     {formatCurrency(todayReading?.estimatedGridCost ?? 0)}
                   </Text>
                   <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
-                    {periodSummary.estimatedGridCost > 0
-                      ? `${formatCurrency(periodSummary.estimatedGridCost)} in ${getPeriodLabel(dashboardPeriod).toLowerCase()}`
+                    {billingCycleSummary.estimatedGridCost > 0
+                      ? `${formatCurrency(billingCycleSummary.estimatedGridCost)} since ${formatShortDate(billingCycleStartDate)}`
                       : 'Estimated from your saved rates'}
                   </Text>
                 </View>

@@ -125,6 +125,14 @@ export function getYearPrefix(date: string): string {
   return date.slice(0, 4);
 }
 
+export function getDaysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function buildDateFromParts(year: number, month: number, day: number): string {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export function isDateWithinRange(date: string, startDate?: string, endDate?: string): boolean {
   if (startDate && date < startDate) {
     return false;

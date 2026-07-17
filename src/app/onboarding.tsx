@@ -32,6 +32,11 @@ const onboardingSchema = z
     timezone: z.string().trim().min(1, 'Timezone is required'),
     initialSystemCost: z.coerce.number().min(0, 'Initial system cost cannot be negative'),
     defaultImportRate: z.coerce.number().min(0, 'Import rate cannot be negative'),
+    billingCycleStartDay: z.coerce
+      .number()
+      .int('Billing date must be a whole day of the month')
+      .min(1, 'Billing date must be from 1 to 31')
+      .max(31, 'Billing date must be from 1 to 31'),
     defaultExportRate: z.preprocess(
       (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
       z.coerce.number().min(0, 'Export rate cannot be negative').optional(),
@@ -125,6 +130,7 @@ export default function OnboardingScreen() {
       timezone: systemProfile?.timezone ?? 'Asia/Manila',
       initialSystemCost: systemProfile?.initialSystemCost ?? 0,
       defaultImportRate: systemProfile?.defaultImportRate ?? 0,
+      billingCycleStartDay: systemProfile?.billingCycleStartDay ?? 1,
       defaultExportRate: systemProfile?.defaultExportRate,
       solarCapacityKw: systemProfile?.solarCapacityKw,
       inverterCapacityKw: systemProfile?.inverterCapacityKw,
@@ -161,6 +167,7 @@ export default function OnboardingScreen() {
       batteryCapacityKwh: values.batteryCapacityKwh,
       initialSystemCost: values.initialSystemCost,
       defaultImportRate: values.defaultImportRate,
+      billingCycleStartDay: values.billingCycleStartDay,
       defaultExportRate: values.exportEnabled ? values.defaultExportRate : undefined,
       gridInputMode: values.gridInputMode,
       solarInputMode: values.solarInputMode,
@@ -375,6 +382,27 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="0"
+                style={inputStyle}
+                placeholderTextColor={theme.textSubtle}
+              />
+            )}
+          />
+        </Field>
+
+        <Field
+          label="Billing cycle start day"
+          helper="Day of the month your utility bill period starts, usually the previous reading date on your bill."
+          error={errors.billingCycleStartDay?.message}
+        >
+          <Controller
+            control={control}
+            name="billingCycleStartDay"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                value={String(value ?? '')}
+                onChangeText={onChange}
+                keyboardType="number-pad"
+                placeholder="1"
                 style={inputStyle}
                 placeholderTextColor={theme.textSubtle}
               />

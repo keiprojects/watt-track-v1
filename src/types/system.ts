@@ -14,6 +14,7 @@ export type SystemProfile = {
   initialSystemCost: number;
   defaultImportRate: number;
   defaultExportRate?: number;
+  billingCycleStartDay: number;
   gridInputMode: ReadingInputMode;
   solarInputMode: ReadingInputMode;
   exportInputMode: ExportInputMode;
