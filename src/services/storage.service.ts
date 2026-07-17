@@ -40,6 +40,7 @@ const systemProfileSchema = z.object({
   initialSystemCost: z.number().min(0),
   defaultImportRate: z.number().min(0),
   defaultExportRate: z.number().min(0).optional(),
+  billingCycleStartDay: z.number().int().min(1).max(31).default(1),
   gridInputMode: readingInputModeSchema,
   solarInputMode: readingInputModeSchema,
   exportInputMode: exportInputModeSchema,

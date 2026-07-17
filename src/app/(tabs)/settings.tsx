@@ -275,6 +275,7 @@ export default function SettingsScreen() {
           <MenuRow icon="settings-outline" title="Timezone" subtitle={systemProfile?.timezone ?? 'Asia/Manila'} />
           <MenuRow icon="settings-outline" title="Initial system cost" subtitle={formatCurrency(systemProfile?.initialSystemCost ?? 0)} />
           <MenuRow icon="settings-outline" title="Default import rate" subtitle={formatRate(systemProfile?.defaultImportRate ?? 0)} />
+          <MenuRow icon="settings-outline" title="Billing cycle start" subtitle={`Day ${systemProfile?.billingCycleStartDay ?? 1} of each month`} />
           <MenuRow icon="settings-outline" title="Grid input mode" subtitle={formatReadingMode(systemProfile?.gridInputMode)} />
           <MenuRow icon="settings-outline" title="Export mode" subtitle={formatExportMode(systemProfile?.exportInputMode)} />
         </Panel>

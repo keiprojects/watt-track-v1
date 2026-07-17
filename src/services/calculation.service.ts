@@ -3,7 +3,9 @@ import type { EnergyReading, ReadingDraft, WarningCode } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import {
   addDaysToDate,
+  buildDateFromParts,
   differenceInCalendarDays,
+  getDaysInMonth,
   getDateTimeTimestamp,
   getMonthPrefix,
   getYearPrefix,
@@ -324,6 +326,38 @@ export function filterDashboardReadings({
 
   const days = period === '7d' ? 7 : 30;
   return readings.filter((reading) => differenceInCalendarDays(today, reading.date) >= 0 && differenceInCalendarDays(today, reading.date) < days);
+}
+
+export function getBillingCycleStartDate(today: string, billingCycleStartDay = 1): string {
+  const [todayYear, todayMonth, todayDay] = today.split('-').map(Number);
+  const cycleDay = Math.min(31, Math.max(1, Math.trunc(billingCycleStartDay)));
+  let startYear = todayYear;
+  let startMonth = todayMonth;
+
+  if (todayDay < cycleDay) {
+    startMonth -= 1;
+
+    if (startMonth === 0) {
+      startMonth = 12;
+      startYear -= 1;
+    }
+  }
+
+  const clampedDay = Math.min(cycleDay, getDaysInMonth(startYear, startMonth));
+  return buildDateFromParts(startYear, startMonth, clampedDay);
+}
+
+export function filterBillingCycleReadings({
+  readings,
+  today,
+  billingCycleStartDay,
+}: {
+  readings: EnergyReading[];
+  today: string;
+  billingCycleStartDay?: number;
+}): EnergyReading[] {
+  const cycleStartDate = getBillingCycleStartDate(today, billingCycleStartDay);
+  return readings.filter((reading) => reading.date >= cycleStartDate && reading.date <= today);
 }
 
 export function filterInsightsReadingsByRange({
