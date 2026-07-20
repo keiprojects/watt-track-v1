@@ -15,10 +15,15 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
   const activeColor = theme.mode === 'light' ? '#5d9b00' : theme.accent;
   const radius = size / 2;
   const innerRadius = size * 0.32;
-  const chartData = [
-    { value: normalizedProgress, color: activeColor },
-    { value: Math.max(0, 100 - normalizedProgress), color: theme.ringTrack },
-  ];
+  const chartData =
+    normalizedProgress <= 0
+      ? [{ value: 100, color: theme.ringTrack }]
+      : normalizedProgress >= 100
+        ? [{ value: 100, color: activeColor }]
+        : [
+            { value: normalizedProgress, color: activeColor },
+            { value: 100 - normalizedProgress, color: theme.ringTrack },
+          ];
 
   return (
     <View style={{ height: size, width: size, alignItems: 'center', justifyContent: 'center' }}>
