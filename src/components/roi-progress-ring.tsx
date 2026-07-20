@@ -9,10 +9,10 @@ type RoiProgressRingProps = {
   size?: number;
 };
 
-export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) {
+export function RoiProgressRing({ progress, size = 92 }: RoiProgressRingProps) {
   const theme = useAppTheme();
   const normalizedProgress = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
-  const activeColor = theme.mode === 'light' ? '#5d9b00' : theme.accent;
+  const activeColor = theme.primaryChart;
   const radius = size / 2;
   const innerRadius = size * 0.32;
   const chartData =
@@ -48,7 +48,7 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
               backgroundColor: theme.surfaceRaised,
             }}
           >
-            <Ionicons name="trending-up" size={Math.round(size * 0.28)} color={theme.textMuted} />
+            <Ionicons name="trending-up" size={Math.round(size * 0.28)} color={activeColor} />
           </View>
         )}
       />
