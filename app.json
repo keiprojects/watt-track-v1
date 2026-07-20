@@ -11,10 +11,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/branding/logo-full.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#04111d",
-          "imageWidth": 220
+          "backgroundColor": "#04111d"
         }
       ],
       "expo-router",
