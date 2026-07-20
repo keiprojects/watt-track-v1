@@ -82,7 +82,9 @@ export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWea
       ? 'rgba(255, 191, 71, 0.12)'
       : visualKind === 'rain' || visualKind === 'snow'
         ? 'rgba(118, 168, 255, 0.12)'
-        : 'rgba(201, 255, 69, 0.12)';
+        : theme.mode === 'dark'
+          ? 'rgba(214, 255, 77, 0.12)'
+          : 'rgba(255, 191, 55, 0.14)';
 
   if (variant === 'compact') {
     return (
@@ -100,7 +102,7 @@ export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWea
           backgroundColor: theme.surface,
           paddingHorizontal: 12,
           paddingVertical: 9,
-          boxShadow: theme.shadow,
+          boxShadow: theme.mode === 'dark' ? '0 12px 28px rgba(0, 0, 0, 0.20)' : '0 12px 28px rgba(7, 14, 28, 0.07)',
         }}
       >
         <View
@@ -152,11 +154,12 @@ export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWea
         borderRadius: 24,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
         paddingHorizontal: 16,
         paddingVertical: 14,
         overflow: 'hidden',
+        boxShadow: theme.mode === 'dark' ? '0 16px 34px rgba(0, 0, 0, 0.20)' : theme.shadow,
       }}
     >
       <View
@@ -192,7 +195,7 @@ export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWea
             <Text
               selectable
               style={{
-                color: theme.textOnDark,
+                color: theme.text,
                 fontSize: 36,
                 fontFamily: fontFamilies.display,
                 fontVariant: ['tabular-nums'],
