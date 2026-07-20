@@ -43,6 +43,9 @@ jobs:
       - name: Run TypeScript checks
         run: npm run typecheck
 
+      - name: Validate Android bundle export
+        run: npm run export:android
+
       - name: Report Expo package compatibility
         continue-on-error: true
         run: npx expo install --check
