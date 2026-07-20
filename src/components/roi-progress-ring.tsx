@@ -8,15 +8,14 @@ type RoiProgressRingProps = {
   size?: number;
 };
 
-export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) {
+export function RoiProgressRing({ progress, size = 92 }: RoiProgressRingProps) {
   const theme = useAppTheme();
-  const markerCount = 30;
+  const markerCount = 28;
   const markerSize = Math.max(5, Math.round(size * 0.065));
   const radius = size * 0.41;
   const center = size / 2;
   const normalizedProgress = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
   const activeMarkers = Math.round((normalizedProgress / 100) * markerCount);
-  const activeColor = theme.mode === 'light' ? '#5d9b00' : theme.accent;
 
   return (
     <View style={{ height: size, width: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -36,8 +35,8 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
               height: markerSize,
               width: markerSize,
               borderRadius: 999,
-              backgroundColor: active ? activeColor : theme.ringTrack,
-              boxShadow: active ? `0 0 10px ${theme.accentGlow}` : undefined,
+              backgroundColor: active ? theme.primaryChart : theme.ringTrack,
+              boxShadow: active ? `0 0 9px ${theme.primaryChart}55` : undefined,
             }}
           />
         );
@@ -55,7 +54,7 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
           backgroundColor: theme.surfaceRaised,
         }}
       >
-        <Ionicons name="trending-up" size={Math.round(size * 0.28)} color={theme.textMuted} />
+        <Ionicons name="trending-up" size={Math.round(size * 0.27)} color={theme.primaryChart} />
       </View>
     </View>
   );
