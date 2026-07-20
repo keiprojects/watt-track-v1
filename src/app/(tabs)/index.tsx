@@ -163,16 +163,17 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         flex: 1,
         minWidth: 0,
         alignItems: alignRight ? 'flex-end' : 'flex-start',
-        gap: 7,
+        gap: 6,
         paddingHorizontal: 8,
+        zIndex: 2,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Ionicons name={icon} size={19} color={color} />
+        <Ionicons name={icon} size={18} color={color} />
         <Text
           numberOfLines={2}
           style={{
-            maxWidth: 92,
+            maxWidth: 98,
             color: theme.textMuted,
             fontSize: 12,
             lineHeight: 16,
@@ -192,8 +193,8 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         style={{
           width: '100%',
           color: theme.text,
-          fontSize: 22,
-          lineHeight: 28,
+          fontSize: 21,
+          lineHeight: 27,
           textAlign: alignRight ? 'right' : 'left',
           fontFamily: fontFamilies.bodyHeavy,
           fontVariant: ['tabular-nums'],
@@ -302,6 +303,8 @@ export default function DashboardScreen() {
   const gridAccent = theme.secondaryChart;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
+  const flowDividerColor = theme.mode === 'dark' ? 'rgba(228, 238, 255, 0.18)' : 'rgba(10, 29, 58, 0.16)';
+  const centerCircleSize = 118;
 
   return (
     <ScrollView
@@ -314,7 +317,7 @@ export default function DashboardScreen() {
         gap: 16,
         paddingHorizontal: 18,
         paddingTop: Math.max(insets.top + 12, 24),
-        paddingBottom: 112 + insets.bottom,
+        paddingBottom: 32,
       }}
     >
       <MotionSection index={0} style={{ gap: 18 }}>
@@ -389,12 +392,37 @@ export default function DashboardScreen() {
         <View
           style={{
             position: 'relative',
-            height: 326,
+            height: 288,
             paddingHorizontal: 0,
-            paddingVertical: 22,
+            paddingVertical: 18,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 98 }}>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 144,
+              left: 18,
+              right: 18,
+              height: 1.5,
+              backgroundColor: flowDividerColor,
+              zIndex: 0,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 18,
+              left: '50%',
+              bottom: 18,
+              width: 1.5,
+              backgroundColor: flowDividerColor,
+              zIndex: 0,
+            }}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', height: 104, zIndex: 1 }}>
             <FlowMetric
               icon="sunny-outline"
               label="Solar generated"
@@ -402,7 +430,7 @@ export default function DashboardScreen() {
               helper={periodLabel}
               color={positiveAccent}
             />
-            <View style={{ width: 128 }} />
+            <View style={{ width: centerCircleSize - 2 }} />
             <FlowMetric
               icon="business-outline"
               label="Grid usage"
@@ -414,63 +442,41 @@ export default function DashboardScreen() {
           </View>
 
           <View
-            pointerEvents="none"
             style={{
               position: 'absolute',
-              top: 104,
-              left: 26,
-              right: 26,
-              height: 1,
-              backgroundColor: theme.border,
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 104,
+              top: 144 - centerCircleSize / 2,
               left: '50%',
-              bottom: 104,
-              width: 1,
-              backgroundColor: theme.border,
-            }}
-          />
-
-          <View
-            style={{
-              position: 'absolute',
-              top: 76,
-              left: '50%',
-              height: 150,
-              width: 150,
-              marginLeft: -75,
+              height: centerCircleSize,
+              width: centerCircleSize,
+              marginLeft: -centerCircleSize / 2,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
+              gap: 4,
               borderRadius: 999,
-              borderWidth: 4,
+              borderWidth: 3,
               borderColor: positiveAccent,
               backgroundColor: theme.background,
+              zIndex: 3,
             }}
           >
             <View
               style={{
-                height: 34,
-                width: 34,
+                height: 28,
+                width: 28,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 999,
                 backgroundColor: theme.accentSoft,
               }}
             >
-              <Ionicons name="flash-outline" size={19} color={theme.accent} />
+              <Ionicons name="flash-outline" size={17} color={theme.accent} />
             </View>
             <Text
               style={{
-                maxWidth: 108,
+                maxWidth: 88,
                 color: theme.textMuted,
-                fontSize: 11,
-                lineHeight: 14,
+                fontSize: 10,
+                lineHeight: 13,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyStrong,
               }}
@@ -481,11 +487,11 @@ export default function DashboardScreen() {
               selectable
               numberOfLines={1}
               adjustsFontSizeToFit
-              minimumFontScale={0.62}
+              minimumFontScale={0.58}
               style={{
-                width: 122,
+                width: 96,
                 color: theme.text,
-                fontSize: 19,
+                fontSize: 17,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyHeavy,
                 fontVariant: ['tabular-nums'],
@@ -493,12 +499,12 @@ export default function DashboardScreen() {
             >
               {formatKwh(periodSummary.homeUsageKwh)}
             </Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 9, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
           </View>
 
           <View style={{ flex: 1 }} />
 
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 98 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 104, zIndex: 1 }}>
             <FlowMetric
               icon="wallet-outline"
               label="Estimated savings"
@@ -506,7 +512,7 @@ export default function DashboardScreen() {
               helper={periodLabel}
               color={positiveAccent}
             />
-            <View style={{ width: 128 }} />
+            <View style={{ width: centerCircleSize - 2 }} />
             <FlowMetric
               icon="trending-up-outline"
               label="ROI / Payback"
