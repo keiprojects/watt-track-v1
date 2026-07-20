@@ -163,17 +163,16 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         flex: 1,
         minWidth: 0,
         alignItems: alignRight ? 'flex-end' : 'flex-start',
-        gap: 6,
+        gap: 7,
         paddingHorizontal: 8,
-        zIndex: 2,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Ionicons name={icon} size={18} color={color} />
+        <Ionicons name={icon} size={19} color={color} />
         <Text
           numberOfLines={2}
           style={{
-            maxWidth: 98,
+            maxWidth: 92,
             color: theme.textMuted,
             fontSize: 12,
             lineHeight: 16,
@@ -193,8 +192,8 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         style={{
           width: '100%',
           color: theme.text,
-          fontSize: 21,
-          lineHeight: 27,
+          fontSize: 22,
+          lineHeight: 28,
           textAlign: alignRight ? 'right' : 'left',
           fontFamily: fontFamilies.bodyHeavy,
           fontVariant: ['tabular-nums'],
@@ -299,12 +298,12 @@ export default function DashboardScreen() {
   const latestReading = readings[0];
   const periodLabel = getPeriodLabel(dashboardPeriod);
   const hasPeriodData = periodReadings.length > 0;
-  const positiveAccent = theme.primaryChart;
-  const gridAccent = theme.secondaryChart;
+  const primaryAccent = theme.accent;
+  const secondaryAccent = theme.textMuted;
+  const subtleAccent = theme.textSubtle;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
-  const flowDividerColor = theme.mode === 'dark' ? 'rgba(228, 238, 255, 0.18)' : 'rgba(10, 29, 58, 0.16)';
-  const centerCircleSize = 118;
+  const dividerColor = theme.mode === 'dark' ? 'rgba(255, 255, 255, 0.16)' : 'rgba(9, 9, 11, 0.14)';
 
   return (
     <ScrollView
@@ -317,14 +316,14 @@ export default function DashboardScreen() {
         gap: 16,
         paddingHorizontal: 18,
         paddingTop: Math.max(insets.top + 12, 24),
-        paddingBottom: 32,
+        paddingBottom: 34 + insets.bottom,
       }}
     >
       <MotionSection index={0} style={{ gap: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Text
             style={{
-              color: theme.accent,
+              color: theme.text,
               fontSize: 29,
               fontFamily: fontFamilies.display,
               letterSpacing: -1,
@@ -392,91 +391,88 @@ export default function DashboardScreen() {
         <View
           style={{
             position: 'relative',
-            height: 288,
+            height: 286,
             paddingHorizontal: 0,
             paddingVertical: 18,
           }}
         >
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 144,
-              left: 18,
-              right: 18,
-              height: 1.5,
-              backgroundColor: flowDividerColor,
-              zIndex: 0,
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 18,
-              left: '50%',
-              bottom: 18,
-              width: 1.5,
-              backgroundColor: flowDividerColor,
-              zIndex: 0,
-            }}
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', height: 104, zIndex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 88 }}>
             <FlowMetric
               icon="sunny-outline"
               label="Solar generated"
               value={formatKwh(periodSummary.solarGeneratedKwh)}
               helper={periodLabel}
-              color={positiveAccent}
+              color={primaryAccent}
             />
-            <View style={{ width: centerCircleSize - 2 }} />
+            <View style={{ width: 104 }} />
             <FlowMetric
               icon="business-outline"
               label="Grid usage"
               value={formatKwh(periodSummary.gridConsumedKwh)}
               helper={periodLabel}
-              color={gridAccent}
+              color={secondaryAccent}
               align="right"
             />
           </View>
 
           <View
+            pointerEvents="none"
             style={{
               position: 'absolute',
-              top: 144 - centerCircleSize / 2,
+              top: 96,
+              left: 18,
+              right: 18,
+              height: 1.5,
+              backgroundColor: dividerColor,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 72,
               left: '50%',
-              height: centerCircleSize,
-              width: centerCircleSize,
-              marginLeft: -centerCircleSize / 2,
+              bottom: 72,
+              width: 1.5,
+              backgroundColor: dividerColor,
+            }}
+          />
+
+          <View
+            style={{
+              position: 'absolute',
+              top: 82,
+              left: '50%',
+              height: 118,
+              width: 118,
+              marginLeft: -59,
               alignItems: 'center',
               justifyContent: 'center',
               gap: 4,
               borderRadius: 999,
               borderWidth: 3,
-              borderColor: positiveAccent,
+              borderColor: primaryAccent,
               backgroundColor: theme.background,
-              zIndex: 3,
             }}
           >
             <View
               style={{
-                height: 28,
-                width: 28,
+                height: 27,
+                width: 27,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 999,
-                backgroundColor: theme.accentSoft,
+                backgroundColor: theme.surfaceRaised,
               }}
             >
-              <Ionicons name="flash-outline" size={17} color={theme.accent} />
+              <Ionicons name="flash-outline" size={16} color={primaryAccent} />
             </View>
             <Text
               style={{
-                maxWidth: 88,
+                maxWidth: 92,
                 color: theme.textMuted,
                 fontSize: 10,
-                lineHeight: 13,
+                lineHeight: 12,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyStrong,
               }}
@@ -487,11 +483,11 @@ export default function DashboardScreen() {
               selectable
               numberOfLines={1}
               adjustsFontSizeToFit
-              minimumFontScale={0.58}
+              minimumFontScale={0.62}
               style={{
                 width: 96,
                 color: theme.text,
-                fontSize: 17,
+                fontSize: 16,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyHeavy,
                 fontVariant: ['tabular-nums'],
@@ -504,15 +500,15 @@ export default function DashboardScreen() {
 
           <View style={{ flex: 1 }} />
 
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 104, zIndex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 88 }}>
             <FlowMetric
               icon="wallet-outline"
               label="Estimated savings"
               value={formatCurrency(periodSummary.estimatedSavings)}
               helper={periodLabel}
-              color={positiveAccent}
+              color={secondaryAccent}
             />
-            <View style={{ width: centerCircleSize - 2 }} />
+            <View style={{ width: 104 }} />
             <FlowMetric
               icon="trending-up-outline"
               label="ROI / Payback"
@@ -522,7 +518,7 @@ export default function DashboardScreen() {
                   ? `${formatCurrency(roiSummary.remainingAmount)} left`
                   : 'Add system cost'
               }
-              color={theme.accent}
+              color={subtleAccent}
               align="right"
             />
           </View>
@@ -614,28 +610,28 @@ export default function DashboardScreen() {
                   icon="business-outline"
                   label="Grid"
                   value={formatKwh(latestReading.gridConsumptionKwh)}
-                  color={gridAccent}
+                  color={secondaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="sunny-outline"
                   label="Solar"
                   value={formatKwh(latestReading.solarGenerationKwh)}
-                  color={positiveAccent}
+                  color={primaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="flash-outline"
                   label="Total used"
                   value={formatKwh(latestReading.estimatedHomeUsageKwh)}
-                  color={gridAccent}
+                  color={secondaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="wallet-outline"
                   label="Savings"
                   value={formatCurrency(latestReading.estimatedSavings)}
-                  color={positiveAccent}
+                  color={primaryAccent}
                 />
               </View>
             </Panel>
