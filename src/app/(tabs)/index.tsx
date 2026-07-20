@@ -298,10 +298,12 @@ export default function DashboardScreen() {
   const latestReading = readings[0];
   const periodLabel = getPeriodLabel(dashboardPeriod);
   const hasPeriodData = periodReadings.length > 0;
-  const positiveAccent = theme.primaryChart;
-  const gridAccent = theme.secondaryChart;
+  const primaryAccent = theme.accent;
+  const secondaryAccent = theme.textMuted;
+  const subtleAccent = theme.textSubtle;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
+  const dividerColor = theme.mode === 'dark' ? 'rgba(255, 255, 255, 0.16)' : 'rgba(9, 9, 11, 0.14)';
 
   return (
     <ScrollView
@@ -314,14 +316,14 @@ export default function DashboardScreen() {
         gap: 16,
         paddingHorizontal: 18,
         paddingTop: Math.max(insets.top + 12, 24),
-        paddingBottom: 112 + insets.bottom,
+        paddingBottom: 34 + insets.bottom,
       }}
     >
       <MotionSection index={0} style={{ gap: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Text
             style={{
-              color: theme.accent,
+              color: theme.text,
               fontSize: 29,
               fontFamily: fontFamilies.display,
               letterSpacing: -1,
@@ -389,26 +391,26 @@ export default function DashboardScreen() {
         <View
           style={{
             position: 'relative',
-            height: 326,
+            height: 286,
             paddingHorizontal: 0,
-            paddingVertical: 22,
+            paddingVertical: 18,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 98 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 88 }}>
             <FlowMetric
               icon="sunny-outline"
               label="Solar generated"
               value={formatKwh(periodSummary.solarGeneratedKwh)}
               helper={periodLabel}
-              color={positiveAccent}
+              color={primaryAccent}
             />
-            <View style={{ width: 128 }} />
+            <View style={{ width: 104 }} />
             <FlowMetric
               icon="business-outline"
               label="Grid usage"
               value={formatKwh(periodSummary.gridConsumedKwh)}
               helper={periodLabel}
-              color={gridAccent}
+              color={secondaryAccent}
               align="right"
             />
           </View>
@@ -417,60 +419,60 @@ export default function DashboardScreen() {
             pointerEvents="none"
             style={{
               position: 'absolute',
-              top: 104,
-              left: 26,
-              right: 26,
-              height: 1,
-              backgroundColor: theme.border,
+              top: 96,
+              left: 18,
+              right: 18,
+              height: 1.5,
+              backgroundColor: dividerColor,
             }}
           />
           <View
             pointerEvents="none"
             style={{
               position: 'absolute',
-              top: 104,
+              top: 72,
               left: '50%',
-              bottom: 104,
-              width: 1,
-              backgroundColor: theme.border,
+              bottom: 72,
+              width: 1.5,
+              backgroundColor: dividerColor,
             }}
           />
 
           <View
             style={{
               position: 'absolute',
-              top: 76,
+              top: 82,
               left: '50%',
-              height: 150,
-              width: 150,
-              marginLeft: -75,
+              height: 118,
+              width: 118,
+              marginLeft: -59,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
+              gap: 4,
               borderRadius: 999,
-              borderWidth: 4,
-              borderColor: positiveAccent,
+              borderWidth: 3,
+              borderColor: primaryAccent,
               backgroundColor: theme.background,
             }}
           >
             <View
               style={{
-                height: 34,
-                width: 34,
+                height: 27,
+                width: 27,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 999,
-                backgroundColor: theme.accentSoft,
+                backgroundColor: theme.surfaceRaised,
               }}
             >
-              <Ionicons name="flash-outline" size={19} color={theme.accent} />
+              <Ionicons name="flash-outline" size={16} color={primaryAccent} />
             </View>
             <Text
               style={{
-                maxWidth: 108,
+                maxWidth: 92,
                 color: theme.textMuted,
-                fontSize: 11,
-                lineHeight: 14,
+                fontSize: 10,
+                lineHeight: 12,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyStrong,
               }}
@@ -483,9 +485,9 @@ export default function DashboardScreen() {
               adjustsFontSizeToFit
               minimumFontScale={0.62}
               style={{
-                width: 122,
+                width: 96,
                 color: theme.text,
-                fontSize: 19,
+                fontSize: 16,
                 textAlign: 'center',
                 fontFamily: fontFamilies.bodyHeavy,
                 fontVariant: ['tabular-nums'],
@@ -493,20 +495,20 @@ export default function DashboardScreen() {
             >
               {formatKwh(periodSummary.homeUsageKwh)}
             </Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 9, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
           </View>
 
           <View style={{ flex: 1 }} />
 
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 98 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 88 }}>
             <FlowMetric
               icon="wallet-outline"
               label="Estimated savings"
               value={formatCurrency(periodSummary.estimatedSavings)}
               helper={periodLabel}
-              color={positiveAccent}
+              color={secondaryAccent}
             />
-            <View style={{ width: 128 }} />
+            <View style={{ width: 104 }} />
             <FlowMetric
               icon="trending-up-outline"
               label="ROI / Payback"
@@ -516,7 +518,7 @@ export default function DashboardScreen() {
                   ? `${formatCurrency(roiSummary.remainingAmount)} left`
                   : 'Add system cost'
               }
-              color={theme.accent}
+              color={subtleAccent}
               align="right"
             />
           </View>
@@ -608,28 +610,28 @@ export default function DashboardScreen() {
                   icon="business-outline"
                   label="Grid"
                   value={formatKwh(latestReading.gridConsumptionKwh)}
-                  color={gridAccent}
+                  color={secondaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="sunny-outline"
                   label="Solar"
                   value={formatKwh(latestReading.solarGenerationKwh)}
-                  color={positiveAccent}
+                  color={primaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="flash-outline"
                   label="Total used"
                   value={formatKwh(latestReading.estimatedHomeUsageKwh)}
-                  color={gridAccent}
+                  color={secondaryAccent}
                   showDivider
                 />
                 <ReadingMiniMetric
                   icon="wallet-outline"
                   label="Savings"
                   value={formatCurrency(latestReading.estimatedSavings)}
-                  color={positiveAccent}
+                  color={primaryAccent}
                 />
               </View>
             </Panel>

@@ -1,7 +1,14 @@
 export const fontFamilies = {
-  display: 'SpaceGrotesk_700Bold',
-  displayMedium: 'SpaceGrotesk_600SemiBold',
-  body: 'Manrope_500Medium',
-  bodyStrong: 'Manrope_700Bold',
-  bodyHeavy: 'Manrope_800ExtraBold',
+  display: 'Inter',
+  displayMedium: 'Inter',
+  body: 'Inter',
+  bodyStrong: 'Inter',
+  bodyHeavy: 'Inter',
+};
+
+export const fontWeights = {
+  regular: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
 };

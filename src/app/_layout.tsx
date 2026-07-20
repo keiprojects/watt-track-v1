@@ -1,17 +1,9 @@
+import '../../global.css';
+
 import { Stack, router } from 'expo-router';
-import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Manrope_500Medium,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
-} from '@expo-google-fonts/manrope';
-import {
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
 
 import { BootSplash } from '@/components/boot-splash';
 import {
@@ -39,13 +31,6 @@ export default function RootLayout() {
   const [hasBooted, setHasBooted] = useState(false);
   const [hasShownAnimatedSplash, setHasShownAnimatedSplash] = useState(false);
   const nativeSplashHiddenRef = useRef(false);
-  const [fontsLoaded] = useFonts({
-    Manrope_500Medium,
-    Manrope_700Bold,
-    Manrope_800ExtraBold,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -135,7 +120,7 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!hasBooted || !fontsLoaded || !hasShownAnimatedSplash) {
+  if (!hasBooted || !hasShownAnimatedSplash) {
     return (
       <>
         <BootSplash onReady={handleAnimatedSplashReady} />
