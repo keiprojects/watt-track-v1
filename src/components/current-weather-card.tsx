@@ -9,9 +9,19 @@ import { fontFamilies } from '@/theme/typography';
 
 type CurrentWeatherCardProps = {
   location?: string;
+  variant?: 'default' | 'compact';
 };
 
-function WeatherCardSkeleton() {
+function WeatherCardSkeleton({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <SkeletonBlock height={36} width={36} borderRadius={14} />
+        <SkeletonBlock height={22} width={46} borderRadius={9} />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
       <SkeletonBlock height={76} width={76} borderRadius={22} />
@@ -23,7 +33,7 @@ function WeatherCardSkeleton() {
   );
 }
 
-export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
+export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWeatherCardProps) {
   const theme = useAppTheme();
   const [weather, setWeather] = useState<CurrentWeatherSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -73,6 +83,64 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
       : visualKind === 'rain' || visualKind === 'snow'
         ? 'rgba(118, 168, 255, 0.12)'
         : 'rgba(201, 255, 69, 0.12)';
+
+  if (variant === 'compact') {
+    return (
+      <View
+        style={{
+          minHeight: 58,
+          minWidth: 104,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          borderRadius: 20,
+          borderCurve: 'continuous',
+          borderWidth: 1,
+          borderColor: theme.border,
+          backgroundColor: theme.surface,
+          paddingHorizontal: 12,
+          paddingVertical: 9,
+          boxShadow: theme.shadow,
+        }}
+      >
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -26,
+            right: -22,
+            height: 86,
+            width: 86,
+            borderRadius: 999,
+            backgroundColor: accentTint,
+          }}
+        />
+
+        {isLoading ? (
+          <WeatherCardSkeleton compact />
+        ) : weather ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <AnimatedWeatherIcon weatherCode={weather.weatherCode} isDay={weather.isDay} size={38} />
+            <Text
+              selectable
+              style={{
+                color: theme.text,
+                fontSize: 18,
+                fontFamily: fontFamilies.bodyHeavy,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {`${Math.round(weather.temperatureC)}\u00B0C`}
+            </Text>
+          </View>
+        ) : (
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+            {errorMessage ? 'Weather --' : '--\u00B0C'}
+          </Text>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View
