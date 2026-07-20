@@ -1,4 +1,6 @@
-import { Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Text, View, useWindowDimensions } from 'react-native';
+import { PieChart } from 'react-native-gifted-charts';
 
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
@@ -22,51 +24,76 @@ function sanitizeAmount(amount: number): number {
 
 export function BreakdownDonut({ centerValue, centerLabel, segments }: BreakdownDonutProps) {
   const theme = useAppTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const positiveSegments = segments.map((segment) => ({ ...segment, amount: sanitizeAmount(segment.amount) }));
   const total = positiveSegments.reduce((sum, segment) => sum + segment.amount, 0);
   const maxSegment = Math.max(1, ...positiveSegments.map((segment) => segment.amount));
+  const radius = Math.max(76, Math.min(96, (windowWidth - 150) / 2));
+  const innerRadius = radius * 0.64;
+
+  const chartData = useMemo(
+    () =>
+      total > 0
+        ? positiveSegments
+            .filter((segment) => segment.amount > 0)
+            .map((segment) => ({
+              value: segment.amount,
+              color: segment.color,
+              text: segment.label,
+            }))
+        : [{ value: 1, color: theme.ringTrack, text: 'No data' }],
+    [positiveSegments, theme.ringTrack, total],
+  );
 
   return (
-    <View style={{ gap: 18 }}>
+    <View style={{ gap: 20 }}>
       <View
         style={{
-          borderRadius: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 28,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: theme.border,
           backgroundColor: theme.surfaceMuted,
-          padding: 16,
-          gap: 12,
+          paddingVertical: 20,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ gap: 2 }}>
-            <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Total load</Text>
-            <Text selectable style={{ color: theme.text, fontSize: 36, lineHeight: 42, fontFamily: fontFamilies.display }}>
-              {centerValue}
-            </Text>
-          </View>
-          <Text style={{ color: theme.textMuted, fontSize: 15, paddingBottom: 7, fontFamily: fontFamilies.bodyStrong }}>{centerLabel}</Text>
-        </View>
-
-        <View
-          style={{
-            height: 18,
-            flexDirection: 'row',
-            overflow: 'hidden',
-            borderRadius: 999,
-            backgroundColor: theme.ringTrack,
-          }}
-        >
-          {positiveSegments.map((segment) => {
-            const widthPercent = total === 0 ? 0 : (segment.amount / total) * 100;
-
-            return <View key={segment.label} style={{ width: `${widthPercent}%`, backgroundColor: segment.color }} />;
-          })}
-        </View>
+        <PieChart
+          data={chartData}
+          donut
+          radius={radius}
+          innerRadius={innerRadius}
+          innerCircleColor={theme.surfaceMuted}
+          focusOnPress={total > 0}
+          isAnimated
+          animationDuration={520}
+          centerLabelComponent={() => (
+            <View style={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+              <Text
+                selectable
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={{
+                  maxWidth: innerRadius * 1.5,
+                  color: theme.text,
+                  fontSize: 30,
+                  lineHeight: 36,
+                  fontFamily: fontFamilies.display,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {centerValue}
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
+                {centerLabel}
+              </Text>
+            </View>
+          )}
+        />
       </View>
 
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: 14 }}>
         {positiveSegments.map((segment) => {
           const percent = total === 0 ? 0 : (segment.amount / total) * 100;
           const relativeWidth = Math.max(segment.amount > 0 ? 8 : 0, (segment.amount / maxSegment) * 100);
