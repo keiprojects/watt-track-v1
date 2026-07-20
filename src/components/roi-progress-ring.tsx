@@ -16,6 +16,7 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
   const center = size / 2;
   const normalizedProgress = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
   const activeMarkers = Math.round((normalizedProgress / 100) * markerCount);
+  const activeColor = theme.mode === 'light' ? '#5d9b00' : theme.accent;
 
   return (
     <View style={{ height: size, width: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -35,7 +36,7 @@ export function RoiProgressRing({ progress, size = 108 }: RoiProgressRingProps) 
               height: markerSize,
               width: markerSize,
               borderRadius: 999,
-              backgroundColor: active ? theme.accent : theme.ringTrack,
+              backgroundColor: active ? activeColor : theme.ringTrack,
               boxShadow: active ? `0 0 10px ${theme.accentGlow}` : undefined,
             }}
           />
