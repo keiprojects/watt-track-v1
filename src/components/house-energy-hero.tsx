@@ -26,7 +26,7 @@ function Cloud({ left, top, scale = 1 }: { left: number; top: number; scale?: nu
           height: 25 * scale,
           width: 25 * scale,
           borderRadius: 999,
-          backgroundColor: 'rgba(255,255,255,0.88)',
+          backgroundColor: 'rgba(255,255,255,0.9)',
         }}
       />
       <View
@@ -47,26 +47,51 @@ function Cloud({ left, top, scale = 1 }: { left: number; top: number; scale?: nu
 export function HouseEnergyHero() {
   const theme = useAppTheme();
   const isDark = theme.mode === 'dark';
-  const houseColor = isDark ? '#edf3f9' : '#ffffff';
-  const roofColor = isDark ? '#445d72' : '#536b80';
+  const houseColor = isDark ? '#f7faf7' : '#ffffff';
+  const roofColor = isDark ? '#425760' : '#52697a';
 
   return (
     <LinearGradient
-      colors={isDark ? ['#153654', '#0e253c'] : ['#bfe4ff', '#eaf7ff']}
+      colors={isDark ? ['#153222', '#0c1e18'] : ['#d9f99d', '#ecfeff']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
         height: 150,
         overflow: 'hidden',
-        borderRadius: 26,
+        borderRadius: 30,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(31,66,96,0.08)',
-        boxShadow: isDark ? '0 14px 30px rgba(0,0,0,0.24)' : '0 14px 30px rgba(46,92,126,0.12)',
+        borderColor: isDark ? 'rgba(124,207,0,0.18)' : 'rgba(94,165,0,0.16)',
+        boxShadow: isDark ? '0 18px 42px rgba(0,0,0,0.34)' : '0 18px 42px rgba(94,165,0,0.18)',
       }}
     >
       <Cloud left={20} top={30} scale={0.8} />
       <Cloud left={230} top={54} scale={0.58} />
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: -40,
+          top: -70,
+          height: 170,
+          width: 170,
+          borderRadius: 999,
+          backgroundColor: isDark ? 'rgba(124,207,0,0.18)' : 'rgba(190,242,100,0.46)',
+        }}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          right: -36,
+          top: -20,
+          height: 120,
+          width: 120,
+          borderRadius: 999,
+          backgroundColor: isDark ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.62)',
+        }}
+      />
 
       <View
         style={{
@@ -78,7 +103,7 @@ export function HouseEnergyHero() {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 999,
-          backgroundColor: isDark ? 'rgba(255,191,55,0.12)' : 'rgba(255,255,255,0.48)',
+          backgroundColor: isDark ? 'rgba(252,211,77,0.14)' : 'rgba(255,255,255,0.56)',
         }}
       >
         <Ionicons name="sunny" size={31} color="#f7b92f" />
@@ -92,7 +117,7 @@ export function HouseEnergyHero() {
           bottom: -50,
           height: 112,
           borderRadius: 999,
-          backgroundColor: isDark ? '#16404b' : '#b7e3d1',
+          backgroundColor: isDark ? '#164438' : '#b7e4c7',
         }}
       />
       <View
@@ -103,20 +128,11 @@ export function HouseEnergyHero() {
           bottom: -42,
           height: 105,
           borderRadius: 999,
-          backgroundColor: isDark ? '#123b3a' : '#9fd7bb',
+          backgroundColor: isDark ? '#12392f' : '#8fd8ad',
         }}
       />
 
-      <View
-        style={{
-          position: 'absolute',
-          left: '50%',
-          bottom: 8,
-          height: 105,
-          width: 220,
-          marginLeft: -110,
-        }}
-      >
+      <View style={{ position: 'absolute', left: '50%', bottom: 8, height: 105, width: 220, marginLeft: -110 }}>
         <View
           style={{
             position: 'absolute',
@@ -124,12 +140,12 @@ export function HouseEnergyHero() {
             bottom: 0,
             height: 60,
             width: 162,
-            borderRadius: 13,
+            borderRadius: 16,
             borderCurve: 'continuous',
             borderWidth: 1,
-            borderColor: isDark ? 'rgba(255,255,255,0.36)' : 'rgba(31,66,96,0.10)',
+            borderColor: isDark ? 'rgba(255,255,255,0.34)' : 'rgba(31,66,96,0.10)',
             backgroundColor: houseColor,
-            boxShadow: isDark ? '0 10px 22px rgba(0,0,0,0.22)' : '0 10px 22px rgba(46,92,126,0.15)',
+            boxShadow: isDark ? '0 10px 22px rgba(0,0,0,0.22)' : '0 10px 22px rgba(46,92,126,0.14)',
           }}
         />
 
@@ -158,16 +174,16 @@ export function HouseEnergyHero() {
             width: 88,
             flexDirection: 'row',
             gap: 3,
-            borderRadius: 5,
+            borderRadius: 7,
             borderWidth: 2,
-            borderColor: '#88c6ff',
+            borderColor: '#93c5fd',
             backgroundColor: '#1768d7',
             padding: 3,
             transform: [{ rotate: '-8deg' }],
           }}
         >
           {Array.from({ length: 4 }).map((_, index) => (
-            <View key={index} style={{ flex: 1, borderRadius: 2, backgroundColor: index % 2 === 0 ? '#2e80e7' : '#5aa2f2' }} />
+            <View key={index} style={{ flex: 1, borderRadius: 3, backgroundColor: index % 2 === 0 ? '#2e80e7' : '#60a5fa' }} />
           ))}
         </View>
 
@@ -178,8 +194,8 @@ export function HouseEnergyHero() {
             bottom: 0,
             height: 38,
             width: 27,
-            borderTopLeftRadius: 7,
-            borderTopRightRadius: 7,
+            borderTopLeftRadius: 9,
+            borderTopRightRadius: 9,
             backgroundColor: '#d99c58',
           }}
         />
@@ -190,7 +206,7 @@ export function HouseEnergyHero() {
             bottom: 22,
             height: 21,
             width: 25,
-            borderRadius: 5,
+            borderRadius: 6,
             borderWidth: 3,
             borderColor: houseColor,
             backgroundColor: '#9ad5ff',
@@ -203,7 +219,7 @@ export function HouseEnergyHero() {
             bottom: 22,
             height: 21,
             width: 25,
-            borderRadius: 5,
+            borderRadius: 6,
             borderWidth: 3,
             borderColor: houseColor,
             backgroundColor: '#9ad5ff',
