@@ -12,10 +12,10 @@ import {
   useScreenContentContainerStyle,
 } from '@/components/app-ui';
 import { CurrentWeatherCard } from '@/components/current-weather-card';
+import { DashboardRangeDropdown } from '@/components/dashboard-range-dropdown';
 import { HouseEnergyHero } from '@/components/house-energy-hero';
 import { MetricCard } from '@/components/metric-card';
 import { RoiProgressRing } from '@/components/roi-progress-ring';
-import { SegmentedControl } from '@/components/segmented-control';
 import { WeeklyBarChart } from '@/components/weekly-bar-chart';
 import {
   aggregateReadingsByDate,
@@ -42,7 +42,7 @@ import {
 } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
-const dashboardPeriodOptions: { label: string; value: DashboardPeriod; icon?: AppIconName }[] = [
+const dashboardPeriodOptions: { label: string; value: DashboardPeriod }[] = [
   { label: '7d', value: '7d' },
   { label: '30d', value: '30d' },
   { label: 'Month', value: 'month' },
@@ -86,11 +86,11 @@ function getPeriodLabel(period: DashboardPeriod): string {
 
 function getUsageTrendTitle(period: DashboardPeriod): string {
   if (period === 'year' || period === 'all') {
-    return 'Total energy used by month';
+    return 'Monthly energy used';
   }
 
   if (period === '7d') {
-    return 'Total energy used by day';
+    return 'Daily energy used';
   }
 
   return 'Logged days';
@@ -144,32 +144,50 @@ type ReadingMiniMetricProps = {
   label: string;
   value: string;
   color: string;
+  showDivider?: boolean;
 };
 
-function ReadingMiniMetric({ icon, label, value, color }: ReadingMiniMetricProps) {
+function ReadingMiniMetric({ icon, label, value, color, showDivider = false }: ReadingMiniMetricProps) {
   const theme = useAppTheme();
 
   return (
     <View
       style={{
-        flexGrow: 1,
-        flexBasis: '45%',
-        gap: 7,
-        borderRadius: 18,
-        borderCurve: 'continuous',
-        backgroundColor: theme.surfaceRaised,
-        padding: 13,
+        flex: 1,
+        minWidth: 0,
+        alignItems: 'center',
+        gap: 6,
+        borderRightWidth: showDivider ? 1 : 0,
+        borderRightColor: theme.border,
+        paddingHorizontal: 6,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+      <View
+        style={{
+          height: 32,
+          width: 32,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 12,
+          borderCurve: 'continuous',
+          backgroundColor: theme.surfaceRaised,
+        }}
+      >
         <Ionicons name={icon} size={17} color={color} />
-        <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
       </View>
+      <Text numberOfLines={1} style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.bodyStrong }}>
+        {label}
+      </Text>
       <Text
         selectable
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
         style={{
+          width: '100%',
+          textAlign: 'center',
           color: theme.text,
-          fontSize: 19,
+          fontSize: 14,
           fontFamily: fontFamilies.bodyHeavy,
           fontVariant: ['tabular-nums'],
         }}
@@ -215,6 +233,8 @@ export default function DashboardScreen() {
   const periodLabel = getPeriodLabel(dashboardPeriod);
   const hasPeriodData = periodReadings.length > 0;
   const brandColor = theme.mode === 'dark' ? theme.accent : '#1769e8';
+  const positiveAccent = theme.mode === 'dark' ? theme.accent : '#5b8f00';
+  const gridAccent = theme.mode === 'dark' ? theme.secondaryChart : '#1769e8';
 
   return (
     <ScrollView
@@ -225,7 +245,7 @@ export default function DashboardScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={contentContainerStyle}
     >
-      <MotionSection index={0} style={{ gap: 18 }}>
+      <MotionSection index={0} style={{ gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Text
             style={{
@@ -252,6 +272,7 @@ export default function DashboardScreen() {
               borderColor: theme.border,
               backgroundColor: theme.surface,
               opacity: pressed ? 0.76 : 1,
+              boxShadow: theme.shadow,
             })}
           >
             <Ionicons name="notifications-outline" size={22} color={theme.textMuted} />
@@ -281,26 +302,21 @@ export default function DashboardScreen() {
           <CurrentWeatherCard location={systemProfile?.location} variant="compact" />
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-          <Ionicons name="location-outline" size={17} color={theme.textSubtle} />
-          <Text style={{ flex: 1, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
-            {systemProfile?.location ?? 'Location not set'}
-          </Text>
-        </View>
-
-        <View style={{ gap: 9 }}>
-          <Text
-            style={{
-              color: theme.textSubtle,
-              fontSize: 11,
-              fontFamily: fontFamilies.bodyStrong,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-            }}
-          >
-            Dashboard range
-          </Text>
-          <SegmentedControl options={dashboardPeriodOptions} value={dashboardPeriod} onChange={setDashboardPeriod} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Ionicons name="location-outline" size={17} color={theme.textSubtle} />
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}
+            >
+              {systemProfile?.location ?? 'Location not set'}
+            </Text>
+          </View>
+          <DashboardRangeDropdown
+            options={dashboardPeriodOptions}
+            value={dashboardPeriod}
+            onChange={setDashboardPeriod}
+          />
         </View>
       </MotionSection>
 
@@ -349,7 +365,7 @@ export default function DashboardScreen() {
               <Text
                 selectable
                 style={{
-                  color: theme.text,
+                  color: positiveAccent,
                   fontSize: 36,
                   fontFamily: fontFamilies.display,
                   fontVariant: ['tabular-nums'],
@@ -370,22 +386,40 @@ export default function DashboardScreen() {
 
       {hasPeriodData ? (
         <MotionSection index={3}>
-          <Panel>
-            <SectionTitle
-              title={getUsageTrendTitle(dashboardPeriod)}
-              description={`${periodDailySummaries.length} logged day${periodDailySummaries.length === 1 ? '' : 's'} in ${periodLabel.toLowerCase()}.`}
-              icon="bar-chart-outline"
-            />
+          <Panel padding={18} style={{ gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <View style={{ minWidth: 0, flex: 1, gap: 4 }}>
+                <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.displayMedium }}>
+                  {getUsageTrendTitle(dashboardPeriod)}
+                </Text>
+                <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>
+                  {`${periodDailySummaries.length} logged day${periodDailySummaries.length === 1 ? '' : 's'} · ${periodLabel}`}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View detailed analytics"
+                onPress={() => router.push('/(tabs)/insights')}
+                style={({ pressed }) => ({
+                  height: 38,
+                  width: 38,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 14,
+                  borderCurve: 'continuous',
+                  backgroundColor: theme.surfaceRaised,
+                  opacity: pressed ? 0.72 : 1,
+                })}
+              >
+                <Ionicons name="arrow-forward" size={19} color={theme.textMuted} />
+              </Pressable>
+            </View>
+
             <WeeklyBarChart
               data={chartBars}
               highlightIndex={chartHighlightIndex}
               valueLabel={chartHighlightLabel}
-            />
-            <AppButton
-              label="View detailed analytics"
-              icon="arrow-forward-outline"
-              onPress={() => router.push('/(tabs)/insights')}
-              tone="secondary"
+              unitLabel="kWh"
             />
           </Panel>
         </MotionSection>
@@ -418,7 +452,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(tabs)/history')}
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}
           >
-            <Panel>
+            <Panel padding={18} style={{ gap: 18 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.displayMedium }}>
@@ -432,30 +466,33 @@ export default function DashboardScreen() {
                 <Ionicons name="chevron-forward" size={22} color={theme.textSubtle} />
               </View>
 
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
                 <ReadingMiniMetric
                   icon="business-outline"
                   label="Grid"
                   value={formatKwh(latestReading.gridConsumptionKwh)}
-                  color={theme.secondaryChart}
+                  color={gridAccent}
+                  showDivider
                 />
                 <ReadingMiniMetric
                   icon="sunny-outline"
                   label="Solar"
                   value={formatKwh(latestReading.solarGenerationKwh)}
-                  color={theme.accent}
+                  color={positiveAccent}
+                  showDivider
                 />
                 <ReadingMiniMetric
                   icon="flash-outline"
                   label="Total used"
                   value={formatKwh(latestReading.estimatedHomeUsageKwh)}
-                  color={theme.secondaryChart}
+                  color={gridAccent}
+                  showDivider
                 />
                 <ReadingMiniMetric
                   icon="wallet-outline"
                   label="Savings"
                   value={formatCurrency(latestReading.estimatedSavings)}
-                  color={theme.accent}
+                  color={positiveAccent}
                 />
               </View>
             </Panel>
