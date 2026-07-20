@@ -383,156 +383,142 @@ export default function DashboardScreen() {
         </View>
       </MotionSection>
 
-      <MotionSection index={1}>
+      <MotionSection index={1} style={{ gap: 4 }}>
+        <HouseEnergyHero />
+
         <View
           style={{
-            overflow: 'hidden',
-            borderRadius: 28,
-            borderCurve: 'continuous',
-            borderWidth: 1,
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            boxShadow: theme.shadow,
+            position: 'relative',
+            height: 326,
+            paddingHorizontal: 0,
+            paddingVertical: 22,
           }}
         >
-          <HouseEnergyHero />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 98 }}>
+            <FlowMetric
+              icon="sunny-outline"
+              label="Solar generated"
+              value={formatKwh(periodSummary.solarGeneratedKwh)}
+              helper={periodLabel}
+              color={positiveAccent}
+            />
+            <View style={{ width: 128 }} />
+            <FlowMetric
+              icon="business-outline"
+              label="Grid usage"
+              value={formatKwh(periodSummary.gridConsumedKwh)}
+              helper={periodLabel}
+              color={gridAccent}
+              align="right"
+            />
+          </View>
+
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 104,
+              left: 26,
+              right: 26,
+              height: 1,
+              backgroundColor: theme.border,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 104,
+              left: '50%',
+              bottom: 104,
+              width: 1,
+              backgroundColor: theme.border,
+            }}
+          />
 
           <View
             style={{
-              position: 'relative',
-              height: 326,
-              backgroundColor: theme.surface,
-              paddingHorizontal: 14,
-              paddingVertical: 22,
+              position: 'absolute',
+              top: 76,
+              left: '50%',
+              height: 150,
+              width: 150,
+              marginLeft: -75,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              borderRadius: 999,
+              borderWidth: 4,
+              borderColor: positiveAccent,
+              backgroundColor: theme.background,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 98 }}>
-              <FlowMetric
-                icon="sunny-outline"
-                label="Solar generated"
-                value={formatKwh(periodSummary.solarGeneratedKwh)}
-                helper={periodLabel}
-                color={positiveAccent}
-              />
-              <View style={{ width: 128 }} />
-              <FlowMetric
-                icon="business-outline"
-                label="Grid usage"
-                value={formatKwh(periodSummary.gridConsumedKwh)}
-                helper={periodLabel}
-                color={gridAccent}
-                align="right"
-              />
-            </View>
-
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 104,
-                left: 36,
-                right: 36,
-                height: 1,
-                backgroundColor: theme.border,
-              }}
-            />
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 104,
-                left: '50%',
-                bottom: 104,
-                width: 1,
-                backgroundColor: theme.border,
-              }}
-            />
-
             <View
               style={{
-                position: 'absolute',
-                top: 76,
-                left: '50%',
-                height: 150,
-                width: 150,
-                marginLeft: -75,
+                height: 34,
+                width: 34,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 5,
                 borderRadius: 999,
-                borderWidth: 4,
-                borderColor: positiveAccent,
-                backgroundColor: theme.surface,
-                boxShadow: theme.mode === 'dark' ? '0 12px 28px rgba(0,0,0,0.32)' : '0 12px 28px rgba(36,84,128,0.13)',
+                backgroundColor: theme.accentSoft,
               }}
             >
-              <View
-                style={{
-                  height: 34,
-                  width: 34,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 999,
-                  backgroundColor: theme.accentSoft,
-                }}
-              >
-                <Ionicons name="flash-outline" size={19} color={theme.accent} />
-              </View>
-              <Text
-                style={{
-                  maxWidth: 108,
-                  color: theme.textMuted,
-                  fontSize: 11,
-                  lineHeight: 14,
-                  textAlign: 'center',
-                  fontFamily: fontFamilies.bodyStrong,
-                }}
-              >
-                Total energy used
-              </Text>
-              <Text
-                selectable
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.62}
-                style={{
-                  width: 122,
-                  color: theme.text,
-                  fontSize: 19,
-                  textAlign: 'center',
-                  fontFamily: fontFamilies.bodyHeavy,
-                  fontVariant: ['tabular-nums'],
-                }}
-              >
-                {formatKwh(periodSummary.homeUsageKwh)}
-              </Text>
-              <Text style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+              <Ionicons name="flash-outline" size={19} color={theme.accent} />
             </View>
+            <Text
+              style={{
+                maxWidth: 108,
+                color: theme.textMuted,
+                fontSize: 11,
+                lineHeight: 14,
+                textAlign: 'center',
+                fontFamily: fontFamilies.bodyStrong,
+              }}
+            >
+              Total energy used
+            </Text>
+            <Text
+              selectable
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.62}
+              style={{
+                width: 122,
+                color: theme.text,
+                fontSize: 19,
+                textAlign: 'center',
+                fontFamily: fontFamilies.bodyHeavy,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {formatKwh(periodSummary.homeUsageKwh)}
+            </Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+          </View>
 
-            <View style={{ flex: 1 }} />
+          <View style={{ flex: 1 }} />
 
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 98 }}>
-              <FlowMetric
-                icon="wallet-outline"
-                label="Estimated savings"
-                value={formatCurrency(periodSummary.estimatedSavings)}
-                helper={periodLabel}
-                color={positiveAccent}
-              />
-              <View style={{ width: 128 }} />
-              <FlowMetric
-                icon="trending-up-outline"
-                label="ROI / Payback"
-                value={roiLabel}
-                helper={
-                  roiSummary.totalCapitalInvestment > 0
-                    ? `${formatCurrency(roiSummary.remainingAmount)} left`
-                    : 'Add system cost'
-                }
-                color={theme.accent}
-                align="right"
-              />
-            </View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 98 }}>
+            <FlowMetric
+              icon="wallet-outline"
+              label="Estimated savings"
+              value={formatCurrency(periodSummary.estimatedSavings)}
+              helper={periodLabel}
+              color={positiveAccent}
+            />
+            <View style={{ width: 128 }} />
+            <FlowMetric
+              icon="trending-up-outline"
+              label="ROI / Payback"
+              value={roiLabel}
+              helper={
+                roiSummary.totalCapitalInvestment > 0
+                  ? `${formatCurrency(roiSummary.remainingAmount)} left`
+                  : 'Add system cost'
+              }
+              color={theme.accent}
+              align="right"
+            />
           </View>
         </View>
       </MotionSection>
