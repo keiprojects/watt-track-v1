@@ -7,10 +7,11 @@ import { fontFamilies } from '@/theme/typography';
 export function HouseEnergyHero() {
   const theme = useAppTheme();
   const isDark = theme.mode === 'dark';
-  const skyColor = isDark ? '#102941' : '#dff2ff';
+  const skyColor = isDark ? '#0d2237' : '#dff2ff';
   const hillColor = isDark ? '#173d39' : '#bfe9d5';
-  const houseColor = isDark ? '#f2f5f8' : '#ffffff';
-  const roofColor = isDark ? '#4b5c6d' : '#566878';
+  const houseColor = isDark ? '#eaf0f5' : '#ffffff';
+  const roofColor = isDark ? '#53687a' : '#566878';
+  const cloudColor = isDark ? 'rgba(214, 230, 244, 0.72)' : 'rgba(255, 255, 255, 0.88)';
 
   return (
     <View
@@ -19,9 +20,25 @@ export function HouseEnergyHero() {
         overflow: 'hidden',
         borderRadius: 26,
         borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(39,68,91,0.08)',
         backgroundColor: skyColor,
+        boxShadow: isDark ? '0 16px 34px rgba(0,0,0,0.24)' : '0 16px 34px rgba(56,104,137,0.12)',
       }}
     >
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -38,
+          right: -24,
+          height: 140,
+          width: 140,
+          borderRadius: 999,
+          backgroundColor: isDark ? 'rgba(95,145,255,0.10)' : 'rgba(255,255,255,0.42)',
+        }}
+      />
+
       <View
         style={{
           position: 'absolute',
@@ -31,7 +48,9 @@ export function HouseEnergyHero() {
           alignItems: 'center',
           gap: 7,
           borderRadius: 999,
-          backgroundColor: isDark ? 'rgba(5, 18, 32, 0.54)' : 'rgba(255, 255, 255, 0.84)',
+          backgroundColor: isDark ? 'rgba(5, 18, 32, 0.68)' : 'rgba(255, 255, 255, 0.88)',
+          borderWidth: 1,
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(39,68,91,0.06)',
           paddingHorizontal: 12,
           paddingVertical: 7,
           zIndex: 5,
@@ -55,11 +74,11 @@ export function HouseEnergyHero() {
         name="sunny"
         size={38}
         color="#ffbf37"
-        style={{ position: 'absolute', top: 18, right: 22, opacity: 0.96 }}
+        style={{ position: 'absolute', top: 18, right: 22, opacity: isDark ? 0.82 : 0.96 }}
       />
 
       <View style={{ position: 'absolute', top: 49, left: 34, flexDirection: 'row', alignItems: 'flex-end' }}>
-        <View style={{ height: 18, width: 42, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.82)' }} />
+        <View style={{ height: 18, width: 42, borderRadius: 999, backgroundColor: cloudColor }} />
         <View
           style={{
             height: 27,
@@ -67,7 +86,7 @@ export function HouseEnergyHero() {
             marginLeft: -31,
             marginBottom: 5,
             borderRadius: 999,
-            backgroundColor: 'rgba(255,255,255,0.88)',
+            backgroundColor: cloudColor,
           }}
         />
         <View
@@ -77,13 +96,13 @@ export function HouseEnergyHero() {
             marginLeft: -8,
             marginBottom: 3,
             borderRadius: 999,
-            backgroundColor: 'rgba(255,255,255,0.86)',
+            backgroundColor: cloudColor,
           }}
         />
       </View>
 
       <View style={{ position: 'absolute', top: 68, right: 72, flexDirection: 'row', alignItems: 'flex-end', opacity: 0.78 }}>
-        <View style={{ height: 14, width: 34, borderRadius: 999, backgroundColor: '#ffffff' }} />
+        <View style={{ height: 14, width: 34, borderRadius: 999, backgroundColor: cloudColor }} />
         <View
           style={{
             height: 21,
@@ -91,7 +110,7 @@ export function HouseEnergyHero() {
             marginLeft: -25,
             marginBottom: 4,
             borderRadius: 999,
-            backgroundColor: '#ffffff',
+            backgroundColor: cloudColor,
           }}
         />
       </View>
@@ -220,7 +239,7 @@ export function HouseEnergyHero() {
             borderRadius: 6,
             backgroundColor: '#9fd7ff',
             borderWidth: 3,
-            borderColor: '#ffffff',
+            borderColor: houseColor,
           }}
         />
         <View
@@ -233,7 +252,7 @@ export function HouseEnergyHero() {
             borderRadius: 6,
             backgroundColor: '#9fd7ff',
             borderWidth: 3,
-            borderColor: '#ffffff',
+            borderColor: houseColor,
           }}
         />
       </View>
