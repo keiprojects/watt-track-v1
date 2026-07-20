@@ -58,8 +58,11 @@ export function HouseEnergyHero() {
       style={{
         height: 150,
         overflow: 'hidden',
-        borderTopLeftRadius: 26,
-        borderTopRightRadius: 26,
+        borderRadius: 26,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(31,66,96,0.08)',
+        boxShadow: isDark ? '0 14px 30px rgba(0,0,0,0.24)' : '0 14px 30px rgba(46,92,126,0.12)',
       }}
     >
       <Cloud left={20} top={30} scale={0.8} />
