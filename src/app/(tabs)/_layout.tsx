@@ -19,7 +19,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.text,
+        tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.textSubtle,
         sceneStyle: { backgroundColor: theme.background },
         tabBarStyle: {
@@ -56,7 +56,7 @@ export default function TabsLayout() {
         name="add"
         options={{
           title: 'Add',
-          tabBarIcon: ({ focused }) => <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={focused ? theme.text : theme.textSubtle} size={28} />,
+          tabBarIcon: ({ focused }) => <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={focused ? theme.accent : theme.textSubtle} size={28} />,
         }}
       />
       <Tabs.Screen
