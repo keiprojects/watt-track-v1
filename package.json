@@ -34,6 +34,7 @@
     "expo-sharing": "~57.0.3",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "latest",
+    "nativewind": "^4.1.23",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hook-form": "latest",
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@types/react": "latest",
+    "tailwindcss": "^3.4.17",
     "typescript": "latest"
   }
 }
