@@ -47,7 +47,9 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
       setWeather(null);
       setErrorMessage(error instanceof Error ? error.message : 'Unable to load current weather.');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   });
 
@@ -62,7 +64,7 @@ export function CurrentWeatherCard({ location }: CurrentWeatherCardProps) {
     return () => {
       controller.abort();
     };
-  }, [loadWeather, location]);
+  }, [location]);
 
   const visualKind = weather ? getWeatherVisualKind(weather.weatherCode) : 'partly-cloudy';
   const accentTint =
