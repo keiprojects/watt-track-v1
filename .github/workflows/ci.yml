@@ -44,7 +44,14 @@ jobs:
         run: npm run typecheck
 
       - name: Validate Android bundle export
-        run: npm run export:android
+        run: npm run export:android > android-export.log 2>&1
+
+      - name: Upload Android export log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-export-log
+          path: android-export.log
 
       - name: Report Expo package compatibility
         continue-on-error: true
