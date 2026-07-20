@@ -2,7 +2,7 @@ import { Stack, router } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Manrope_500Medium,
   Manrope_700Bold,
@@ -24,15 +24,10 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 
-const BOOT_SPLASH_MIN_DURATION_MS = 900;
+const ANIMATED_SPLASH_MIN_DURATION_MS = 1600;
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore duplicate calls when Fast Refresh remounts the layout.
-});
-
-SplashScreen.setOptions({
-  duration: 300,
-  fade: true,
 });
 
 export default function RootLayout() {
@@ -42,7 +37,8 @@ export default function RootLayout() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const [hasBooted, setHasBooted] = useState(false);
-  const [showBootSplash, setShowBootSplash] = useState(true);
+  const [hasShownAnimatedSplash, setHasShownAnimatedSplash] = useState(false);
+  const nativeSplashHiddenRef = useRef(false);
   const [fontsLoaded] = useFonts({
     Manrope_500Medium,
     Manrope_700Bold,
@@ -74,26 +70,25 @@ export default function RootLayout() {
   }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
 
   useEffect(() => {
-    if (!hasBooted || !fontsLoaded) {
+    const timer = setTimeout(() => {
+      setHasShownAnimatedSplash(true);
+    }, ANIMATED_SPLASH_MIN_DURATION_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const handleAnimatedSplashReady = useCallback(() => {
+    if (nativeSplashHiddenRef.current) {
       return;
     }
 
-    let isMounted = true;
-    const timer = setTimeout(() => {
-      if (isMounted) {
-        setShowBootSplash(false);
-      }
-    }, BOOT_SPLASH_MIN_DURATION_MS);
-
+    nativeSplashHiddenRef.current = true;
     void SplashScreen.hideAsync().catch(() => {
-      // Ignore duplicate hides when Fast Refresh remounts the layout.
+      // The React splash is already visible, so a duplicate hide is harmless.
     });
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [fontsLoaded, hasBooted]);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -140,8 +135,13 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!hasBooted || !fontsLoaded || showBootSplash) {
-    return <BootSplash />;
+  if (!hasBooted || !fontsLoaded || !hasShownAnimatedSplash) {
+    return (
+      <>
+        <BootSplash onReady={handleAnimatedSplashReady} />
+        <StatusBar style="light" />
+      </>
+    );
   }
 
   return (
