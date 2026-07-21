@@ -1,9 +1,10 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
+import { CurrentWeatherCard } from '@/components/current-weather-card';
 import {
   DatePill,
   IconSquare,
@@ -20,7 +21,6 @@ import {
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
-import { fetchCurrentWeather } from '@/services/weather.service';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
@@ -62,46 +62,6 @@ function formatDelta(current: number, previous?: number): string | undefined {
   const delta = ((current - previous) / previous) * 100;
   const arrow = delta >= 0 ? '↑' : '↓';
   return `${arrow} ${Math.abs(delta).toFixed(0)}%`;
-}
-
-function WeatherSummary({ location }: { location?: string }) {
-  const theme = useAppTheme();
-  const [temperature, setTemperature] = useState<number | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    void fetchCurrentWeather({ location })
-      .then((snapshot) => {
-        if (isMounted) {
-          setTemperature(Math.round(snapshot.temperatureC));
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setTemperature(null);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [location]);
-
-  return (
-    <View style={{ alignItems: 'flex-end', gap: 3 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Ionicons name="sunny" size={24} color={theme.warningText} />
-        <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy }}>
-          {temperature == null ? '28' : String(temperature)}
-          {'\u00B0C'}
-        </Text>
-      </View>
-      <Text numberOfLines={1} style={{ maxWidth: 120, color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-        {location ?? 'Local weather'}
-      </Text>
-    </View>
-  );
 }
 
 export default function DashboardScreen() {
@@ -160,7 +120,7 @@ export default function DashboardScreen() {
           </Text>
           <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.body }}>Here's your energy overview.</Text>
         </View>
-        <WeatherSummary location={systemProfile?.location} />
+        <CurrentWeatherCard location={systemProfile?.location} variant="compact" />
       </View>
 
       <SoftCard padding={0}>
