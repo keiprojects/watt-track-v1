@@ -25,6 +25,7 @@ type ScreenHeaderProps = {
   onLeftPress?: () => void;
   onRightPress?: () => void;
   rightLabel?: string;
+  titleAlign?: 'center' | 'left';
 };
 
 type SoftCardProps = {
@@ -108,19 +109,21 @@ export function ScreenHeader({
   onLeftPress,
   onRightPress,
   rightLabel,
+  titleAlign = 'center',
 }: ScreenHeaderProps) {
   const theme = useAppTheme();
+  const isLeftAligned = titleAlign === 'left';
 
   return (
     <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-      {leftIcon ? <IconButton icon={leftIcon} label={leftLabel ?? 'Menu'} onPress={onLeftPress} /> : <View style={{ width: 44 }} />}
+      {leftIcon ? <IconButton icon={leftIcon} label={leftLabel ?? 'Menu'} onPress={onLeftPress} /> : isLeftAligned ? null : <View style={{ width: 44 }} />}
       <Text
         numberOfLines={1}
         style={{
           flex: 1,
           color: theme.accent,
           fontSize: 20,
-          textAlign: 'center',
+          textAlign: isLeftAligned ? 'left' : 'center',
           fontFamily: fontFamilies.displayMedium,
         }}
       >

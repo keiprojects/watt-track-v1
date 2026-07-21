@@ -145,6 +145,7 @@ export default function DashboardScreen() {
     <ScreenScroll gap={14}>
       <ScreenHeader
         title="Watt Track"
+        titleAlign="left"
         rightIcon="notifications-outline"
         rightLabel="Notifications"
       />
