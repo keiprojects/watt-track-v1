@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,7 +18,6 @@ const colors = {
   muted: '#b7b5bf',
   subtle: '#77757f',
   accent: '#bcc2ff',
-  danger: '#ef4444',
   input: '#17171a',
   switchTrack: '#bcc2ff',
   switchOff: '#55545d',
@@ -99,7 +99,11 @@ function Divider() {
 export default function NotificationsScreen() {
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
-  const reminderTime = settings.reminderTime ?? '19:00';
+  const [reminderTime, setReminderTime] = useState(settings.reminderTime ?? '19:00');
+
+  useEffect(() => {
+    setReminderTime(settings.reminderTime ?? '19:00');
+  }, [settings.reminderTime]);
 
   const saveReminder = async () => {
     try {
@@ -147,7 +151,7 @@ export default function NotificationsScreen() {
             <Text style={{ color: colors.text, fontSize: 22, fontFamily: fontFamilies.body }}>Reminder time</Text>
             <TextInput
               value={reminderTime}
-              onChangeText={(value) => void updateSettings({ reminderTime: value })}
+              onChangeText={setReminderTime}
               placeholder="19:00"
               placeholderTextColor={colors.subtle}
               style={{
