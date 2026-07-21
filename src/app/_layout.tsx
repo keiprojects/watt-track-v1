@@ -1,11 +1,13 @@
 import '../../global.css';
 
-import { Stack, router } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
+import { router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { BootSplash } from '@/components/boot-splash';
+import { WattTrackDrawerContent } from '@/components/watt-track-drawer';
 import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
@@ -131,10 +133,30 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <Drawer
+        drawerContent={(props) => <WattTrackDrawerContent navigation={props.navigation} />}
+        screenOptions={{
+          headerShown: false,
+          drawerType: 'front',
+          swipeEnabled: true,
+          overlayColor: 'rgba(0, 0, 0, 0.64)',
+          drawerStyle: {
+            width: '84%',
+            maxWidth: 356,
+            backgroundColor: '#101011',
+          },
+        }}
+      >
+        <Drawer.Screen name="(tabs)" options={{ title: 'WattTrack' }} />
+        <Drawer.Screen
+          name="onboarding"
+          options={{
+            title: 'Onboarding',
+            drawerItemStyle: { display: 'none' },
+            swipeEnabled: false,
+          }}
+        />
+      </Drawer>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
     </>
   );
