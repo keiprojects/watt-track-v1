@@ -19,6 +19,7 @@ import {
 import {
   aggregateReadingsByDate,
   filterBillingCycleReadings,
+  getBillingCycleStartDate,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
@@ -28,7 +29,7 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
-import { formatMonthDayLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
+import { addDaysToDate, formatMonthDayLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
 function getGreeting(): string {
@@ -55,13 +56,17 @@ function formatCompactKwh(value: number): string {
 }
 
 function formatDelta(current: number, previous?: number): string | undefined {
-  if (!previous || previous <= 0) {
+  if (typeof previous !== 'number') {
     return undefined;
   }
 
+  if (previous === 0) {
+    return current === 0 ? '0%' : 'New';
+  }
+
   const delta = ((current - previous) / previous) * 100;
-  const arrow = delta >= 0 ? '↑' : '↓';
-  return `${arrow} ${Math.abs(delta).toFixed(0)}%`;
+  const sign = delta > 0 ? '+' : '';
+  return `${sign}${delta.toFixed(0)}%`;
 }
 
 export default function DashboardScreen() {
@@ -77,8 +82,11 @@ export default function DashboardScreen() {
     longitude: systemProfile?.longitude,
   });
   const today = getTodayDateInputValue();
+  const yesterday = addDaysToDate(today, -1);
   const latestReading = readings[0];
-  const previousReading = readings[1];
+  const dailyReadings = useMemo(() => aggregateReadingsByDate(readings), [readings]);
+  const todaySummary = useMemo(() => dailyReadings.find((summary) => summary.date === today), [dailyReadings, today]);
+  const yesterdaySummary = useMemo(() => dailyReadings.find((summary) => summary.date === yesterday), [dailyReadings, yesterday]);
   const billingReadings = useMemo(
     () =>
       filterBillingCycleReadings({
@@ -96,15 +104,15 @@ export default function DashboardScreen() {
     : [{ value: 0 }, { value: 0 }, { value: 0 }];
   const chartWidth = Math.min(width - 84, 280);
 
-  const currentSolar = latestReading?.solarGenerationKwh ?? billingSummary.solarGeneratedKwh;
-  const currentGrid = latestReading?.gridConsumptionKwh ?? billingSummary.gridConsumedKwh;
-  const currentSaved = latestReading?.selfConsumedSolarKwh ?? billingSummary.selfConsumedSolarKwh;
-  const currentSavings = latestReading?.estimatedSavings ?? billingSummary.estimatedSavings;
+  const currentSolar = todaySummary?.solarGenerationKwh ?? 0;
+  const currentGrid = todaySummary?.gridConsumptionKwh ?? 0;
+  const currentSaved = todaySummary?.selfConsumedSolarKwh ?? 0;
+  const latestSavings = latestReading?.estimatedSavings ?? billingSummary.estimatedSavings;
   const currentHomeUsage = latestReading?.estimatedHomeUsageKwh ?? billingSummary.homeUsageKwh;
   const recentReadingLabel = latestReading
     ? `Recent reading: ${formatShortDate(latestReading.date)}${latestReading.time ? `, ${latestReading.time}` : ''}`
     : 'Add a reading to see current usage';
-  const monthStartLabel = billingReadings.length ? formatMonthDayLabel(billingReadings.at(-1)?.date ?? today) : formatMonthDayLabel(today);
+  const billingCycleStartLabel = formatMonthDayLabel(getBillingCycleStartDate(today, systemProfile?.billingCycleStartDay));
 
   return (
     <ScreenScroll gap={14}>
@@ -186,7 +194,7 @@ export default function DashboardScreen() {
           icon="sunny"
           label="Solar Generated"
           value={formatCompactKwh(currentSolar)}
-          delta={formatDelta(currentSolar, previousReading?.solarGenerationKwh)}
+          delta={formatDelta(currentSolar, yesterdaySummary?.solarGenerationKwh)}
           colors={wattGradients.amber}
         />
         <MetricTile
@@ -194,14 +202,14 @@ export default function DashboardScreen() {
           iconFamily="material-community"
           label="Grid Consumed"
           value={formatCompactKwh(currentGrid)}
-          delta={formatDelta(currentGrid, previousReading?.gridConsumptionKwh)}
+          delta={formatDelta(currentGrid, yesterdaySummary?.gridConsumptionKwh)}
           colors={wattGradients.blue}
         />
         <MetricTile
           icon="home"
           label="Energy Saved"
           value={formatCompactKwh(currentSaved)}
-          delta={formatDelta(currentSaved, previousReading?.selfConsumedSolarKwh)}
+          delta={formatDelta(currentSaved, yesterdaySummary?.selfConsumedSolarKwh)}
           colors={wattGradients.green}
         />
         <MetricTile
@@ -215,7 +223,7 @@ export default function DashboardScreen() {
 
       <SoftCard>
         <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>
-          This Month ({monthStartLabel} - {formatMonthDayLabel(today)})
+          Billing Cycle ({billingCycleStartLabel} - {formatMonthDayLabel(today)})
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 10 }}>
           <View style={{ flex: 1, gap: 6 }}>
@@ -251,7 +259,7 @@ export default function DashboardScreen() {
             {formatCurrency(billingSummary.estimatedSavings)}
           </Text>
           <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-            {currentSavings > 0 ? `${formatCurrency(currentSavings)} latest reading` : 'Add readings to build the trend'}
+            {latestSavings > 0 ? `${formatCurrency(latestSavings)} latest reading` : 'Add readings to build the trend'}
           </Text>
         </View>
         <View pointerEvents="none" style={{ width: chartWidth, maxWidth: 150, alignItems: 'flex-end' }}>
