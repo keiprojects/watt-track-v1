@@ -1,7 +1,6 @@
 import 'react-native-gesture-handler';
 
-import { Drawer } from 'expo-router/drawer';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -21,7 +20,6 @@ import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
 } from '@/services/notifications.runtime';
-import { AppDrawerContent } from '@/components/app-drawer-content';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
@@ -150,25 +148,13 @@ export default function RootLayout() {
 
   return (
     <>
-      <Drawer
-        drawerContent={(props) => <AppDrawerContent {...props} />}
-        screenOptions={{
-          headerShown: false,
-          drawerType: 'front',
-          overlayColor: theme.scrim,
-          swipeEdgeWidth: 74,
-          drawerStyle: {
-            width: 320,
-            backgroundColor: theme.surface,
-          },
-        }}
-      >
-        <Drawer.Screen name="index" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="onboarding" options={{ drawerItemStyle: { display: 'none' }, swipeEnabled: false }} />
-        <Drawer.Screen name="(tabs)" options={{ title: 'Watt Track' }} />
-        <Drawer.Screen name="readings/[readingId]" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="readings/edit/[readingId]" options={{ drawerItemStyle: { display: 'none' } }} />
-      </Drawer>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="readings/[readingId]" />
+        <Stack.Screen name="readings/edit/[readingId]" />
+      </Stack>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
     </>
   );

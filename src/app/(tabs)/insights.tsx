@@ -19,6 +19,8 @@ import {
 import {
   aggregateReadingsByDate,
   estimatePaybackForecast,
+  filterBillingCycleReadings,
+  getBillingCycleWindow,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
@@ -395,6 +397,37 @@ function InsightRow({ label, value, accent = false }: { label: string; value: st
   );
 }
 
+function BillStat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  const theme = useAppTheme();
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        minWidth: 124,
+        gap: 5,
+        borderRadius: 12,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+        padding: 10,
+      }}
+    >
+      <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
+      <Text
+        selectable
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.68}
+        style={{ color: accent ? theme.accent : theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function FlowNode({
   icon,
   label,
@@ -472,7 +505,7 @@ export default function InsightsScreen() {
   const updateCost = useCostsStore((state) => state.updateCost);
   const deleteCost = useCostsStore((state) => state.deleteCost);
   const systemProfile = useSystemStore((state) => state.systemProfile);
-  const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
+  const { formatCurrency, formatKwh, formatPercent, formatRate } = useAppFormatters();
   const today = getTodayDateInputValue();
   const [selectedRange, setSelectedRange] = useState<AnalyticsRange>('day');
   const [anchorDate, setAnchorDate] = useState(today);
@@ -499,6 +532,20 @@ export default function InsightsScreen() {
     [anchorDate, costs, fromDate, hasDateFilter, selectedRange, toDate],
   );
   const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
+  const billingCycleReadings = useMemo(
+    () =>
+      filterBillingCycleReadings({
+        readings,
+        today,
+        billingCycleStartDay: systemProfile?.billingCycleStartDay,
+      }),
+    [readings, systemProfile?.billingCycleStartDay, today],
+  );
+  const billingCycleSummary = useMemo(() => summarizeReadings(billingCycleReadings), [billingCycleReadings]);
+  const billingCycleWindow = useMemo(
+    () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
+    [systemProfile?.billingCycleStartDay, today],
+  );
   const roi = useMemo(() => summarizeRoi({ profile: systemProfile, readings: filteredReadings, costs: filteredCosts }), [filteredCosts, filteredReadings, systemProfile]);
   const overallRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const paybackForecast = useMemo(
@@ -511,6 +558,13 @@ export default function InsightsScreen() {
   const averageDailySavings = rangeDailySummaries.length === 0 ? 0 : summary.estimatedSavings / rangeDailySummaries.length;
   const averageSolarPerDay = rangeDailySummaries.length === 0 ? 0 : summary.solarGeneratedKwh / rangeDailySummaries.length;
   const averageDailyGridCost = rangeDailySummaries.length === 0 ? 0 : summary.estimatedGridCost / rangeDailySummaries.length;
+  const averageBillingCycleGridCost = billingCycleSummary.estimatedGridCost / billingCycleWindow.elapsedDays;
+  const expectedGridMonthlyBill = averageBillingCycleGridCost * billingCycleWindow.totalDays;
+  const billingCycleProgress = Math.min(100, Math.max(0, (billingCycleWindow.elapsedDays / billingCycleWindow.totalDays) * 100));
+  const billingCycleRate =
+    billingCycleSummary.gridConsumedKwh === 0
+      ? systemProfile?.defaultImportRate ?? 0
+      : billingCycleSummary.estimatedGridCost / billingCycleSummary.gridConsumedKwh;
   const solarContribution = summary.homeUsageKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.homeUsageKwh) * 100;
   const selfConsumptionShare = summary.solarGeneratedKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.solarGeneratedKwh) * 100;
   const lowestSolarDay = rangeDailySummaries.reduce<(typeof rangeDailySummaries)[number] | undefined>((lowest, reading) => {
@@ -547,6 +601,11 @@ export default function InsightsScreen() {
     { value: Math.max(summary.gridConsumedKwh, 0.01), color: theme.textMuted, text: 'Grid' },
   ];
   const rangeLabel = hasDateFilter ? 'Custom range' : getRangeLabel(anchorDate, selectedRange);
+  const billingCycleLabel = `${formatMonthDayLabel(billingCycleWindow.startDate)} - ${formatMonthDayLabel(billingCycleWindow.endDate)}`;
+  const gridBillHelper =
+    billingCycleSummary.estimatedGridCost > 0
+      ? `${formatCurrency(billingCycleSummary.estimatedGridCost)} cycle-to-date`
+      : 'Add grid readings to project bill';
   const projectedPaybackLabel = paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD';
   const paybackHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Add more savings data'
@@ -764,6 +823,36 @@ export default function InsightsScreen() {
               initialSpacing={0}
               endSpacing={0}
             />
+          </View>
+        </SoftCard>
+
+        <SoftCard tone="blue">
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Expected Grid Monthly Bill</Text>
+              <Text
+                selectable
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.62}
+                style={{ color: theme.text, fontSize: 28, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
+              >
+                {formatCurrency(expectedGridMonthlyBill)}
+              </Text>
+              <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{gridBillHelper}</Text>
+            </View>
+            <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={46} />
+          </View>
+
+          <View style={{ height: 8, overflow: 'hidden', borderRadius: 999, backgroundColor: theme.surface }}>
+            <View style={{ width: `${billingCycleProgress}%`, height: '100%', borderRadius: 999, backgroundColor: theme.accent }} />
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <BillStat label="Cycle" value={billingCycleLabel} />
+            <BillStat label="Days" value={`${billingCycleWindow.elapsedDays}/${billingCycleWindow.totalDays}`} />
+            <BillStat label="Avg / day" value={formatCurrency(averageBillingCycleGridCost)} accent />
+            <BillStat label="Rate" value={formatRate(billingCycleRate)} />
           </View>
         </SoftCard>
 

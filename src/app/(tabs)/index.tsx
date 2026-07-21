@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
@@ -26,7 +26,6 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
-import type { EnergyReading } from '@/types/reading';
 import { formatMonthDayLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
@@ -105,116 +104,8 @@ function WeatherSummary({ location }: { location?: string }) {
   );
 }
 
-function UsageMetric({
-  icon,
-  label,
-  valueLabel,
-  helper,
-  color,
-  backgroundColor,
-}: {
-  icon: 'sunny' | 'grid' | 'cash-outline';
-  label: string;
-  valueLabel: string;
-  helper: string;
-  color: string;
-  backgroundColor: string;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        minWidth: 90,
-        gap: 7,
-        borderRadius: 14,
-        borderCurve: 'continuous',
-        backgroundColor,
-        padding: 10,
-      }}
-    >
-      <View
-        style={{
-          height: 30,
-          width: 30,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 11,
-          borderCurve: 'continuous',
-          backgroundColor: theme.surface,
-        }}
-      >
-        <Ionicons name={icon} size={17} color={color} />
-      </View>
-      <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
-      <Text
-        selectable
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
-        style={{ width: '100%', color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-      >
-        {valueLabel}
-      </Text>
-      <Text numberOfLines={1} style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{helper}</Text>
-    </View>
-  );
-}
-
-function TodayEnergyUsageCard({ latestReading }: { latestReading?: EnergyReading }) {
-  const theme = useAppTheme();
-  const { formatCurrency } = useAppFormatters();
-  const solarGenerated = latestReading?.solarGenerationKwh ?? 0;
-  const gridUsed = latestReading?.gridConsumptionKwh ?? 0;
-  const savings = latestReading?.estimatedSavings ?? 0;
-  const energySaved = latestReading?.selfConsumedSolarKwh ?? 0;
-
-  return (
-    <SoftCard>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-          <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy }}>Today's Energy Usage</Text>
-          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-            {latestReading ? `Latest reading at ${latestReading.time ?? 'end of day'}` : 'Add a reading to see today'}
-          </Text>
-        </View>
-        <DatePill label={latestReading ? formatShortDate(latestReading.date) : 'No reading'} />
-      </View>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
-        <UsageMetric
-          icon="sunny"
-          label="Solar"
-          valueLabel={formatCompactKwh(solarGenerated)}
-          helper="Generated"
-          color={theme.warningText}
-          backgroundColor={theme.warningSoft}
-        />
-        <UsageMetric
-          icon="grid"
-          label="Grid"
-          valueLabel={formatCompactKwh(gridUsed)}
-          helper="Consumed"
-          color={theme.accent}
-          backgroundColor={theme.accentSoft}
-        />
-        <UsageMetric
-          icon="cash-outline"
-          label="Savings"
-          valueLabel={formatCurrency(savings)}
-          helper={`${formatCompactKwh(energySaved)} saved`}
-          color={theme.primaryChart}
-          backgroundColor="#effaf1"
-        />
-      </View>
-    </SoftCard>
-  );
-}
-
 export default function DashboardScreen() {
   const theme = useAppTheme();
-  const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const readings = useReadingsStore((state) => state.readings);
   const costs = useCostsStore((state) => state.costs);
@@ -240,31 +131,31 @@ export default function DashboardScreen() {
     : [{ value: 0 }, { value: 0 }, { value: 0 }];
   const chartWidth = Math.min(width - 84, 280);
 
-  const openDrawer = () => {
-    navigation.dispatch({ type: 'OPEN_DRAWER' } as never);
-  };
-
   const currentSolar = latestReading?.solarGenerationKwh ?? billingSummary.solarGeneratedKwh;
   const currentGrid = latestReading?.gridConsumptionKwh ?? billingSummary.gridConsumedKwh;
   const currentSaved = latestReading?.selfConsumedSolarKwh ?? billingSummary.selfConsumedSolarKwh;
   const currentSavings = latestReading?.estimatedSavings ?? billingSummary.estimatedSavings;
+  const currentHomeUsage = latestReading?.estimatedHomeUsageKwh ?? billingSummary.homeUsageKwh;
+  const recentReadingLabel = latestReading
+    ? `Recent reading: ${formatShortDate(latestReading.date)}${latestReading.time ? `, ${latestReading.time}` : ''}`
+    : 'Add a reading to see current usage';
   const monthStartLabel = billingReadings.length ? formatMonthDayLabel(billingReadings.at(-1)?.date ?? today) : formatMonthDayLabel(today);
 
   return (
     <ScreenScroll gap={14}>
       <ScreenHeader
         title="Watt Track"
-        leftIcon="menu-outline"
-        leftLabel="Open menu"
         rightIcon="notifications-outline"
         rightLabel="Notifications"
-        onLeftPress={openDrawer}
       />
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>
-            {getGreeting()}, {getDisplayName(systemProfile?.systemName)}!
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>
+            {getGreeting()},
+          </Text>
+          <Text style={{ color: theme.text, fontSize: 22, fontFamily: fontFamilies.bodyHeavy }}>
+            {getDisplayName(systemProfile?.systemName)}
           </Text>
           <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.body }}>Here's your energy overview.</Text>
         </View>
@@ -300,20 +191,26 @@ export default function DashboardScreen() {
               backgroundColor: theme.statusText,
             }}
           >
-            <Ionicons name="checkmark" size={15} color="#ffffff" />
+            <Ionicons name="flash" size={15} color="#ffffff" />
           </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>System Normal</Text>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>Current Energy Usage</Text>
+            <Text
+              selectable
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
+            >
+              {formatCompactKwh(currentHomeUsage)}
+            </Text>
             <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>
-              Last updated: {latestReading ? formatShortDate(latestReading.date) : 'No reading yet'}
-              {latestReading?.time ? `, ${latestReading.time}` : ''}
+              {recentReadingLabel}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.textSubtle} />
         </Pressable>
       </SoftCard>
-
-      <TodayEnergyUsageCard latestReading={latestReading} />
 
       <SectionHeader title="Today's Overview" action={<DatePill label={formatShortDate(today)} />} />
 

@@ -39,8 +39,20 @@ type PaybackForecast = {
   hasEnoughSavingsData: boolean;
 };
 
+export type BillingCycleWindow = {
+  startDate: string;
+  endDate: string;
+  nextStartDate: string;
+  elapsedDays: number;
+  totalDays: number;
+};
+
 function round(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeBillingCycleStartDay(billingCycleStartDay = 1): number {
+  return Math.min(31, Math.max(1, Math.trunc(billingCycleStartDay)));
 }
 
 export type DailyReadingSummary = {
@@ -330,11 +342,12 @@ export function filterDashboardReadings({
 
 export function getBillingCycleStartDate(today: string, billingCycleStartDay = 1): string {
   const [todayYear, todayMonth, todayDay] = today.split('-').map(Number);
-  const cycleDay = Math.min(31, Math.max(1, Math.trunc(billingCycleStartDay)));
+  const cycleDay = normalizeBillingCycleStartDay(billingCycleStartDay);
+  const currentMonthCycleDay = Math.min(cycleDay, getDaysInMonth(todayYear, todayMonth));
   let startYear = todayYear;
   let startMonth = todayMonth;
 
-  if (todayDay < cycleDay) {
+  if (todayDay < currentMonthCycleDay) {
     startMonth -= 1;
 
     if (startMonth === 0) {
@@ -345,6 +358,38 @@ export function getBillingCycleStartDate(today: string, billingCycleStartDay = 1
 
   const clampedDay = Math.min(cycleDay, getDaysInMonth(startYear, startMonth));
   return buildDateFromParts(startYear, startMonth, clampedDay);
+}
+
+export function getBillingCycleWindow({
+  today,
+  billingCycleStartDay,
+}: {
+  today: string;
+  billingCycleStartDay?: number;
+}): BillingCycleWindow {
+  const cycleDay = normalizeBillingCycleStartDay(billingCycleStartDay);
+  const startDate = getBillingCycleStartDate(today, cycleDay);
+  const [startYear, startMonth] = startDate.split('-').map(Number);
+  let nextStartYear = startYear;
+  let nextStartMonth = startMonth + 1;
+
+  if (nextStartMonth === 13) {
+    nextStartMonth = 1;
+    nextStartYear += 1;
+  }
+
+  const nextStartDay = Math.min(cycleDay, getDaysInMonth(nextStartYear, nextStartMonth));
+  const nextStartDate = buildDateFromParts(nextStartYear, nextStartMonth, nextStartDay);
+  const totalDays = Math.max(1, differenceInCalendarDays(nextStartDate, startDate));
+  const elapsedDays = Math.max(1, Math.min(totalDays, differenceInCalendarDays(today, startDate) + 1));
+
+  return {
+    startDate,
+    endDate: addDaysToDate(nextStartDate, -1),
+    nextStartDate,
+    elapsedDays,
+    totalDays,
+  };
 }
 
 export function filterBillingCycleReadings({
