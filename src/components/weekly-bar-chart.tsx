@@ -38,7 +38,7 @@ export function WeeklyBarChart({
   const maxDataValue = Math.max(1, ...normalizedData.map((item) => item.value));
   const chartMaxValue = Math.max(1, Math.ceil(maxDataValue * 1.18 * 10) / 10);
   const chartWidth = Math.max(238, windowWidth - 104);
-  const inactiveBarColor = theme.mode === 'dark' ? 'rgba(214, 255, 77, 0.38)' : 'rgba(23, 105, 232, 0.30)';
+  const inactiveBarColor = theme.mode === 'dark' ? 'rgba(94, 233, 181, 0.36)' : 'rgba(0, 188, 125, 0.28)';
   const activeValue = normalizedData[focusedIndex]?.value ?? 0;
   const activeValueLabel = focusedIndex === safeHighlightIndex && valueLabel
     ? valueLabel
@@ -49,7 +49,7 @@ export function WeeklyBarChart({
       normalizedData.map((item, index) => ({
         value: Number.isFinite(item.value) ? Math.max(0, item.value) : 0,
         label: item.label,
-        frontColor: index === focusedIndex ? theme.accent : inactiveBarColor,
+        frontColor: index === focusedIndex ? theme.primaryChart : inactiveBarColor,
         topLabelComponent:
           index === focusedIndex
             ? () => (
@@ -57,7 +57,7 @@ export function WeeklyBarChart({
                   style={{
                     minWidth: 66,
                     alignItems: 'center',
-                    borderRadius: 10,
+                    borderRadius: 999,
                     borderCurve: 'continuous',
                     borderWidth: 1,
                     borderColor: theme.border,
@@ -94,12 +94,12 @@ export function WeeklyBarChart({
             style={{
               borderRadius: 999,
               borderCurve: 'continuous',
-              backgroundColor: theme.surfaceRaised,
+              backgroundColor: theme.accentSoft,
               paddingHorizontal: 11,
               paddingVertical: 6,
             }}
           >
-            <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{unitLabel}</Text>
+            <Text style={{ color: theme.accent, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{unitLabel}</Text>
           </View>
         </View>
       ) : null}
@@ -139,7 +139,7 @@ export function WeeklyBarChart({
           isAnimated
           animationDuration={520}
           focusBarOnPress
-          focusedBarConfig={{ color: theme.accent }}
+          focusedBarConfig={{ color: theme.primaryChart }}
           onPress={(_item: unknown, index: number) => setFocusedIndex(index)}
         />
       </View>

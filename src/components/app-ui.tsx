@@ -108,11 +108,11 @@ function getIconColors(
   }
 
   if (tone === 'inverse') {
-    return { backgroundColor: 'rgba(255, 255, 255, 0.08)', color: theme.textOnDark };
+    return { backgroundColor: 'rgba(255, 255, 255, 0.10)', color: theme.textOnDark };
   }
 
   if (tone === 'muted') {
-    return { backgroundColor: theme.neutralSoft, color: theme.textMuted };
+    return { backgroundColor: theme.surfaceRaised, color: theme.textMuted };
   }
 
   return { backgroundColor: theme.accentSoft, color: theme.accent };
@@ -134,7 +134,7 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
   const theme = useAppTheme();
   const backgroundColor =
     tone === 'inverse'
-      ? theme.header
+      ? theme.surface
       : tone === 'accent'
         ? theme.surfaceAccent
         : tone === 'muted'
@@ -146,12 +146,12 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
       className="gap-4 overflow-hidden border"
       style={[
         {
-          borderRadius: 18,
+          borderRadius: 24,
           borderCurve: 'continuous',
-          borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : theme.border,
+          borderColor: tone === 'accent' ? theme.accentGlow : theme.border,
           backgroundColor,
-          padding: padding + 2,
-          boxShadow: tone === 'inverse' ? '0 26px 70px rgba(1, 3, 10, 0.46)' : theme.shadow,
+          padding,
+          boxShadow: tone === 'inverse' ? theme.shadow : theme.shadow,
         },
         style,
       ]}
@@ -167,14 +167,13 @@ export function IconBadge({ icon, tone = 'accent', size = 42 }: IconBadgeProps) 
 
   return (
     <View
-      className="items-center justify-center border"
+      className="items-center justify-center"
       style={{
         height: size,
         width: size,
-        borderRadius: Math.max(12, size / 2.8),
+        borderRadius: 999,
         borderCurve: 'continuous',
         backgroundColor: palette.backgroundColor,
-        borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}
     >
       <Ionicons name={icon} size={Math.max(18, size * 0.44)} color={palette.color} />
@@ -211,6 +210,7 @@ export function SectionTitle({ title, description, icon, action, eyebrow }: Sect
               fontSize: 21,
               fontFamily: fontFamilies.displayMedium,
               fontWeight: fontWeights.semibold,
+              letterSpacing: -0.35,
             }}
           >
             {title}
@@ -252,23 +252,24 @@ export function AppButton({
       : tone === 'secondary'
         ? { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.text }
         : tone === 'ghost'
-          ? { backgroundColor: 'transparent', borderColor: theme.border, color: theme.textMuted }
+          ? { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
           : { backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText };
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="flex-row items-center justify-center gap-2.5 border px-4 py-3"
+      className="flex-row items-center justify-center gap-2.5 border px-5 py-3"
       style={({ pressed }) => [
         {
           width: fullWidth ? '100%' : undefined,
-          borderRadius: 14,
+          borderRadius: 999,
           borderCurve: 'continuous',
           borderColor: palette.borderColor,
           backgroundColor: palette.backgroundColor,
           opacity: disabled ? 0.6 : pressed ? 0.88 : 1,
           transform: [{ scale: pressed ? 0.985 : 1 }],
+          boxShadow: tone === 'primary' && !disabled ? `0 12px 28px ${theme.accentGlow}` : 'none',
         },
         style,
       ]}
@@ -289,10 +290,10 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
     <View
       className="min-w-[124px] flex-1 gap-2 border p-3.5"
       style={{
-        borderRadius: 16,
+        borderRadius: 22,
         borderCurve: 'continuous',
-        borderColor: theme.border,
-        backgroundColor: theme.surface,
+        borderColor: tone === 'accent' ? theme.accentGlow : theme.border,
+        backgroundColor: tone === 'accent' ? theme.surfaceAccent : theme.surface,
       }}
     >
       <View className="flex-row items-center gap-2">
@@ -336,14 +337,14 @@ export function ToggleChip({ label, selected, onPress, icon }: ToggleChipProps) 
         borderRadius: 999,
         borderCurve: 'continuous',
         borderColor: selected ? theme.accent : theme.border,
-        backgroundColor: selected ? theme.accentSoft : theme.surfaceRaised,
+        backgroundColor: selected ? theme.accent : theme.surfaceRaised,
         opacity: pressed ? 0.88 : 1,
       })}
     >
-      {icon ? <Ionicons name={icon} size={14} color={selected ? theme.accent : theme.textMuted} /> : null}
+      {icon ? <Ionicons name={icon} size={14} color={selected ? theme.accentText : theme.textMuted} /> : null}
       <Text
         style={{
-          color: selected ? theme.accent : theme.textMuted,
+          color: selected ? theme.accentText : theme.textMuted,
           fontSize: 13,
           fontFamily: fontFamilies.bodyStrong,
           fontWeight: fontWeights.semibold,
@@ -440,7 +441,7 @@ export function OverlaySheet({
           className="w-full self-center gap-4 border px-5 pt-5"
           style={{
             maxHeight: variant === 'dialog' ? 520 : 640,
-            borderRadius: 20,
+            borderRadius: 28,
             borderCurve: 'continuous',
             borderColor: theme.border,
             backgroundColor: theme.surfaceOverlay,
