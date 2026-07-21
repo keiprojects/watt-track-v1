@@ -23,58 +23,65 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          tabBarHideOnKeyboard: true,
           tabBarActiveTintColor: theme.accent,
           tabBarInactiveTintColor: theme.textSubtle,
           sceneStyle: { backgroundColor: theme.background },
           tabBarStyle: {
-            position: 'relative',
-            height: 68,
+            height: 70,
             borderTopWidth: 1,
             borderTopColor: theme.border,
-            borderRadius: 0,
             backgroundColor: theme.surface,
-            paddingTop: 6,
-            paddingBottom: 6,
+            paddingTop: 7,
+            paddingBottom: 7,
             elevation: 0,
             shadowOpacity: 0,
           },
           tabBarLabelStyle: {
             fontSize: 11,
             fontFamily: fontFamilies.bodyStrong,
-            marginBottom: 2,
+            marginBottom: 1,
           },
           tabBarItemStyle: {
-            paddingVertical: 4,
+            paddingVertical: 3,
           },
-          tabBarIconStyle: { marginTop: 2 },
+          tabBarIconStyle: { marginTop: 1 },
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />,
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
+            ),
           }}
         />
         <Tabs.Screen
           name="add"
           options={{
             title: 'Readings',
-            tabBarIcon: ({ focused }) => <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={focused ? theme.accent : theme.textSubtle} size={28} />,
+            tabBarIcon: ({ focused, color }) => (
+              <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={color} size={28} />
+            ),
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
             title: 'History',
-            tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" color={color} size={size} />,
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'time' : 'time-outline'} color={color} size={size} />
+            ),
           }}
         />
         <Tabs.Screen
           name="insights"
           options={{
             title: 'Analytics',
-            tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" color={color} size={size} />,
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} color={color} size={size} />
+            ),
           }}
         />
         <Tabs.Screen
@@ -87,8 +94,8 @@ export default function TabsLayout() {
           }}
           options={{
             title: 'Profile',
-            tabBarIcon: ({ focused }) => (
-              <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} color={focused ? theme.accent : theme.textSubtle} size={28} />
+            tabBarIcon: ({ focused, color }) => (
+              <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} color={color} size={28} />
             ),
           }}
         />
