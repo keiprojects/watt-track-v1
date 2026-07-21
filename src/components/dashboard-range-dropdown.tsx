@@ -45,23 +45,28 @@ export function DashboardRangeDropdown<T extends string>({ options, value, onCha
         accessibilityHint="Opens the dashboard date range options"
         onPress={openMenu}
         style={({ pressed }) => ({
-          minHeight: 40,
+          height: 42,
+          minWidth: 98,
+          flexShrink: 0,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 7,
+          justifyContent: 'center',
+          gap: 8,
           borderRadius: 999,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: theme.accentGlow,
           backgroundColor: theme.accentSoft,
-          paddingHorizontal: 13,
-          paddingVertical: 8,
+          paddingHorizontal: 14,
+          paddingVertical: 0,
           opacity: pressed ? 0.78 : 1,
           boxShadow: theme.shadow,
         })}
       >
         <Ionicons name="calendar-outline" size={15} color={theme.accent} />
-        <Text style={{ color: theme.text, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>{selectedOption?.label ?? value}</Text>
+        <Text numberOfLines={1} style={{ color: theme.text, fontSize: 13, lineHeight: 16, fontFamily: fontFamilies.bodyStrong }}>
+          {selectedOption?.label ?? value}
+        </Text>
         <Ionicons name="chevron-down" size={14} color={theme.accent} />
       </Pressable>
 
