@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import type { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/app-ui';
@@ -87,15 +87,14 @@ export function DateTimePickerField({
     padding: 14,
   };
 
-  const handleNativeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const closeAndroidPicker = () => {
     if (Platform.OS === 'android') {
       setIsPickerOpen(false);
     }
+  };
 
-    if (event.type === 'dismissed' || !selectedDate) {
-      return;
-    }
-
+  const handleNativeValueChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
+    closeAndroidPicker();
     onChange(mode === 'date' ? formatDateValue(selectedDate) : formatTimeValue(selectedDate));
   };
 
@@ -190,7 +189,9 @@ export function DateTimePickerField({
             value={pickerValue}
             mode={mode}
             display={Platform.OS === 'ios' ? (mode === 'date' ? 'inline' : 'spinner') : 'default'}
-            onChange={handleNativeChange}
+            onValueChange={handleNativeValueChange}
+            onDismiss={closeAndroidPicker}
+            onNeutralButtonPress={closeAndroidPicker}
             maximumDate={maximumDate}
           />
 
