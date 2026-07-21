@@ -1,19 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import type { ComponentProps, ReactNode } from 'react';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { Alert, Image, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
+import { DateTimePickerField } from '@/components/date-time-picker-field';
 import { SegmentedControl } from '@/components/segmented-control';
-import { AppButton, MotionSection, Panel, SectionTitle, useScreenContentContainerStyle } from '@/components/app-ui';
+import { IconSquare, ScreenHeader, ScreenScroll, SoftCard, wattGradients } from '@/components/watt-ui';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { ExportInputMode, ReadingInputMode } from '@/types/system';
-import { getTodayDateInputValue, isValidDateInputValue } from '@/utils/date';
+import { formatShortDate, getTodayDateInputValue, isValidDateInputValue } from '@/utils/date';
 import { createId } from '@/utils/ids';
+
+const logoMark = require('../../assets/branding/logo-mark.png');
 
 const optionalPositiveNumber = z.preprocess(
   (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
@@ -68,6 +73,7 @@ const onboardingSchema = z
   });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+type WattIconName = ComponentProps<typeof IconSquare>['icon'];
 
 const readingModeOptions: { label: string; value: ReadingInputMode }[] = [
   { label: 'Daily usage', value: 'daily' },
@@ -79,7 +85,26 @@ const exportModeOptions: { label: string; value: ExportInputMode }[] = [
   { label: 'Daily', value: 'daily' },
   { label: 'Cumulative', value: 'cumulative' },
 ];
-const fullLogo = require('../../assets/branding/logo-full.png');
+
+function getDateDisplayValue(date: string): string {
+  return isValidDateInputValue(date) ? formatShortDate(date) : date;
+}
+
+function inputStyle(theme: ReturnType<typeof useAppTheme>) {
+  return {
+    minHeight: 50,
+    borderRadius: 16,
+    borderCurve: 'continuous' as const,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceRaised,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: theme.text,
+    fontSize: 14,
+    fontFamily: fontFamilies.body,
+  };
+}
 
 function Field({
   label,
@@ -89,18 +114,117 @@ function Field({
 }: {
   label: string;
   helper?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   error?: string;
 }) {
   const theme = useAppTheme();
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
-      {helper ? <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{helper}</Text> : null}
+      <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
+      {helper ? <Text style={{ color: theme.textMuted, fontSize: 12, lineHeight: 18, fontFamily: fontFamilies.body }}>{helper}</Text> : null}
       {children}
       {error ? <Text style={{ color: theme.dangerText, fontSize: 13, fontFamily: fontFamilies.body }}>{error}</Text> : null}
     </View>
+  );
+}
+
+function ProfileHero({ isEditingProfile }: { isEditingProfile: boolean }) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard padding={16} tone="blue" style={{ gap: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View
+          style={{
+            height: 64,
+            width: 64,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            borderRadius: 20,
+            borderCurve: 'continuous',
+            backgroundColor: '#071734',
+          }}
+        >
+          <Image source={logoMark} resizeMode="contain" style={{ width: 58, height: 44 }} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          <Text style={{ color: theme.accent, fontSize: 21, fontFamily: fontFamilies.displayMedium }}>Watt Track</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Local-first solar profile</Text>
+        </View>
+      </View>
+
+      <View style={{ gap: 5 }}>
+        <Text style={{ color: theme.text, fontSize: 23, lineHeight: 29, fontFamily: fontFamilies.bodyHeavy }}>
+          {isEditingProfile ? 'Edit system profile' : 'Set up your system'}
+        </Text>
+        <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 20, fontFamily: fontFamilies.body }}>
+          {isEditingProfile
+            ? 'Update rates, capacity, billing cycle, and reading modes without leaving the WattTrack style.'
+            : 'Add the details WattTrack needs for readings, savings, and ROI.'}
+        </Text>
+      </View>
+    </SoftCard>
+  );
+}
+
+function FormSection({
+  title,
+  icon,
+  children,
+  tone = 'blue',
+}: {
+  title: string;
+  icon: WattIconName;
+  children: ReactNode;
+  tone?: keyof typeof wattGradients;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard style={{ gap: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <IconSquare icon={icon} size={42} colors={wattGradients[tone]} />
+        <Text style={{ flex: 1, color: theme.text, fontSize: 17, fontFamily: fontFamilies.bodyHeavy }}>{title}</Text>
+      </View>
+      {children}
+    </SoftCard>
+  );
+}
+
+function SubmitButton({
+  label,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 54,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 9,
+        borderRadius: 15,
+        borderCurve: 'continuous',
+        backgroundColor: disabled ? '#9bb7f4' : '#2563eb',
+        paddingHorizontal: 16,
+        opacity: pressed ? 0.78 : 1,
+        boxShadow: '0 12px 24px rgba(37, 99, 235, 0.18)',
+      })}
+    >
+      <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
+      <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+    </Pressable>
   );
 }
 
@@ -114,7 +238,6 @@ export default function OnboardingScreen() {
   const settingsHydrated = useSettingsStore((state) => state.hasHydrated);
   const systemHydrated = useSystemStore((state) => state.hasHydrated);
   const settings = useSettingsStore((state) => state.settings);
-  const contentContainerStyle = useScreenContentContainerStyle({ gap: 20 });
 
   const {
     control,
@@ -143,7 +266,6 @@ export default function OnboardingScreen() {
   });
 
   const exportEnabled = watch('exportEnabled');
-
   const isEditingProfile = params.mode === 'edit';
 
   if (!isEditingProfile && settingsHydrated && systemHydrated && settings.onboardingCompleted && systemProfile) {
@@ -152,7 +274,6 @@ export default function OnboardingScreen() {
 
   const persistProfile = async (values: OnboardingFormValues) => {
     const nextExportInputMode = values.exportEnabled ? values.exportInputMode : 'disabled';
-
     const now = new Date().toISOString();
 
     await saveProfile({
@@ -208,70 +329,18 @@ export default function OnboardingScreen() {
     await persistProfile(values);
   };
 
-  const inputStyle = {
-    borderRadius: 18,
-    borderCurve: 'continuous' as const,
-    borderWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surfaceRaised,
-    padding: 14,
-    color: theme.text,
-    fontFamily: fontFamilies.body,
-  };
-
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      showsVerticalScrollIndicator={false}
-      alwaysBounceVertical
-      overScrollMode="always"
-      style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={contentContainerStyle}
-    >
-      <MotionSection index={0}>
-        <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: -44,
-              right: -26,
-              height: 160,
-              width: 160,
-              borderRadius: 999,
-              backgroundColor: theme.accentGlow,
-            }}
-          />
-          <Image
-            source={fullLogo}
-            resizeMode="contain"
-            style={{ width: 200, height: 102, alignSelf: 'center', marginBottom: 4 }}
-          />
-          <Text
-            style={{
-              color: theme.accent,
-              fontSize: 11,
-              fontFamily: fontFamilies.bodyStrong,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-            }}
-          >
-            Local-first setup
-          </Text>
-          <Text style={{ color: theme.textOnDark, fontSize: 34, fontFamily: fontFamilies.display }}>
-            {isEditingProfile ? 'Edit WattTrack profile' : 'Set up WattTrack'}
-          </Text>
-          <Text style={{ color: theme.textMuted, fontSize: 15, lineHeight: 22, fontFamily: fontFamilies.body }}>
-            {isEditingProfile
-              ? 'Update your local system profile, rates, capacities, and reading modes.'
-              : 'Save your system profile locally so logging, savings estimates, and ROI can work offline from day one.'}
-          </Text>
-        </Panel>
-      </MotionSection>
+    <ScreenScroll gap={16} bottomPadding={44}>
+      <ScreenHeader
+        title={isEditingProfile ? 'System Profile' : 'Setup'}
+        leftIcon={isEditingProfile ? 'chevron-back' : undefined}
+        leftLabel="Back"
+        onLeftPress={() => router.replace('/(tabs)/settings')}
+      />
 
-      <MotionSection index={1}>
-        <Panel style={{ gap: 20 }}>
-          <SectionTitle title="System profile" description="Tell WattTrack what system you are tracking." icon="home-outline" eyebrow="Basics" />
+      <ProfileHero isEditingProfile={isEditingProfile} />
+
+      <FormSection title="System Profile" icon="home" tone="blue">
         <Field label="System name" error={errors.systemName?.message}>
           <Controller
             control={control}
@@ -281,7 +350,7 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 placeholder="Rooftop solar"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
@@ -296,25 +365,26 @@ export default function OnboardingScreen() {
               <TextInput
                 value={value}
                 onChangeText={onChange}
-                placeholder="Quezon City"
-                style={inputStyle}
+                placeholder="Davao City"
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
 
-        <Field label="Installation date" helper="Use YYYY-MM-DD" error={errors.installationDate?.message}>
+        <Field label="Installation date" error={errors.installationDate?.message}>
           <Controller
             control={control}
             name="installationDate"
             render={({ field: { onChange, value } }) => (
-              <TextInput
+              <DateTimePickerField
+                mode="date"
                 value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                style={inputStyle}
-                placeholderTextColor={theme.textSubtle}
+                displayValue={getDateDisplayValue(value)}
+                placeholder="Pick installation date"
+                maximumDate={new Date()}
+                onChange={onChange}
               />
             )}
           />
@@ -329,7 +399,8 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 autoCapitalize="none"
-                style={inputStyle}
+                placeholder="Asia/Manila"
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
@@ -338,23 +409,20 @@ export default function OnboardingScreen() {
 
         <View
           style={{
-            borderRadius: 20,
+            borderRadius: 16,
             borderCurve: 'continuous',
             backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
-          <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Currency</Text>
-          <Text selectable style={{ color: theme.textMuted, marginTop: 4, fontFamily: fontFamilies.body }}>
-            PHP (fixed for the MVP)
+          <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>Currency</Text>
+          <Text selectable style={{ color: theme.textMuted, marginTop: 4, fontSize: 13, fontFamily: fontFamilies.body }}>
+            PHP
           </Text>
         </View>
-        </Panel>
-      </MotionSection>
+      </FormSection>
 
-      <MotionSection index={2}>
-        <Panel style={{ gap: 20 }}>
-          <SectionTitle title="Rates and capacity" description="Add the baseline numbers WattTrack will use for cost and ROI math." icon="cash-outline" eyebrow="Economics" />
+      <FormSection title="Rates & Billing" icon="cash" tone="green">
         <Field label="Initial system cost" error={errors.initialSystemCost?.message}>
           <Controller
             control={control}
@@ -365,14 +433,14 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="0"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
 
-        <Field label="Default import rate" helper="Your grid electricity rate per kWh" error={errors.defaultImportRate?.message}>
+        <Field label="Default import rate" helper="Grid electricity rate per kWh." error={errors.defaultImportRate?.message}>
           <Controller
             control={control}
             name="defaultImportRate"
@@ -382,7 +450,7 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="0"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
@@ -391,7 +459,7 @@ export default function OnboardingScreen() {
 
         <Field
           label="Billing cycle start day"
-          helper="Day of the month your utility bill period starts, usually the previous reading date on your bill."
+          helper="Day of the month your utility billing period starts."
           error={errors.billingCycleStartDay?.message}
         >
           <Controller
@@ -403,14 +471,16 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="number-pad"
                 placeholder="1"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
+      </FormSection>
 
-        <Field label="Solar capacity (kW)" helper="Optional" error={errors.solarCapacityKw?.message}>
+      <FormSection title="System Capacity" icon="battery-charging" tone="amber">
+        <Field label="Solar capacity" helper="Optional, in kW." error={errors.solarCapacityKw?.message}>
           <Controller
             control={control}
             name="solarCapacityKw"
@@ -420,14 +490,14 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
 
-        <Field label="Inverter capacity (kW)" helper="Optional" error={errors.inverterCapacityKw?.message}>
+        <Field label="Inverter capacity" helper="Optional, in kW." error={errors.inverterCapacityKw?.message}>
           <Controller
             control={control}
             name="inverterCapacityKw"
@@ -437,14 +507,14 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
 
-        <Field label="Battery capacity (kWh)" helper="Optional" error={errors.batteryCapacityKwh?.message}>
+        <Field label="Battery capacity" helper="Optional, in kWh." error={errors.batteryCapacityKwh?.message}>
           <Controller
             control={control}
             name="batteryCapacityKwh"
@@ -454,35 +524,36 @@ export default function OnboardingScreen() {
                 onChangeText={onChange}
                 keyboardType="numeric"
                 placeholder="Optional"
-                style={inputStyle}
+                style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />
             )}
           />
         </Field>
-        </Panel>
-      </MotionSection>
+      </FormSection>
 
-      <MotionSection index={3}>
-        <Panel style={{ gap: 20 }}>
-          <SectionTitle title="Reading modes" description="Choose whether you log direct daily kWh or the meter's running total." icon="analytics-outline" eyebrow="Inputs" />
-        <Field label="Grid input mode" helper="Choose Daily usage if you type kWh directly, or Meter reading if you type the running number shown on the meter base." error={errors.gridInputMode?.message}>
+      <FormSection title="Reading Modes" icon="analytics" tone="violet">
+        <Field
+          label="Grid input mode"
+          helper="Choose Daily usage if you type kWh directly, or Meter reading if you type the running meter value."
+          error={errors.gridInputMode?.message}
+        >
           <Controller
             control={control}
             name="gridInputMode"
-            render={({ field: { onChange, value } }) => (
-              <SegmentedControl options={readingModeOptions} value={value} onChange={onChange} />
-            )}
+            render={({ field: { onChange, value } }) => <SegmentedControl options={readingModeOptions} value={value} onChange={onChange} />}
           />
         </Field>
 
-        <Field label="Solar input mode" helper="Use Meter reading if you log the running solar meter number and want WattTrack to subtract the previous reading." error={errors.solarInputMode?.message}>
+        <Field
+          label="Solar input mode"
+          helper="Use Meter reading if WattTrack should subtract the previous inverter total."
+          error={errors.solarInputMode?.message}
+        >
           <Controller
             control={control}
             name="solarInputMode"
-            render={({ field: { onChange, value } }) => (
-              <SegmentedControl options={readingModeOptions} value={value} onChange={onChange} />
-            )}
+            render={({ field: { onChange, value } }) => <SegmentedControl options={readingModeOptions} value={value} onChange={onChange} />}
           />
         </Field>
 
@@ -492,22 +563,29 @@ export default function OnboardingScreen() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            borderRadius: 20,
+            borderRadius: 16,
             borderCurve: 'continuous',
             backgroundColor: theme.surfaceMuted,
             padding: 14,
           }}
         >
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>Track exported energy</Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
-              Turn this on if you want separate export credits in savings calculations.
+            <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>Track exported energy</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, lineHeight: 18, fontFamily: fontFamilies.body }}>
+              Include export credits in savings calculations.
             </Text>
           </View>
           <Controller
             control={control}
             name="exportEnabled"
-            render={({ field: { onChange, value } }) => <Switch value={value} onValueChange={onChange} trackColor={{ true: theme.accent }} />}
+            render={({ field: { onChange, value } }) => (
+              <Switch
+                value={value}
+                onValueChange={onChange}
+                trackColor={{ false: theme.ringTrack, true: theme.accentSoft }}
+                thumbColor={value ? theme.accent : theme.surface}
+              />
+            )}
           />
         </View>
 
@@ -517,9 +595,7 @@ export default function OnboardingScreen() {
               <Controller
                 control={control}
                 name="exportInputMode"
-                render={({ field: { onChange, value } }) => (
-                  <SegmentedControl options={exportModeOptions} value={value} onChange={onChange} />
-                )}
+                render={({ field: { onChange, value } }) => <SegmentedControl options={exportModeOptions} value={value} onChange={onChange} />}
               />
             </Field>
 
@@ -533,7 +609,7 @@ export default function OnboardingScreen() {
                     onChangeText={onChange}
                     keyboardType="numeric"
                     placeholder="0"
-                    style={inputStyle}
+                    style={inputStyle(theme)}
                     placeholderTextColor={theme.textSubtle}
                   />
                 )}
@@ -541,15 +617,13 @@ export default function OnboardingScreen() {
             </Field>
           </>
         ) : null}
-        </Panel>
-      </MotionSection>
+      </FormSection>
 
-      <AppButton
+      <SubmitButton
         label={isSubmitting ? 'Saving...' : isEditingProfile ? 'Save profile' : 'Save and continue'}
-        icon="arrow-forward-outline"
         onPress={() => void handleSubmit(onSubmit)()}
         disabled={isSubmitting}
       />
-    </ScrollView>
+    </ScreenScroll>
   );
 }
