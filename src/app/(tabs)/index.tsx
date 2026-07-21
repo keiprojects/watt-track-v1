@@ -144,7 +144,7 @@ function buildChartBars({
   }));
 }
 
-type FlowMetricProps = {
+type EnergyStatCardProps = {
   icon: AppIconName;
   label: string;
   value: string;
@@ -153,21 +153,37 @@ type FlowMetricProps = {
   align?: 'left' | 'right';
 };
 
-function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowMetricProps) {
+function EnergyStatCard({ icon, label, value, helper, color, align = 'left' }: EnergyStatCardProps) {
   const theme = useAppTheme();
   const alignRight = align === 'right';
+  const iconBackground = color === theme.warningText ? theme.warningSoft : theme.accentSoft;
 
   return (
-    <View style={{ flex: 1, minWidth: 0, alignItems: alignRight ? 'flex-end' : 'flex-start', gap: 7, paddingHorizontal: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        minHeight: 126,
+        justifyContent: 'space-between',
+        gap: 12,
+        borderRadius: 26,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+        padding: 14,
+        boxShadow: theme.shadow,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <View
           style={{
-            height: 28,
-            width: 28,
+            height: 32,
+            width: 32,
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 999,
-            backgroundColor: color === theme.textMuted ? theme.surfaceRaised : theme.accentSoft,
+            backgroundColor: iconBackground,
           }}
         >
           <Ionicons name={icon} size={17} color={color} />
@@ -175,7 +191,7 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         <Text
           numberOfLines={2}
           style={{
-            maxWidth: 102,
+            flex: 1,
             color: theme.textMuted,
             fontSize: 12,
             lineHeight: 16,
@@ -187,27 +203,28 @@ function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowM
         </Text>
       </View>
 
-      <Text
-        selectable
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.68}
-        style={{
-          width: '100%',
-          color: theme.text,
-          fontSize: 22,
-          lineHeight: 28,
-          textAlign: alignRight ? 'right' : 'left',
-          fontFamily: fontFamilies.bodyHeavy,
-          fontVariant: ['tabular-nums'],
-        }}
-      >
-        {value}
-      </Text>
-
-      <Text numberOfLines={1} style={{ color, fontSize: 11, textAlign: alignRight ? 'right' : 'left', fontFamily: fontFamilies.bodyStrong }}>
-        {helper}
-      </Text>
+      <View style={{ alignItems: alignRight ? 'flex-end' : 'flex-start', gap: 4 }}>
+        <Text
+          selectable
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.68}
+          style={{
+            width: '100%',
+            color: theme.text,
+            fontSize: 20,
+            lineHeight: 26,
+            textAlign: alignRight ? 'right' : 'left',
+            fontFamily: fontFamilies.bodyHeavy,
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          {value}
+        </Text>
+        <Text numberOfLines={1} style={{ color, fontSize: 11, textAlign: alignRight ? 'right' : 'left', fontFamily: fontFamilies.bodyStrong }}>
+          {helper}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -299,7 +316,6 @@ export default function DashboardScreen() {
   const roiAccent = theme.warningText;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
-  const dividerColor = theme.mode === 'dark' ? 'rgba(124, 207, 0, 0.24)' : 'rgba(94, 165, 0, 0.22)';
   const centerBg = theme.mode === 'dark' ? '#111111' : theme.surface;
 
   return (
@@ -368,27 +384,39 @@ export default function DashboardScreen() {
         </View>
       </MotionSection>
 
-      <MotionSection index={1} style={{ gap: 4 }}>
+      <MotionSection index={1} style={{ gap: 10 }}>
         <HouseEnergyHero />
 
-        <View style={{ position: 'relative', height: 286, paddingVertical: 18 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 88 }}>
-            <FlowMetric icon="sunny-outline" label="Solar generated" value={formatKwh(periodSummary.solarGeneratedKwh)} helper={periodLabel} color={solarAccent} />
-            <View style={{ width: 104 }} />
-            <FlowMetric icon="business-outline" label="Grid usage" value={formatKwh(periodSummary.gridConsumedKwh)} helper={periodLabel} color={gridAccent} align="right" />
-          </View>
+        <View style={{ position: 'relative', paddingTop: 18, paddingBottom: 8 }}>
+          <View pointerEvents="none" style={{ position: 'absolute', top: 149, left: 18, right: 18, height: 1, backgroundColor: theme.border }} />
+          <View pointerEvents="none" style={{ position: 'absolute', top: 42, bottom: 28, left: '50%', width: 1, backgroundColor: theme.border }} />
 
-          <View pointerEvents="none" style={{ position: 'absolute', top: 96, left: 18, right: 18, height: 1.5, backgroundColor: dividerColor }} />
-          <View pointerEvents="none" style={{ position: 'absolute', top: 72, left: '50%', bottom: 72, width: 1.5, backgroundColor: dividerColor }} />
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <EnergyStatCard icon="sunny-outline" label="Solar generated" value={formatKwh(periodSummary.solarGeneratedKwh)} helper={periodLabel} color={solarAccent} />
+              <EnergyStatCard icon="business-outline" label="Grid usage" value={formatKwh(periodSummary.gridConsumedKwh)} helper={periodLabel} color={gridAccent} align="right" />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <EnergyStatCard icon="wallet-outline" label="Estimated savings" value={formatCurrency(periodSummary.estimatedSavings)} helper={periodLabel} color={savingsAccent} />
+              <EnergyStatCard
+                icon="trending-up-outline"
+                label="ROI / Payback"
+                value={roiLabel}
+                helper={roiSummary.totalCapitalInvestment > 0 ? `${formatCurrency(roiSummary.remainingAmount)} left` : 'Add system cost'}
+                color={roiAccent}
+                align="right"
+              />
+            </View>
+          </View>
 
           <View
             style={{
               position: 'absolute',
-              top: 82,
+              top: 91,
               left: '50%',
-              height: 118,
-              width: 118,
-              marginLeft: -59,
+              height: 116,
+              width: 116,
+              marginLeft: -58,
               alignItems: 'center',
               justifyContent: 'center',
               gap: 4,
@@ -415,21 +443,6 @@ export default function DashboardScreen() {
               {formatKwh(periodSummary.homeUsageKwh)}
             </Text>
             <Text style={{ color: theme.textSubtle, fontSize: 9, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
-          </View>
-
-          <View style={{ flex: 1 }} />
-
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 88 }}>
-            <FlowMetric icon="wallet-outline" label="Estimated savings" value={formatCurrency(periodSummary.estimatedSavings)} helper={periodLabel} color={savingsAccent} />
-            <View style={{ width: 104 }} />
-            <FlowMetric
-              icon="trending-up-outline"
-              label="ROI / Payback"
-              value={roiLabel}
-              helper={roiSummary.totalCapitalInvestment > 0 ? `${formatCurrency(roiSummary.remainingAmount)} left` : 'Add system cost'}
-              color={roiAccent}
-              align="right"
-            />
           </View>
         </View>
       </MotionSection>
