@@ -20,7 +20,9 @@
       "expo-router",
       "expo-document-picker",
       "expo-file-system",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
