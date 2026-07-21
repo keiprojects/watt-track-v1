@@ -18,3 +18,5 @@ This folder is the source of truth for implementation planning, feature scope, a
 
 - `spec-plan.md`: implementation-ready product, feature, data, validation, and architecture spec.
 - `development-plan.md`: PRD-aligned execution plan, architecture direction, milestone checklist, and acceptance tracking.
+- `privacy-policy.md`: draft user-facing privacy policy for store publication.
+- `store-compliance.md`: Google Play and Apple App Store compliance worksheet for release preparation.
