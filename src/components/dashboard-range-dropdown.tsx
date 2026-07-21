@@ -31,10 +31,7 @@ export function DashboardRangeDropdown<T extends string>({ options, value, onCha
 
   const openMenu = () => {
     triggerRef.current?.measureInWindow((x, y, measuredWidth, measuredHeight) => {
-      setAnchor({
-        top: y + measuredHeight + 8,
-        right: Math.max(16, windowWidth - x - measuredWidth),
-      });
+      setAnchor({ top: y + measuredHeight + 8, right: Math.max(16, windowWidth - x - measuredWidth) });
       setVisible(true);
     });
   };
@@ -55,28 +52,21 @@ export function DashboardRangeDropdown<T extends string>({ options, value, onCha
           borderRadius: 999,
           borderCurve: 'continuous',
           borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.surface,
+          borderColor: theme.accentGlow,
+          backgroundColor: theme.accentSoft,
           paddingHorizontal: 13,
           paddingVertical: 8,
           opacity: pressed ? 0.78 : 1,
           boxShadow: theme.shadow,
         })}
       >
-        <Ionicons name="calendar-outline" size={15} color={theme.textMuted} />
-        <Text style={{ color: theme.text, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
-          {selectedOption?.label ?? value}
-        </Text>
-        <Ionicons name="chevron-down" size={14} color={theme.textSubtle} />
+        <Ionicons name="calendar-outline" size={15} color={theme.accent} />
+        <Text style={{ color: theme.text, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>{selectedOption?.label ?? value}</Text>
+        <Ionicons name="chevron-down" size={14} color={theme.accent} />
       </Pressable>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close dashboard range menu"
-          onPress={() => setVisible(false)}
-          style={{ flex: 1, backgroundColor: theme.scrim }}
-        >
+        <Pressable accessibilityRole="button" accessibilityLabel="Close dashboard range menu" onPress={() => setVisible(false)} style={{ flex: 1, backgroundColor: theme.scrim }}>
           <View
             style={{
               position: 'absolute',
@@ -84,7 +74,7 @@ export function DashboardRangeDropdown<T extends string>({ options, value, onCha
               right: anchor.right,
               width: 190,
               overflow: 'hidden',
-              borderRadius: 22,
+              borderRadius: 24,
               borderCurve: 'continuous',
               borderWidth: 1,
               borderColor: theme.border,
@@ -111,23 +101,17 @@ export function DashboardRangeDropdown<T extends string>({ options, value, onCha
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: 12,
-                    borderRadius: 16,
+                    borderRadius: 999,
                     borderCurve: 'continuous',
-                    backgroundColor: selected ? theme.accentSoft : pressed ? theme.surfaceRaised : 'transparent',
+                    backgroundColor: selected ? theme.accent : pressed ? theme.surfaceRaised : 'transparent',
                     paddingHorizontal: 13,
                     paddingVertical: 10,
                   })}
                 >
-                  <Text
-                    style={{
-                      color: selected ? (theme.mode === 'dark' ? theme.accent : theme.accentText) : theme.text,
-                      fontSize: 14,
-                      fontFamily: fontFamilies.bodyStrong,
-                    }}
-                  >
+                  <Text style={{ color: selected ? theme.accentText : theme.text, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>
                     {option.label}
                   </Text>
-                  {selected ? <Ionicons name="checkmark-circle" size={19} color={theme.accent} /> : null}
+                  {selected ? <Ionicons name="checkmark-circle" size={19} color={theme.accentText} /> : null}
                 </Pressable>
               );
             })}
