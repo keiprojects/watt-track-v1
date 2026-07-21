@@ -18,7 +18,6 @@ const drawerColors = {
   icon: '#b7b5bf',
   text: '#d8d6df',
   muted: '#a5a3ad',
-  subtle: '#77757f',
   pressed: 'rgba(255, 255, 255, 0.06)',
   scrim: 'rgba(0, 0, 0, 0.64)',
   support: '#047857',
@@ -85,6 +84,13 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
     ? `${formatShortDate(latestReading.date)}${latestReading.time ? `, ${latestReading.time}` : ''}`
     : 'Local profile';
 
+  const navigateTo = (route: string) => {
+    onClose();
+    requestAnimationFrame(() => {
+      router.push(route as never);
+    });
+  };
+
   const openProfile = () => {
     onClose();
     requestAnimationFrame(() => {
@@ -92,21 +98,14 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
     });
   };
 
-  const openSettings = () => {
+  const showRatePrompt = () => {
     onClose();
-    requestAnimationFrame(() => {
-      router.push('/(tabs)/settings' as never);
-    });
+    Alert.alert('Rate WattTrack', 'Play Store rating can be connected once WattTrack is published.');
   };
 
   const showComingSoon = (title: string) => {
     onClose();
     Alert.alert(title, 'This section will be connected soon.');
-  };
-
-  const showRatePrompt = () => {
-    onClose();
-    Alert.alert('Rate WattTrack', 'Play Store rating can be connected once WattTrack is published.');
   };
 
   if (!visible) {
@@ -180,8 +179,8 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
 
             <View style={{ gap: 17 }}>
               <DrawerItem icon="person-outline" label="Profile" onPress={openProfile} />
-              <DrawerItem icon="settings-outline" label="Settings" onPress={openSettings} />
-              <DrawerItem icon="server-outline" label="Data" onPress={() => showComingSoon('Data')} />
+              <DrawerItem icon="settings-outline" label="Settings" onPress={() => navigateTo('/(tabs)/profile-settings')} />
+              <DrawerItem icon="server-outline" label="Data" onPress={() => navigateTo('/(tabs)/data')} />
               <DrawerItem icon="star-outline" label="Rate us" onPress={showRatePrompt} />
               <DrawerItem icon="headset-outline" label="Support" onPress={() => showComingSoon('Support')} />
               <DrawerItem icon="information-circle-outline" label="About" onPress={() => showComingSoon(`WattTrack ${APP_VERSION}`)} />
