@@ -16,9 +16,12 @@ type CurrentWeatherCardProps = {
 function WeatherCardSkeleton({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <SkeletonBlock height={36} width={36} borderRadius={14} />
-        <SkeletonBlock height={22} width={46} borderRadius={9} />
+      <View style={{ alignItems: 'flex-end', gap: 7 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <SkeletonBlock height={26} width={26} borderRadius={13} />
+          <SkeletonBlock height={20} width={48} borderRadius={9} />
+        </View>
+        <SkeletonBlock height={12} width={72} borderRadius={7} />
       </View>
     );
   }
@@ -32,6 +35,10 @@ function WeatherCardSkeleton({ compact = false }: { compact?: boolean }) {
       </View>
     </View>
   );
+}
+
+function getCompactLocationLabel(location: string): string {
+  return location.split(',')[0]?.trim() || location;
 }
 
 export function CurrentWeatherCard({
@@ -55,55 +62,54 @@ export function CurrentWeatherCard({
     return (
       <View
         style={{
-          minHeight: 58,
-          minWidth: 104,
-          alignItems: 'center',
+          minHeight: 54,
+          minWidth: 94,
+          alignItems: 'flex-end',
           justifyContent: 'center',
-          overflow: 'hidden',
-          borderRadius: 20,
-          borderCurve: 'continuous',
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.surface,
-          paddingHorizontal: 12,
-          paddingVertical: 9,
-          boxShadow: theme.mode === 'dark' ? '0 12px 28px rgba(0, 0, 0, 0.20)' : '0 12px 28px rgba(7, 14, 28, 0.07)',
+          gap: 2,
+          paddingTop: 2,
         }}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: -26,
-            right: -22,
-            height: 86,
-            width: 86,
-            borderRadius: 999,
-            backgroundColor: accentTint,
-          }}
-        />
-
         {isLoading ? (
           <WeatherCardSkeleton compact />
         ) : weather ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-            <AnimatedWeatherIcon weatherCode={weather.weatherCode} isDay={weather.isDay} size={38} />
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
+              <AnimatedWeatherIcon weatherCode={weather.weatherCode} isDay={weather.isDay} size={30} />
+              <Text
+                selectable
+                style={{
+                  color: theme.text,
+                  fontSize: 18,
+                  fontFamily: fontFamilies.bodyHeavy,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {`${Math.round(weather.temperatureC)}°C`}
+              </Text>
+            </View>
             <Text
               selectable
+              numberOfLines={1}
               style={{
-                color: theme.text,
-                fontSize: 18,
-                fontFamily: fontFamilies.bodyHeavy,
-                fontVariant: ['tabular-nums'],
+                maxWidth: 112,
+                color: theme.textMuted,
+                fontSize: 13,
+                fontFamily: fontFamilies.body,
               }}
             >
-              {`${Math.round(weather.temperatureC)}°C`}
+              {getCompactLocationLabel(weather.resolvedLocation)}
+            </Text>
+          </>
+        ) : (
+          <View style={{ alignItems: 'flex-end', gap: 3 }}>
+            <Text style={{ color: theme.text, fontSize: 18, fontFamily: fontFamilies.bodyHeavy }}>
+              {errorMessage ? '--' : '--°C'}
+            </Text>
+            <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+              Weather
             </Text>
           </View>
-        ) : (
-          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-            {errorMessage ? 'Weather --' : '--°C'}
-          </Text>
         )}
       </View>
     );
