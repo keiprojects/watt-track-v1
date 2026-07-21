@@ -242,6 +242,7 @@ export default function SettingsScreen() {
       <View style={{ gap: 10 }}>
         <SectionHeader title="About" />
         <SoftCard>
+          <SettingRow icon="shield-checkmark-outline" title="Privacy & Support" value="Local data" onPress={() => router.push('/privacy' as never)} />
           <SettingRow icon="information-circle-outline" title="About Watt Track" value={`Version ${APP_VERSION}`} />
         </SoftCard>
       </View>
