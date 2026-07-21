@@ -144,7 +144,7 @@ function buildChartBars({
   }));
 }
 
-type EnergyStatCardProps = {
+type FlowMetricProps = {
   icon: AppIconName;
   label: string;
   value: string;
@@ -153,45 +153,26 @@ type EnergyStatCardProps = {
   align?: 'left' | 'right';
 };
 
-function EnergyStatCard({ icon, label, value, helper, color, align = 'left' }: EnergyStatCardProps) {
+function FlowMetric({ icon, label, value, helper, color, align = 'left' }: FlowMetricProps) {
   const theme = useAppTheme();
   const alignRight = align === 'right';
-  const iconBackground = color === theme.warningText ? theme.warningSoft : theme.accentSoft;
 
   return (
     <View
       style={{
         flex: 1,
         minWidth: 0,
-        minHeight: 126,
-        justifyContent: 'space-between',
-        gap: 12,
-        borderRadius: 26,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: theme.surface,
-        padding: 14,
-        boxShadow: theme.shadow,
+        alignItems: alignRight ? 'flex-end' : 'flex-start',
+        gap: 7,
+        paddingHorizontal: 8,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-        <View
-          style={{
-            height: 32,
-            width: 32,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 999,
-            backgroundColor: iconBackground,
-          }}
-        >
-          <Ionicons name={icon} size={17} color={color} />
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        <Ionicons name={icon} size={19} color={color} />
         <Text
           numberOfLines={2}
           style={{
-            flex: 1,
+            maxWidth: 92,
             color: theme.textMuted,
             fontSize: 12,
             lineHeight: 16,
@@ -203,28 +184,35 @@ function EnergyStatCard({ icon, label, value, helper, color, align = 'left' }: E
         </Text>
       </View>
 
-      <View style={{ alignItems: alignRight ? 'flex-end' : 'flex-start', gap: 4 }}>
-        <Text
-          selectable
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.68}
-          style={{
-            width: '100%',
-            color: theme.text,
-            fontSize: 20,
-            lineHeight: 26,
-            textAlign: alignRight ? 'right' : 'left',
-            fontFamily: fontFamilies.bodyHeavy,
-            fontVariant: ['tabular-nums'],
-          }}
-        >
-          {value}
-        </Text>
-        <Text numberOfLines={1} style={{ color, fontSize: 11, textAlign: alignRight ? 'right' : 'left', fontFamily: fontFamilies.bodyStrong }}>
-          {helper}
-        </Text>
-      </View>
+      <Text
+        selectable
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.68}
+        style={{
+          width: '100%',
+          color: theme.text,
+          fontSize: 22,
+          lineHeight: 28,
+          textAlign: alignRight ? 'right' : 'left',
+          fontFamily: fontFamilies.bodyHeavy,
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {value}
+      </Text>
+
+      <Text
+        numberOfLines={1}
+        style={{
+          color,
+          fontSize: 11,
+          textAlign: alignRight ? 'right' : 'left',
+          fontFamily: fontFamilies.bodyStrong,
+        }}
+      >
+        {helper}
+      </Text>
     </View>
   );
 }
@@ -310,13 +298,10 @@ export default function DashboardScreen() {
   const latestReading = readings[0];
   const periodLabel = getPeriodLabel(dashboardPeriod);
   const hasPeriodData = periodReadings.length > 0;
-  const solarAccent = theme.accent;
+  const positiveAccent = theme.primaryChart;
   const gridAccent = theme.secondaryChart;
-  const savingsAccent = theme.primaryChart;
-  const roiAccent = theme.warningText;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
-  const centerBg = theme.mode === 'dark' ? '#111111' : theme.surface;
 
   return (
     <ScrollView
@@ -329,30 +314,36 @@ export default function DashboardScreen() {
         gap: 16,
         paddingHorizontal: 18,
         paddingTop: Math.max(insets.top + 12, 24),
-        paddingBottom: 34 + insets.bottom,
+        paddingBottom: 112 + insets.bottom,
       }}
     >
       <MotionSection index={0} style={{ gap: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-            <Text style={{ color: theme.text, fontSize: 30, fontFamily: fontFamilies.display, letterSpacing: -1.1 }}>WattTrack</Text>
-            <View style={{ height: 8, width: 8, borderRadius: 999, marginLeft: 3, marginBottom: 7, backgroundColor: theme.accent }} />
-          </View>
+          <Text
+            style={{
+              color: theme.accent,
+              fontSize: 29,
+              fontFamily: fontFamilies.display,
+              letterSpacing: -1,
+            }}
+          >
+            WattTrack
+          </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open settings"
-            onPress={() => router.push('/(tabs)/settings')}
+            accessibilityLabel="Notifications"
+            onPress={() => {}}
             style={({ pressed }) => ({
               height: 42,
               width: 42,
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 999,
-              backgroundColor: theme.surfaceRaised,
+              borderRadius: 15,
+              borderCurve: 'continuous',
               opacity: pressed ? 0.72 : 1,
             })}
           >
-            <Ionicons name="notifications-outline" size={23} color={theme.text} />
+            <Ionicons name="notifications-outline" size={24} color={theme.text} />
           </Pressable>
         </View>
 
@@ -362,7 +353,12 @@ export default function DashboardScreen() {
               numberOfLines={2}
               adjustsFontSizeToFit
               minimumFontScale={0.82}
-              style={{ color: theme.text, fontSize: 22, lineHeight: 28, fontFamily: fontFamilies.displayMedium, letterSpacing: -0.45 }}
+              style={{
+                color: theme.text,
+                fontSize: 22,
+                lineHeight: 28,
+                fontFamily: fontFamilies.displayMedium,
+              }}
             >
               {`${getGreeting()}, ${greetingName} 👋`}
             </Text>
@@ -376,7 +372,10 @@ export default function DashboardScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
             <Ionicons name="location-outline" size={17} color={theme.textSubtle} />
-            <Text numberOfLines={1} style={{ flex: 1, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}
+            >
               {systemProfile?.location ?? 'Location not set'}
             </Text>
           </View>
@@ -384,53 +383,98 @@ export default function DashboardScreen() {
         </View>
       </MotionSection>
 
-      <MotionSection index={1} style={{ gap: 10 }}>
+      <MotionSection index={1} style={{ gap: 4 }}>
         <HouseEnergyHero />
 
-        <View style={{ position: 'relative', paddingTop: 18, paddingBottom: 8 }}>
-          <View pointerEvents="none" style={{ position: 'absolute', top: 149, left: 18, right: 18, height: 1, backgroundColor: theme.border }} />
-          <View pointerEvents="none" style={{ position: 'absolute', top: 42, bottom: 28, left: '50%', width: 1, backgroundColor: theme.border }} />
-
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <EnergyStatCard icon="sunny-outline" label="Solar generated" value={formatKwh(periodSummary.solarGeneratedKwh)} helper={periodLabel} color={solarAccent} />
-              <EnergyStatCard icon="business-outline" label="Grid usage" value={formatKwh(periodSummary.gridConsumedKwh)} helper={periodLabel} color={gridAccent} align="right" />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <EnergyStatCard icon="wallet-outline" label="Estimated savings" value={formatCurrency(periodSummary.estimatedSavings)} helper={periodLabel} color={savingsAccent} />
-              <EnergyStatCard
-                icon="trending-up-outline"
-                label="ROI / Payback"
-                value={roiLabel}
-                helper={roiSummary.totalCapitalInvestment > 0 ? `${formatCurrency(roiSummary.remainingAmount)} left` : 'Add system cost'}
-                color={roiAccent}
-                align="right"
-              />
-            </View>
+        <View
+          style={{
+            position: 'relative',
+            height: 326,
+            paddingHorizontal: 0,
+            paddingVertical: 22,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 98 }}>
+            <FlowMetric
+              icon="sunny-outline"
+              label="Solar generated"
+              value={formatKwh(periodSummary.solarGeneratedKwh)}
+              helper={periodLabel}
+              color={positiveAccent}
+            />
+            <View style={{ width: 128 }} />
+            <FlowMetric
+              icon="business-outline"
+              label="Grid usage"
+              value={formatKwh(periodSummary.gridConsumedKwh)}
+              helper={periodLabel}
+              color={gridAccent}
+              align="right"
+            />
           </View>
+
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 104,
+              left: 26,
+              right: 26,
+              height: 1,
+              backgroundColor: theme.border,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 104,
+              left: '50%',
+              bottom: 104,
+              width: 1,
+              backgroundColor: theme.border,
+            }}
+          />
 
           <View
             style={{
               position: 'absolute',
-              top: 91,
+              top: 76,
               left: '50%',
-              height: 116,
-              width: 116,
-              marginLeft: -58,
+              height: 150,
+              width: 150,
+              marginLeft: -75,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 4,
+              gap: 5,
               borderRadius: 999,
               borderWidth: 4,
-              borderColor: solarAccent,
-              backgroundColor: centerBg,
-              boxShadow: `0 16px 40px ${theme.accentGlow}`,
+              borderColor: positiveAccent,
+              backgroundColor: theme.background,
             }}
           >
-            <View style={{ height: 27, width: 27, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: theme.accentSoft }}>
-              <Ionicons name="flash-outline" size={16} color={solarAccent} />
+            <View
+              style={{
+                height: 34,
+                width: 34,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                backgroundColor: theme.accentSoft,
+              }}
+            >
+              <Ionicons name="flash-outline" size={19} color={theme.accent} />
             </View>
-            <Text style={{ maxWidth: 92, color: theme.textMuted, fontSize: 10, lineHeight: 12, textAlign: 'center', fontFamily: fontFamilies.bodyStrong }}>
+            <Text
+              style={{
+                maxWidth: 108,
+                color: theme.textMuted,
+                fontSize: 11,
+                lineHeight: 14,
+                textAlign: 'center',
+                fontFamily: fontFamilies.bodyStrong,
+              }}
+            >
               Total energy used
             </Text>
             <Text
@@ -438,11 +482,43 @@ export default function DashboardScreen() {
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.62}
-              style={{ width: 96, color: theme.text, fontSize: 16, textAlign: 'center', fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
+              style={{
+                width: 122,
+                color: theme.text,
+                fontSize: 19,
+                textAlign: 'center',
+                fontFamily: fontFamilies.bodyHeavy,
+                fontVariant: ['tabular-nums'],
+              }}
             >
               {formatKwh(periodSummary.homeUsageKwh)}
             </Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 9, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+            <Text style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+          </View>
+
+          <View style={{ flex: 1 }} />
+
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 98 }}>
+            <FlowMetric
+              icon="wallet-outline"
+              label="Estimated savings"
+              value={formatCurrency(periodSummary.estimatedSavings)}
+              helper={periodLabel}
+              color={positiveAccent}
+            />
+            <View style={{ width: 128 }} />
+            <FlowMetric
+              icon="trending-up-outline"
+              label="ROI / Payback"
+              value={roiLabel}
+              helper={
+                roiSummary.totalCapitalInvestment > 0
+                  ? `${formatCurrency(roiSummary.remainingAmount)} left`
+                  : 'Add system cost'
+              }
+              color={theme.accent}
+              align="right"
+            />
           </View>
         </View>
       </MotionSection>
@@ -452,7 +528,9 @@ export default function DashboardScreen() {
           <Panel padding={18} style={{ gap: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <View style={{ minWidth: 0, flex: 1, gap: 4 }}>
-                <Text style={{ color: theme.text, fontSize: 19, fontFamily: fontFamilies.displayMedium }}>{getUsageTrendTitle(dashboardPeriod)}</Text>
+                <Text style={{ color: theme.text, fontSize: 19, fontFamily: fontFamilies.displayMedium }}>
+                  {getUsageTrendTitle(dashboardPeriod)}
+                </Text>
                 <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>
                   {`${periodDailySummaries.length} logged day${periodDailySummaries.length === 1 ? '' : 's'}`}
                 </Text>
@@ -466,16 +544,22 @@ export default function DashboardScreen() {
                   width: 38,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 999,
-                  backgroundColor: theme.accentSoft,
+                  borderRadius: 14,
+                  borderCurve: 'continuous',
+                  backgroundColor: theme.surfaceRaised,
                   opacity: pressed ? 0.72 : 1,
                 })}
               >
-                <Ionicons name="arrow-forward" size={19} color={theme.accent} />
+                <Ionicons name="arrow-forward" size={19} color={theme.textMuted} />
               </Pressable>
             </View>
 
-            <WeeklyBarChart data={chartBars} highlightIndex={chartHighlightIndex} valueLabel={chartHighlightLabel} unitLabel="kWh" />
+            <WeeklyBarChart
+              data={chartBars}
+              highlightIndex={chartHighlightIndex}
+              valueLabel={chartHighlightLabel}
+              unitLabel="kWh"
+            />
           </Panel>
         </MotionSection>
       ) : (
@@ -490,14 +574,23 @@ export default function DashboardScreen() {
               }
               icon="reader-outline"
             />
-            <AppButton label={readings.length === 0 ? 'Add first reading' : 'Add a reading'} icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} />
+            <AppButton
+              label={readings.length === 0 ? 'Add first reading' : 'Add a reading'}
+              icon="add-circle-outline"
+              onPress={() => router.push('/(tabs)/add')}
+            />
           </Panel>
         </MotionSection>
       )}
 
       {latestReading ? (
         <MotionSection index={3}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open reading history" onPress={() => router.push('/(tabs)/history')} style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open reading history"
+            onPress={() => router.push('/(tabs)/history')}
+            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}
+          >
             <Panel padding={18} style={{ gap: 17 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <View style={{ flex: 1, gap: 4 }}>
@@ -511,10 +604,33 @@ export default function DashboardScreen() {
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-                <ReadingMiniMetric icon="business-outline" label="Grid" value={formatKwh(latestReading.gridConsumptionKwh)} color={gridAccent} showDivider />
-                <ReadingMiniMetric icon="sunny-outline" label="Solar" value={formatKwh(latestReading.solarGenerationKwh)} color={solarAccent} showDivider />
-                <ReadingMiniMetric icon="flash-outline" label="Total used" value={formatKwh(latestReading.estimatedHomeUsageKwh)} color={savingsAccent} showDivider />
-                <ReadingMiniMetric icon="wallet-outline" label="Savings" value={formatCurrency(latestReading.estimatedSavings)} color={solarAccent} />
+                <ReadingMiniMetric
+                  icon="business-outline"
+                  label="Grid"
+                  value={formatKwh(latestReading.gridConsumptionKwh)}
+                  color={gridAccent}
+                  showDivider
+                />
+                <ReadingMiniMetric
+                  icon="sunny-outline"
+                  label="Solar"
+                  value={formatKwh(latestReading.solarGenerationKwh)}
+                  color={positiveAccent}
+                  showDivider
+                />
+                <ReadingMiniMetric
+                  icon="flash-outline"
+                  label="Total used"
+                  value={formatKwh(latestReading.estimatedHomeUsageKwh)}
+                  color={gridAccent}
+                  showDivider
+                />
+                <ReadingMiniMetric
+                  icon="wallet-outline"
+                  label="Savings"
+                  value={formatCurrency(latestReading.estimatedSavings)}
+                  color={positiveAccent}
+                />
               </View>
             </Panel>
           </Pressable>
@@ -522,7 +638,12 @@ export default function DashboardScreen() {
       ) : null}
 
       <MotionSection index={4}>
-        <AppButton label="Add reading" icon="add" onPress={() => router.push('/(tabs)/add')} style={{ minHeight: 56 }} />
+        <AppButton
+          label="Add reading"
+          icon="add"
+          onPress={() => router.push('/(tabs)/add')}
+          style={{ minHeight: 56 }}
+        />
       </MotionSection>
     </ScrollView>
   );
