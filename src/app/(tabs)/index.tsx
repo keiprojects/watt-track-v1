@@ -1,46 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts';
 
-import { AppButton, MotionSection, Panel, SectionTitle, type AppIconName } from '@/components/app-ui';
-import { CurrentWeatherCard } from '@/components/current-weather-card';
-import { DashboardRangeDropdown } from '@/components/dashboard-range-dropdown';
-import { HouseEnergyHero } from '@/components/house-energy-hero';
-import { WeeklyBarChart } from '@/components/weekly-bar-chart';
+import {
+  DatePill,
+  IconSquare,
+  MetricTile,
+  ScreenHeader,
+  ScreenScroll,
+  SectionHeader,
+  SoftCard,
+  wattGradients,
+} from '@/components/watt-ui';
 import {
   aggregateReadingsByDate,
-  filterDashboardReadings,
+  filterBillingCycleReadings,
   summarizeReadings,
   summarizeRoi,
-  type DailyReadingSummary,
 } from '@/services/calculation.service';
+import { fetchCurrentWeather } from '@/services/weather.service';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
-import type { DashboardPeriod } from '@/types/settings';
-import {
-  addDaysToDate,
-  formatMonthDayLabel,
-  formatMonthShortLabel,
-  formatShortDate,
-  formatWeekdayLabel,
-  getMonthPrefix,
-  getTodayDateInputValue,
-} from '@/utils/date';
+import type { EnergyReading } from '@/types/reading';
+import { formatMonthDayLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
-const dashboardPeriodOptions: { label: string; value: DashboardPeriod }[] = [
-  { label: '7d', value: '7d' },
-  { label: '30d', value: '30d' },
-  { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' },
-  { label: 'All', value: 'all' },
-];
+const heroImage = require('../../../assets/images/solar-home-hero-card.png');
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -56,474 +46,371 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function getGreetingName(systemName?: string): string {
-  const compactName = systemName?.replace(/\s+(residence|home)$/i, '').trim();
-  return compactName || 'there';
+function getDisplayName(systemName?: string): string {
+  const compactName = systemName?.replace(/\s+(residence|home|solar|system)$/i, '').trim();
+  return compactName?.split(/\s+/)[0] || 'there';
 }
 
-function getPeriodLabel(period: DashboardPeriod): string {
-  if (period === '7d') {
-    return 'Last 7 days';
-  }
-
-  if (period === '30d') {
-    return 'Last 30 days';
-  }
-
-  if (period === 'month') {
-    return 'This month';
-  }
-
-  if (period === 'year') {
-    return 'This year';
-  }
-
-  return 'All time';
+function formatCompactKwh(value: number): string {
+  return `${value.toFixed(1)} kWh`;
 }
 
-function getUsageTrendTitle(period: DashboardPeriod): string {
-  if (period === '30d') {
-    return 'Logged days (last 30 days)';
+function formatDelta(current: number, previous?: number): string | undefined {
+  if (!previous || previous <= 0) {
+    return undefined;
   }
 
-  if (period === '7d') {
-    return 'Logged days (last 7 days)';
-  }
-
-  if (period === 'month') {
-    return 'Logged days (this month)';
-  }
-
-  if (period === 'year') {
-    return 'Energy used by month';
-  }
-
-  return 'Energy history';
+  const delta = ((current - previous) / previous) * 100;
+  const arrow = delta >= 0 ? '↑' : '↓';
+  return `${arrow} ${Math.abs(delta).toFixed(0)}%`;
 }
 
-function buildChartBars({
-  summaries,
-  period,
-  today,
-}: {
-  summaries: DailyReadingSummary[];
-  period: DashboardPeriod;
-  today: string;
-}) {
-  if (period === '7d') {
-    const summariesByDate = new Map(summaries.map((summary) => [summary.date, summary]));
-
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = addDaysToDate(today, index - 6);
-      return {
-        label: formatWeekdayLabel(date),
-        value: summariesByDate.get(date)?.estimatedHomeUsageKwh ?? 0,
-      };
-    });
-  }
-
-  if (period === 'year' || period === 'all') {
-    const monthlyUsage = summaries.reduce<Map<string, number>>((grouped, summary) => {
-      const monthPrefix = getMonthPrefix(summary.date);
-      grouped.set(monthPrefix, (grouped.get(monthPrefix) ?? 0) + summary.estimatedHomeUsageKwh);
-      return grouped;
-    }, new Map());
-
-    return [...monthlyUsage.entries()]
-      .sort((left, right) => left[0].localeCompare(right[0]))
-      .slice(-8)
-      .map(([monthPrefix, value]) => ({
-        label: formatMonthShortLabel(`${monthPrefix}-01`),
-        value,
-      }));
-  }
-
-  return summaries.slice(-30).map((summary) => ({
-    label: formatMonthDayLabel(summary.date),
-    value: summary.estimatedHomeUsageKwh,
-  }));
-}
-
-type EnergyStatCardProps = {
-  icon: AppIconName;
-  label: string;
-  value: string;
-  helper: string;
-  color: string;
-  align?: 'left' | 'right';
-};
-
-function EnergyStatCard({ icon, label, value, helper, color, align = 'left' }: EnergyStatCardProps) {
+function WeatherSummary({ location }: { location?: string }) {
   const theme = useAppTheme();
-  const alignRight = align === 'right';
-  const iconBackground = color === theme.warningText ? theme.warningSoft : theme.accentSoft;
+  const [temperature, setTemperature] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void fetchCurrentWeather({ location })
+      .then((snapshot) => {
+        if (isMounted) {
+          setTemperature(Math.round(snapshot.temperatureC));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setTemperature(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location]);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        minWidth: 0,
-        minHeight: 126,
-        justifyContent: 'space-between',
-        gap: 12,
-        borderRadius: 26,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: theme.surface,
-        padding: 14,
-        boxShadow: theme.shadow,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-        <View
-          style={{
-            height: 32,
-            width: 32,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 999,
-            backgroundColor: iconBackground,
-          }}
-        >
-          <Ionicons name={icon} size={17} color={color} />
-        </View>
-        <Text
-          numberOfLines={2}
-          style={{
-            flex: 1,
-            color: theme.textMuted,
-            fontSize: 12,
-            lineHeight: 16,
-            textAlign: alignRight ? 'right' : 'left',
-            fontFamily: fontFamilies.bodyStrong,
-          }}
-        >
-          {label}
+    <View style={{ alignItems: 'flex-end', gap: 3 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        <Ionicons name="sunny" size={24} color={theme.warningText} />
+        <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy }}>
+          {temperature == null ? '28' : String(temperature)}
+          {'\u00B0C'}
         </Text>
       </View>
-
-      <View style={{ alignItems: alignRight ? 'flex-end' : 'flex-start', gap: 4 }}>
-        <Text
-          selectable
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.68}
-          style={{
-            width: '100%',
-            color: theme.text,
-            fontSize: 20,
-            lineHeight: 26,
-            textAlign: alignRight ? 'right' : 'left',
-            fontFamily: fontFamilies.bodyHeavy,
-            fontVariant: ['tabular-nums'],
-          }}
-        >
-          {value}
-        </Text>
-        <Text numberOfLines={1} style={{ color, fontSize: 11, textAlign: alignRight ? 'right' : 'left', fontFamily: fontFamilies.bodyStrong }}>
-          {helper}
-        </Text>
-      </View>
+      <Text numberOfLines={1} style={{ maxWidth: 120, color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+        {location ?? 'Local weather'}
+      </Text>
     </View>
   );
 }
 
-type ReadingMiniMetricProps = {
-  icon: AppIconName;
+function UsageMetric({
+  icon,
+  label,
+  valueLabel,
+  helper,
+  color,
+  backgroundColor,
+}: {
+  icon: 'sunny' | 'grid' | 'cash-outline';
   label: string;
-  value: string;
+  valueLabel: string;
+  helper: string;
   color: string;
-  showDivider?: boolean;
-};
-
-function ReadingMiniMetric({ icon, label, value, color, showDivider = false }: ReadingMiniMetricProps) {
+  backgroundColor: string;
+}) {
   const theme = useAppTheme();
 
   return (
     <View
       style={{
         flex: 1,
-        minWidth: 0,
-        alignItems: 'center',
-        gap: 6,
-        borderRightWidth: showDivider ? 1 : 0,
-        borderRightColor: theme.border,
-        paddingHorizontal: 5,
+        minWidth: 90,
+        gap: 7,
+        borderRadius: 14,
+        borderCurve: 'continuous',
+        backgroundColor,
+        padding: 10,
       }}
     >
-      <Ionicons name={icon} size={17} color={color} />
-      <Text numberOfLines={1} style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.bodyStrong }}>
-        {label}
-      </Text>
+      <View
+        style={{
+          height: 30,
+          width: 30,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 11,
+          borderCurve: 'continuous',
+          backgroundColor: theme.surface,
+        }}
+      >
+        <Ionicons name={icon} size={17} color={color} />
+      </View>
+      <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
       <Text
         selectable
         numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.66}
-        style={{
-          width: '100%',
-          textAlign: 'center',
-          color: theme.text,
-          fontSize: 14,
-          fontFamily: fontFamilies.bodyHeavy,
-          fontVariant: ['tabular-nums'],
-        }}
+        minimumFontScale={0.72}
+        style={{ width: '100%', color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
       >
-        {value}
+        {valueLabel}
       </Text>
+      <Text numberOfLines={1} style={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}>{helper}</Text>
     </View>
+  );
+}
+
+function TodayEnergyUsageCard({ latestReading }: { latestReading?: EnergyReading }) {
+  const theme = useAppTheme();
+  const { formatCurrency } = useAppFormatters();
+  const solarGenerated = latestReading?.solarGenerationKwh ?? 0;
+  const gridUsed = latestReading?.gridConsumptionKwh ?? 0;
+  const savings = latestReading?.estimatedSavings ?? 0;
+  const energySaved = latestReading?.selfConsumedSolarKwh ?? 0;
+
+  return (
+    <SoftCard>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy }}>Today's Energy Usage</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+            {latestReading ? `Latest reading at ${latestReading.time ?? 'end of day'}` : 'Add a reading to see today'}
+          </Text>
+        </View>
+        <DatePill label={latestReading ? formatShortDate(latestReading.date) : 'No reading'} />
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
+        <UsageMetric
+          icon="sunny"
+          label="Solar"
+          valueLabel={formatCompactKwh(solarGenerated)}
+          helper="Generated"
+          color={theme.warningText}
+          backgroundColor={theme.warningSoft}
+        />
+        <UsageMetric
+          icon="grid"
+          label="Grid"
+          valueLabel={formatCompactKwh(gridUsed)}
+          helper="Consumed"
+          color={theme.accent}
+          backgroundColor={theme.accentSoft}
+        />
+        <UsageMetric
+          icon="cash-outline"
+          label="Savings"
+          valueLabel={formatCurrency(savings)}
+          helper={`${formatCompactKwh(energySaved)} saved`}
+          color={theme.primaryChart}
+          backgroundColor="#effaf1"
+        />
+      </View>
+    </SoftCard>
   );
 }
 
 export default function DashboardScreen() {
   const theme = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const readings = useReadingsStore((state) => state.readings);
   const costs = useCostsStore((state) => state.costs);
   const systemProfile = useSystemStore((state) => state.systemProfile);
-  const settings = useSettingsStore((state) => state.settings);
-  const { formatCurrency, formatKwh } = useAppFormatters();
-  const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>(settings.defaultDashboardPeriod);
-
-  useEffect(() => {
-    setDashboardPeriod(settings.defaultDashboardPeriod);
-  }, [settings.defaultDashboardPeriod]);
-
+  const { formatCurrency } = useAppFormatters();
   const today = getTodayDateInputValue();
-  const periodReadings = useMemo(
-    () => filterDashboardReadings({ readings, today, period: dashboardPeriod }),
-    [dashboardPeriod, readings, today],
-  );
-  const periodDailySummaries = useMemo(() => aggregateReadingsByDate(periodReadings), [periodReadings]);
-  const periodSummary = useMemo(() => summarizeReadings(periodReadings), [periodReadings]);
-  const roiSummary = useMemo(
-    () => summarizeRoi({ profile: systemProfile, readings, costs }),
-    [costs, readings, systemProfile],
-  );
-  const chartBars = useMemo(
-    () => buildChartBars({ summaries: periodDailySummaries, period: dashboardPeriod, today }),
-    [dashboardPeriod, periodDailySummaries, today],
-  );
-  const chartHighlightIndex = Math.max(0, chartBars.length - 1);
-  const chartHighlightLabel = formatKwh(chartBars[chartHighlightIndex]?.value ?? 0);
   const latestReading = readings[0];
-  const periodLabel = getPeriodLabel(dashboardPeriod);
-  const hasPeriodData = periodReadings.length > 0;
-  const solarAccent = theme.accent;
-  const gridAccent = theme.secondaryChart;
-  const savingsAccent = theme.primaryChart;
-  const roiAccent = theme.warningText;
-  const greetingName = getGreetingName(systemProfile?.systemName);
-  const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
-  const centerBg = theme.mode === 'dark' ? theme.surface : theme.surface;
+  const previousReading = readings[1];
+  const billingReadings = useMemo(
+    () =>
+      filterBillingCycleReadings({
+        readings,
+        today,
+        billingCycleStartDay: systemProfile?.billingCycleStartDay,
+      }),
+    [readings, systemProfile?.billingCycleStartDay, today],
+  );
+  const billingSummary = useMemo(() => summarizeReadings(billingReadings), [billingReadings]);
+  const roiSummary = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
+  const dailySummaries = useMemo(() => aggregateReadingsByDate(billingReadings).slice(-8), [billingReadings]);
+  const sparklineData = dailySummaries.length
+    ? dailySummaries.map((summary) => ({ value: summary.estimatedSavings, label: formatMonthDayLabel(summary.date) }))
+    : [{ value: 0 }, { value: 0 }, { value: 0 }];
+  const chartWidth = Math.min(width - 84, 280);
+
+  const openDrawer = () => {
+    navigation.dispatch({ type: 'OPEN_DRAWER' } as never);
+  };
+
+  const currentSolar = latestReading?.solarGenerationKwh ?? billingSummary.solarGeneratedKwh;
+  const currentGrid = latestReading?.gridConsumptionKwh ?? billingSummary.gridConsumedKwh;
+  const currentSaved = latestReading?.selfConsumedSolarKwh ?? billingSummary.selfConsumedSolarKwh;
+  const currentSavings = latestReading?.estimatedSavings ?? billingSummary.estimatedSavings;
+  const monthStartLabel = billingReadings.length ? formatMonthDayLabel(billingReadings.at(-1)?.date ?? today) : formatMonthDayLabel(today);
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="never"
-      showsVerticalScrollIndicator={false}
-      alwaysBounceVertical
-      overScrollMode="always"
-      style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{
-        gap: 16,
-        paddingHorizontal: 18,
-        paddingTop: Math.max(insets.top + 12, 24),
-        paddingBottom: 34 + insets.bottom,
-      }}
-    >
-      <MotionSection index={0} style={{ gap: 18 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-            <Text style={{ color: theme.text, fontSize: 30, fontFamily: fontFamilies.display, letterSpacing: -1.1 }}>WattTrack</Text>
-            <View style={{ height: 8, width: 8, borderRadius: 999, marginLeft: 3, marginBottom: 7, backgroundColor: theme.accent }} />
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() => {}}
-            style={({ pressed }) => ({
-              height: 42,
-              width: 42,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 999,
-              backgroundColor: theme.surfaceRaised,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <Ionicons name="notifications-outline" size={23} color={theme.text} />
-          </Pressable>
+    <ScreenScroll gap={14}>
+      <ScreenHeader
+        title="Watt Track"
+        leftIcon="menu-outline"
+        leftLabel="Open menu"
+        rightIcon="notifications-outline"
+        rightLabel="Notifications"
+        onLeftPress={openDrawer}
+      />
+
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>
+            {getGreeting()}, {getDisplayName(systemProfile?.systemName)}!
+          </Text>
+          <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.body }}>Here's your energy overview.</Text>
         </View>
+        <WeatherSummary location={systemProfile?.location} />
+      </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
-            <Text
-              numberOfLines={2}
-              adjustsFontSizeToFit
-              minimumFontScale={0.82}
-              style={{ color: theme.text, fontSize: 22, lineHeight: 28, fontFamily: fontFamilies.displayMedium, letterSpacing: -0.45 }}
-            >
-              {`${getGreeting()}, ${greetingName} 👋`}
-            </Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>
-              Here&apos;s your energy snapshot.
-            </Text>
-          </View>
-          <CurrentWeatherCard location={systemProfile?.location} variant="compact" />
-        </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-            <Ionicons name="location-outline" size={17} color={theme.textSubtle} />
-            <Text numberOfLines={1} style={{ flex: 1, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
-              {systemProfile?.location ?? 'Location not set'}
-            </Text>
-          </View>
-          <DashboardRangeDropdown options={dashboardPeriodOptions} value={dashboardPeriod} onChange={setDashboardPeriod} />
-        </View>
-      </MotionSection>
-
-      <MotionSection index={1} style={{ gap: 10 }}>
-        <HouseEnergyHero />
-
-        <View style={{ position: 'relative', paddingTop: 18, paddingBottom: 8 }}>
-          <View pointerEvents="none" style={{ position: 'absolute', top: 149, left: 18, right: 18, height: 1, backgroundColor: theme.border }} />
-          <View pointerEvents="none" style={{ position: 'absolute', top: 42, bottom: 28, left: '50%', width: 1, backgroundColor: theme.border }} />
-
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <EnergyStatCard icon="sunny-outline" label="Solar generated" value={formatKwh(periodSummary.solarGeneratedKwh)} helper={periodLabel} color={solarAccent} />
-              <EnergyStatCard icon="business-outline" label="Grid usage" value={formatKwh(periodSummary.gridConsumedKwh)} helper={periodLabel} color={gridAccent} align="right" />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <EnergyStatCard icon="wallet-outline" label="Estimated savings" value={formatCurrency(periodSummary.estimatedSavings)} helper={periodLabel} color={savingsAccent} />
-              <EnergyStatCard
-                icon="trending-up-outline"
-                label="ROI / Payback"
-                value={roiLabel}
-                helper={roiSummary.totalCapitalInvestment > 0 ? `${formatCurrency(roiSummary.remainingAmount)} left` : 'Add system cost'}
-                color={roiAccent}
-                align="right"
-              />
-            </View>
-          </View>
-
+      <SoftCard padding={0}>
+        <Image
+          source={heroImage}
+          resizeMode="cover"
+          style={{ width: '100%', height: 172 }}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open reading history"
+          onPress={() => router.push('/(tabs)/history')}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            paddingHorizontal: 14,
+            paddingBottom: 12,
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
           <View
             style={{
-              position: 'absolute',
-              top: 91,
-              left: '50%',
-              height: 116,
-              width: 116,
-              marginLeft: -58,
+              height: 24,
+              width: 24,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 4,
               borderRadius: 999,
-              borderWidth: 4,
-              borderColor: solarAccent,
-              backgroundColor: centerBg,
-              boxShadow: `0 16px 40px ${theme.accentGlow}`,
+              backgroundColor: theme.statusText,
             }}
           >
-            <View style={{ height: 27, width: 27, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: theme.accentSoft }}>
-              <Ionicons name="flash-outline" size={16} color={solarAccent} />
+            <Ionicons name="checkmark" size={15} color="#ffffff" />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>System Normal</Text>
+            <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>
+              Last updated: {latestReading ? formatShortDate(latestReading.date) : 'No reading yet'}
+              {latestReading?.time ? `, ${latestReading.time}` : ''}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.textSubtle} />
+        </Pressable>
+      </SoftCard>
+
+      <TodayEnergyUsageCard latestReading={latestReading} />
+
+      <SectionHeader title="Today's Overview" action={<DatePill label={formatShortDate(today)} />} />
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <MetricTile
+          icon="sunny"
+          label="Solar Generated"
+          value={formatCompactKwh(currentSolar)}
+          delta={formatDelta(currentSolar, previousReading?.solarGenerationKwh)}
+          colors={wattGradients.amber}
+        />
+        <MetricTile
+          icon="grid"
+          label="Grid Consumed"
+          value={formatCompactKwh(currentGrid)}
+          delta={formatDelta(currentGrid, previousReading?.gridConsumptionKwh)}
+          colors={wattGradients.blue}
+        />
+        <MetricTile
+          icon="home"
+          label="Energy Saved"
+          value={formatCompactKwh(currentSaved)}
+          delta={formatDelta(currentSaved, previousReading?.selfConsumedSolarKwh)}
+          colors={wattGradients.green}
+        />
+        <MetricTile
+          icon="trending-up"
+          label="ROI"
+          value={`${roiSummary.roiPercentage.toFixed(1)}%`}
+          helper="Since installation"
+          colors={wattGradients.violet}
+        />
+      </View>
+
+      <SoftCard>
+        <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>
+          This Month ({monthStartLabel} - {formatMonthDayLabel(today)})
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 10 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Generated</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Ionicons name="sunny" size={17} color={theme.warningText} />
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(billingSummary.solarGeneratedKwh)}</Text>
             </View>
-            <Text style={{ maxWidth: 92, color: theme.textMuted, fontSize: 10, lineHeight: 12, textAlign: 'center', fontFamily: fontFamilies.bodyStrong }}>
-              Total energy used
-            </Text>
-            <Text
-              selectable
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.62}
-              style={{ width: 96, color: theme.text, fontSize: 16, textAlign: 'center', fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-            >
-              {formatKwh(periodSummary.homeUsageKwh)}
-            </Text>
-            <Text style={{ color: theme.textSubtle, fontSize: 9, fontFamily: fontFamilies.body }}>{periodLabel}</Text>
+          </View>
+          <View style={{ width: 1, backgroundColor: theme.border }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Ionicons name="grid" size={17} color={theme.accent} />
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(billingSummary.gridConsumedKwh)}</Text>
+            </View>
+          </View>
+          <View style={{ width: 1, backgroundColor: theme.border }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Saved</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Ionicons name="leaf" size={17} color={theme.primaryChart} />
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(billingSummary.selfConsumedSolarKwh)}</Text>
+            </View>
           </View>
         </View>
-      </MotionSection>
+      </SoftCard>
 
-      {hasPeriodData ? (
-        <MotionSection index={2}>
-          <Panel padding={18} style={{ gap: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <View style={{ minWidth: 0, flex: 1, gap: 4 }}>
-                <Text style={{ color: theme.text, fontSize: 19, fontFamily: fontFamilies.displayMedium }}>{getUsageTrendTitle(dashboardPeriod)}</Text>
-                <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>
-                  {`${periodDailySummaries.length} logged day${periodDailySummaries.length === 1 ? '' : 's'}`}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="View detailed analytics"
-                onPress={() => router.push('/(tabs)/insights')}
-                style={({ pressed }) => ({
-                  height: 38,
-                  width: 38,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 999,
-                  backgroundColor: theme.accentSoft,
-                  opacity: pressed ? 0.72 : 1,
-                })}
-              >
-                <Ionicons name="arrow-forward" size={19} color={theme.accent} />
-              </Pressable>
-            </View>
-
-            <WeeklyBarChart data={chartBars} highlightIndex={chartHighlightIndex} valueLabel={chartHighlightLabel} unitLabel="kWh" />
-          </Panel>
-        </MotionSection>
-      ) : (
-        <MotionSection index={2}>
-          <Panel tone="muted">
-            <SectionTitle
-              title={readings.length === 0 ? 'Start tracking your energy' : 'No readings in this range'}
-              description={
-                readings.length === 0
-                  ? 'Add your first grid and solar reading to populate savings, trends, and ROI.'
-                  : `No saved readings fall inside ${periodLabel.toLowerCase()}. Choose another range or add a new reading.`
-              }
-              icon="reader-outline"
-            />
-            <AppButton label={readings.length === 0 ? 'Add first reading' : 'Add a reading'} icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} />
-          </Panel>
-        </MotionSection>
-      )}
-
-      {latestReading ? (
-        <MotionSection index={3}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open reading history" onPress={() => router.push('/(tabs)/history')} style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}>
-            <Panel padding={18} style={{ gap: 17 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={{ color: theme.text, fontSize: 19, fontFamily: fontFamilies.displayMedium }}>Latest reading</Text>
-                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>
-                    {formatShortDate(latestReading.date)}
-                    {latestReading.time ? ` · ${latestReading.time}` : ''}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={21} color={theme.textSubtle} />
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-                <ReadingMiniMetric icon="business-outline" label="Grid" value={formatKwh(latestReading.gridConsumptionKwh)} color={gridAccent} showDivider />
-                <ReadingMiniMetric icon="sunny-outline" label="Solar" value={formatKwh(latestReading.solarGenerationKwh)} color={solarAccent} showDivider />
-                <ReadingMiniMetric icon="flash-outline" label="Total used" value={formatKwh(latestReading.estimatedHomeUsageKwh)} color={savingsAccent} showDivider />
-                <ReadingMiniMetric icon="wallet-outline" label="Savings" value={formatCurrency(latestReading.estimatedSavings)} color={solarAccent} />
-              </View>
-            </Panel>
-          </Pressable>
-        </MotionSection>
-      ) : null}
-
-      <MotionSection index={4}>
-        <AppButton label="Add reading" icon="add" onPress={() => router.push('/(tabs)/add')} style={{ minHeight: 56 }} />
-      </MotionSection>
-    </ScrollView>
+      <SoftCard tone="amber" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Estimated Savings</Text>
+          <Text selectable style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy }}>
+            {formatCurrency(billingSummary.estimatedSavings)}
+          </Text>
+          <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+            {currentSavings > 0 ? `${formatCurrency(currentSavings)} latest reading` : 'Add readings to build the trend'}
+          </Text>
+        </View>
+        <View pointerEvents="none" style={{ width: chartWidth, maxWidth: 150, alignItems: 'flex-end' }}>
+          <LineChart
+            data={sparklineData}
+            width={Math.min(chartWidth, 140)}
+            height={82}
+            curved
+            areaChart
+            hideAxesAndRules
+            hideDataPoints
+            disableScroll
+            color={theme.accent}
+            startFillColor={theme.accent}
+            endFillColor={theme.accent}
+            startOpacity={0.28}
+            endOpacity={0.03}
+            thickness={2}
+            initialSpacing={0}
+            endSpacing={0}
+          />
+        </View>
+        <IconSquare icon="wallet" colors={wattGradients.amber} size={44} />
+      </SoftCard>
+    </ScreenScroll>
   );
 }

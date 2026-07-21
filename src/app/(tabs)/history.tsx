@@ -1,67 +1,31 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, SectionList, Text, TextInput, View } from 'react-native';
+import { Pressable, SectionList, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  AppButton,
-  IconBadge,
-  MotionSection,
-  OverlaySheet,
-  Panel,
-  SectionTitle,
-  StatPill,
-  ToggleChip,
-  useScreenContentContainerStyle,
-} from '@/components/app-ui';
-import { TrendLineChart } from '@/components/trend-line-chart';
+import { DateRangeFilterSheet } from '@/components/date-range-filter-sheet';
+import { ScreenHeader, SoftCard } from '@/components/watt-ui';
+import { aggregateReadingsByDate } from '@/services/calculation.service';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading } from '@/types/reading';
-import { formatMonthLabel, formatShortDate, formatWeekdayLabel, isValidDateInputValue } from '@/utils/date';
+import { formatMonthDayLabel, formatMonthLabel, formatShortDate, formatWeekdayLabel, isDateWithinRange } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 
-function FilterField({
-  label,
-  value,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-}) {
-  const theme = useAppTheme();
+type MetricFilter = 'all' | 'grid' | 'solar' | 'export';
 
-  return (
-    <View style={{ gap: 8 }}>
-      <Text
-        style={{
-          color: theme.textMuted,
-          fontSize: 12,
-          fontFamily: fontFamilies.bodyStrong,
-          letterSpacing: 0.3,
-        }}
-      >
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={theme.textSubtle}
-        style={{
-          borderRadius: 16,
-          borderCurve: 'continuous',
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.surfaceRaised,
-          padding: 14,
-          color: theme.text,
-          fontFamily: fontFamilies.body,
-        }}
-      />
-    </View>
-  );
+const metricFilters: { label: string; value: MetricFilter }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Grid', value: 'grid' },
+  { label: 'Solar', value: 'solar' },
+  { label: 'Export', value: 'export' },
+];
+
+function formatCompactKwh(value: number): string {
+  return value.toFixed(1);
 }
 
 function buildSections(readings: EnergyReading[]) {
@@ -78,312 +42,304 @@ function buildSections(readings: EnergyReading[]) {
   }, []);
 }
 
+function FilterChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 36,
+        minWidth: 68,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 999,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: selected ? theme.accent : theme.border,
+        backgroundColor: selected ? theme.accent : theme.surface,
+        paddingHorizontal: 14,
+        opacity: pressed ? 0.72 : 1,
+      })}
+    >
+      <Text style={{ color: selected ? '#ffffff' : theme.text, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function HistoryScreen() {
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const readings = useReadingsStore((state) => state.readings);
-  const { formatCurrency, formatKwh, formatPercent } = useAppFormatters();
-  const contentContainerStyle = useScreenContentContainerStyle({ gap: 16 });
+  const { formatCurrency } = useAppFormatters();
+  const [query, setQuery] = useState('');
+  const [metricFilter, setMetricFilter] = useState<MetricFilter>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [notesOnly, setNotesOnly] = useState(false);
-  const [warningsOnly, setWarningsOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const hasInvalidFromDate = Boolean(fromDate) && !isValidDateInputValue(fromDate);
-  const hasInvalidToDate = Boolean(toDate) && !isValidDateInputValue(toDate);
-  const effectiveFromDate = hasInvalidFromDate ? '' : fromDate;
-  const effectiveToDate = hasInvalidToDate ? '' : toDate;
-  const hasReversedDateRange =
-    Boolean(effectiveFromDate && effectiveToDate) && effectiveFromDate > effectiveToDate;
 
-  const filteredReadings = useMemo(
-    () =>
-      readings.filter((reading) => {
-        if (effectiveFromDate && reading.date < effectiveFromDate) {
-          return false;
-        }
+  const filteredReadings = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
 
-        if (effectiveToDate && reading.date > effectiveToDate) {
-          return false;
-        }
+    return readings.filter((reading) => {
+      if (!isDateWithinRange(reading.date, fromDate || undefined, toDate || undefined)) {
+        return false;
+      }
 
-        if (notesOnly && !reading.notes?.trim()) {
-          return false;
-        }
+      if (metricFilter === 'grid' && reading.gridConsumptionKwh <= 0) {
+        return false;
+      }
 
-        if (warningsOnly && !reading.warningCodes?.length) {
-          return false;
-        }
+      if (metricFilter === 'solar' && reading.solarGenerationKwh <= 0) {
+        return false;
+      }
 
+      if (metricFilter === 'export' && reading.exportedEnergyKwh <= 0) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
         return true;
-      }),
-    [effectiveFromDate, effectiveToDate, notesOnly, readings, warningsOnly],
-  );
+      }
+
+      const searchable = [
+        reading.date,
+        reading.time,
+        reading.notes,
+        String(reading.gridConsumptionKwh),
+        String(reading.solarGenerationKwh),
+        String(reading.estimatedSavings),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchable.includes(normalizedQuery);
+    });
+  }, [fromDate, metricFilter, query, readings, toDate]);
 
   const sections = useMemo(() => buildSections(filteredReadings), [filteredReadings]);
-  const hasActiveFilters = Boolean(fromDate || toDate || notesOnly || warningsOnly);
-  const warningCount = filteredReadings.filter((reading) => reading.warningCodes?.length).length;
-  const trendReadings = useMemo(
-    () => [...filteredReadings].sort((left, right) => left.date.localeCompare(right.date)).slice(-7),
-    [filteredReadings],
-  );
-  const trendValues = useMemo(() => trendReadings.map((reading) => reading.estimatedHomeUsageKwh), [trendReadings]);
-  const trendLabels = useMemo(
-    () => trendReadings.map((reading) => formatWeekdayLabel(reading.date)),
-    [trendReadings],
-  );
-  const latestReading = filteredReadings[0];
-  const solarShare = latestReading?.estimatedHomeUsageKwh ? (latestReading.selfConsumedSolarKwh / latestReading.estimatedHomeUsageKwh) * 100 : 0;
-  const gridShare = latestReading?.estimatedHomeUsageKwh ? (latestReading.gridConsumptionKwh / latestReading.estimatedHomeUsageKwh) * 100 : 0;
+  const dailySummaries = useMemo(() => aggregateReadingsByDate(filteredReadings).slice(-8), [filteredReadings]);
+  const totalSavings = filteredReadings.reduce((sum, reading) => sum + reading.estimatedSavings, 0);
+  const lineData = dailySummaries.length
+    ? dailySummaries.map((summary) => ({ value: summary.estimatedSavings }))
+    : [{ value: 0 }, { value: 0 }, { value: 0 }];
+  const chartWidth = Math.min(width - 190, 170);
+  const hasDateFilter = Boolean(fromDate || toDate);
 
   return (
     <>
       <SectionList
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={contentContainerStyle}
+        contentContainerStyle={{
+          gap: 10,
+          paddingHorizontal: 20,
+          paddingTop: Math.max(insets.top + 12, 24),
+          paddingBottom: 112 + insets.bottom,
+        }}
         sections={sections}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
-          <View style={{ gap: 18, marginBottom: 8 }}>
-            <MotionSection index={0}>
-              <Panel tone="inverse" style={{ backgroundColor: theme.header }}>
-                <SectionTitle
-                  title="History"
-                  description="Your saved readings, warnings, and notes in one cleaner timeline."
-                  icon="time-outline"
-                  eyebrow="Timeline"
-                  action={
-                    <AppButton
-                      label="Filters"
-                      icon="options-outline"
-                      onPress={() => setFiltersOpen(true)}
-                      tone="ghost"
-                      fullWidth={false}
-                    />
-                  }
-                />
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  <StatPill icon="albums-outline" label="Entries" value={String(filteredReadings.length)} tone="accent" />
-                  <StatPill icon="warning-outline" label="Warnings" value={String(warningCount)} tone="warning" />
-                  <StatPill icon="document-text-outline" label="Notes" value={String(filteredReadings.filter((reading) => reading.notes?.trim()).length)} />
-                </View>
-                {hasActiveFilters ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {fromDate ? <ToggleChip label={`From ${fromDate}`} selected onPress={() => setFromDate('')} icon="calendar-outline" /> : null}
-                    {toDate ? <ToggleChip label={`To ${toDate}`} selected onPress={() => setToDate('')} icon="calendar-outline" /> : null}
-                    {notesOnly ? <ToggleChip label="Notes only" selected onPress={() => setNotesOnly(false)} icon="document-text-outline" /> : null}
-                    {warningsOnly ? <ToggleChip label="Warnings only" selected onPress={() => setWarningsOnly(false)} icon="warning-outline" /> : null}
-                  </View>
-                ) : null}
-              </Panel>
-            </MotionSection>
+          <View style={{ gap: 14, marginBottom: 8 }}>
+            <ScreenHeader
+              title="History"
+              rightIcon="calendar-outline"
+              rightLabel="Filter date range"
+              onRightPress={() => setFiltersOpen(true)}
+            />
 
-            {filteredReadings.length > 0 ? (
-              <MotionSection index={1}>
-                <Panel>
-                  <View style={{ alignItems: 'center', gap: 8 }}>
-                    <Text style={{ color: theme.textMuted, fontSize: 14, fontWeight: '700' }}>
-                      {latestReading ? formatShortDate(latestReading.date) : 'No date'}
-                    </Text>
-                    <Text
-                      selectable
-                      style={{
-                        color: theme.text,
-                        fontSize: 38,
-                        fontFamily: fontFamilies.display,
-                        fontVariant: ['tabular-nums'],
-                      }}
-                    >
-                      {formatKwh(latestReading?.estimatedHomeUsageKwh ?? 0)}
-                    </Text>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.body }}>
-                      {latestReading ? `${formatCurrency(latestReading.estimatedSavings)} estimated savings` : 'No savings yet'}
-                    </Text>
-                  </View>
-                  <TrendLineChart
-                    values={trendValues}
-                    labels={trendLabels.length > 0 ? trendLabels : ['12A', '6A', '12P', '6P']}
-                    callout={formatKwh(trendValues[Math.max(0, trendValues.length - 3)] ?? 0)}
-                  />
-                  <View style={{ gap: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={{ height: 8, width: 8, borderRadius: 999, backgroundColor: theme.accent }} />
-                        <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>Solar share</Text>
-                      </View>
-                      <Text selectable style={{ color: theme.accent, fontSize: 13, fontWeight: '800' }}>
-                        {formatPercent(solarShare)}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={{ height: 8, width: 8, borderRadius: 999, backgroundColor: '#f2a531' }} />
-                        <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>Grid share</Text>
-                      </View>
-                      <Text selectable style={{ color: '#f2a531', fontSize: 13, fontWeight: '800' }}>
-                        {formatPercent(gridShare)}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={{ height: 8, width: 8, borderRadius: 999, backgroundColor: '#ff6b6b' }} />
-                        <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '700' }}>Grid cost</Text>
-                      </View>
-                      <Text selectable style={{ color: '#ff6b6b', fontSize: 13, fontWeight: '800' }}>
-                        {formatCurrency(latestReading?.estimatedGridCost ?? 0)}
-                      </Text>
-                    </View>
-                  </View>
-                </Panel>
-              </MotionSection>
-            ) : null}
+            <View
+              style={{
+                minHeight: 46,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 16,
+                borderCurve: 'continuous',
+                backgroundColor: theme.surfaceMuted,
+                paddingHorizontal: 14,
+              }}
+            >
+              <Ionicons name="search-outline" size={18} color={theme.textSubtle} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search readings"
+                placeholderTextColor={theme.textSubtle}
+                style={{
+                  flex: 1,
+                  color: theme.text,
+                  fontSize: 14,
+                  fontFamily: fontFamilies.body,
+                }}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
+              {metricFilters.map((filter) => (
+                <FilterChip
+                  key={filter.value}
+                  label={filter.label}
+                  selected={filter.value === metricFilter}
+                  onPress={() => setMetricFilter(filter.value)}
+                />
+              ))}
+              {hasDateFilter ? (
+                <FilterChip
+                  label="Date range"
+                  selected
+                  onPress={() => setFiltersOpen(true)}
+                />
+              ) : null}
+            </View>
+
+            <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+                <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>
+                  {sections[0]?.title ?? 'Reading summary'}
+                </Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>Total savings</Text>
+                <Text selectable style={{ color: theme.statusText, fontSize: 25, fontFamily: fontFamilies.bodyHeavy }}>
+                  {formatCurrency(totalSavings)}
+                </Text>
+              </View>
+              <View pointerEvents="none" style={{ width: Math.max(120, chartWidth) }}>
+                <LineChart
+                  data={lineData}
+                  width={Math.max(120, chartWidth)}
+                  height={92}
+                  curved
+                  areaChart
+                  hideAxesAndRules
+                  hideDataPoints
+                  disableScroll
+                  color={theme.primaryChart}
+                  startFillColor={theme.primaryChart}
+                  endFillColor={theme.primaryChart}
+                  startOpacity={0.24}
+                  endOpacity={0.02}
+                  thickness={2}
+                  initialSpacing={0}
+                  endSpacing={0}
+                />
+              </View>
+            </SoftCard>
           </View>
         }
         ListEmptyComponent={
-          <Panel>
-            <SectionTitle
-              title={hasActiveFilters ? 'No readings match these filters' : 'No readings yet'}
-              description={
-                hasActiveFilters
-                  ? 'Adjust the current filters to widen the results.'
-                  : 'Once you save a reading, it will show here with savings, warnings, and notes.'
-              }
-              icon="hourglass-outline"
-            />
-            <AppButton label="Add a reading" icon="add-circle-outline" onPress={() => router.push('/(tabs)/add')} />
-          </Panel>
+          <SoftCard>
+            <Text style={{ color: theme.text, fontSize: 17, fontFamily: fontFamilies.bodyHeavy }}>No readings found</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>
+              Adjust the search, metric chip, or date range to widen the timeline.
+            </Text>
+          </SoftCard>
         }
-        renderSectionHeader={({ section: { title } }) => (
-          <Text
-            style={{
-              color: theme.textMuted,
-              fontSize: 15,
-              fontFamily: fontFamilies.bodyStrong,
-              marginTop: 8,
-              marginBottom: 10,
-            }}
-          >
-            {title}
-          </Text>
+        renderSectionHeader={({ section: { title, data } }) => (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4, paddingBottom: 4 }}>
+            <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyHeavy }}>{title}</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+              {data.length} reading{data.length === 1 ? '' : 's'}
+            </Text>
+          </View>
         )}
-        renderItem={({ item, index }) => (
-          <MotionSection index={index % 4}>
-            <Pressable
-              onPress={() => router.push({ pathname: '/readings/[readingId]', params: { readingId: item.id } })}
-              style={({ pressed }) => ({
-                gap: 12,
-                borderRadius: 24,
-                borderCurve: 'continuous',
-                borderWidth: 1,
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-                padding: 16,
-                marginBottom: 12,
-                boxShadow: theme.shadow,
-                opacity: pressed ? 0.9 : 1,
-              })}
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open reading from ${formatShortDate(item.date)}`}
+            onPress={() => router.push({ pathname: '/readings/[readingId]', params: { readingId: item.id } })}
+            style={({ pressed }) => ({
+              minHeight: 76,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              borderRadius: 14,
+              borderCurve: 'continuous',
+              borderWidth: 1,
+              borderColor: theme.border,
+              backgroundColor: theme.surface,
+              paddingHorizontal: 14,
+              marginBottom: 10,
+              boxShadow: theme.shadow,
+              opacity: pressed ? 0.78 : 1,
+            })}
+          >
+            <View style={{ width: 48, gap: 2 }}>
+              <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>
+                {formatMonthDayLabel(item.date)}
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>{formatWeekdayLabel(item.date)}</Text>
+            </View>
+            <View
+              style={{
+                height: 38,
+                width: 38,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 14,
+                backgroundColor: theme.warningSoft,
+              }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                  <IconBadge
-                    icon={item.warningCodes?.length ? 'warning-outline' : 'flash-outline'}
-                    tone={item.warningCodes?.length ? 'warning' : 'accent'}
-                  />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ color: theme.text, fontSize: 16, fontFamily: fontFamilies.bodyStrong }}>{formatShortDate(item.date)}</Text>
-                    <Text style={{ color: theme.textSubtle, fontSize: 13, fontFamily: fontFamilies.body }}>
-                      {item.time ? `${item.time} | ` : ''}
-                      Solar {formatKwh(item.solarGenerationKwh)} | Grid {formatKwh(item.gridConsumptionKwh)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={{ color: theme.accent, fontSize: 15, fontFamily: fontFamilies.bodyStrong }}>
-                    {formatCurrency(item.estimatedSavings)}
-                  </Text>
-                  <Text style={{ color: theme.textSubtle, fontSize: 12, fontFamily: fontFamilies.body }}>Savings</Text>
-                </View>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  borderRadius: 18,
-                  borderCurve: 'continuous',
-                  backgroundColor: theme.surfaceRaised,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
-                }}
-              >
-                <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
-                  Grid cost {formatCurrency(item.estimatedGridCost)}
-                </Text>
-                <Text
-                  style={{
-                    color: item.warningCodes?.length ? theme.warningText : theme.textSubtle,
-                    fontSize: 12,
-                    fontFamily: fontFamilies.bodyStrong,
-                  }}
-                >
-                  {item.warningCodes?.length ? `${item.warningCodes.length} warning(s)` : 'No warnings'}
-                </Text>
-              </View>
-
-              {item.notes ? (
-                <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>{item.notes}</Text>
-              ) : null}
-            </Pressable>
-          </MotionSection>
+              <Ionicons name="sunny" size={20} color={theme.warningText} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>
+                {formatCompactKwh(item.solarGenerationKwh)}
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh solar</Text>
+            </View>
+            <View
+              style={{
+                height: 38,
+                width: 38,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 14,
+                backgroundColor: theme.accentSoft,
+              }}
+            >
+              <Ionicons name="grid" size={20} color={theme.accent} />
+            </View>
+            <View style={{ width: 54, gap: 2 }}>
+              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>
+                {formatCompactKwh(item.gridConsumptionKwh)}
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh grid</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textSubtle} />
+          </Pressable>
         )}
       />
 
-      <OverlaySheet
+      <DateRangeFilterSheet
         visible={filtersOpen}
+        title="Filter history"
+        startDate={fromDate}
+        endDate={toDate}
+        onStartDateChange={setFromDate}
+        onEndDateChange={setToDate}
+        onApply={() => setFiltersOpen(false)}
+        onReset={() => {
+          setFromDate('');
+          setToDate('');
+          setFiltersOpen(false);
+        }}
         onClose={() => setFiltersOpen(false)}
-        title="Filter timeline"
-        description="Move filters out of the page so history stays focused on the readings themselves."
-        footer={
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <AppButton
-              label="Reset"
-              icon="refresh-outline"
-              tone="secondary"
-              fullWidth={false}
-              style={{ flex: 1 }}
-              onPress={() => {
-                setFromDate('');
-                setToDate('');
-                setNotesOnly(false);
-                setWarningsOnly(false);
-              }}
-            />
-            <AppButton label="Done" icon="checkmark-outline" fullWidth={false} style={{ flex: 1 }} onPress={() => setFiltersOpen(false)} />
-          </View>
-        }
-      >
-        <FilterField label="From date" value={fromDate} onChangeText={setFromDate} />
-        <FilterField label="To date" value={toDate} onChangeText={setToDate} />
-        {hasInvalidFromDate || hasInvalidToDate || hasReversedDateRange ? (
-          <Text style={{ color: theme.warningText, fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.body }}>
-            {hasReversedDateRange
-              ? 'To date must be on or after the from date.'
-              : 'Enter filter dates as real calendar dates in YYYY-MM-DD format.'}
-          </Text>
-        ) : null}
-        <View style={{ gap: 10 }}>
-          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            Quick filters
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <ToggleChip label="Notes only" selected={notesOnly} onPress={() => setNotesOnly((current) => !current)} icon="document-text-outline" />
-            <ToggleChip label="Warnings only" selected={warningsOnly} onPress={() => setWarningsOnly((current) => !current)} icon="warning-outline" />
-          </View>
-        </View>
-      </OverlaySheet>
+      />
     </>
   );
 }

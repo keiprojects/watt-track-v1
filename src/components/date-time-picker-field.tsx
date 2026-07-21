@@ -121,11 +121,6 @@ export function DateTimePickerField({
             onChange={(event) => onChange(event.currentTarget.value)}
             style={webInputStyle}
           />
-          <Ionicons
-            name={mode === 'date' ? 'calendar-outline' : 'time-outline'}
-            size={18}
-            color={theme.textSubtle}
-          />
         </View>
         {allowClear && value ? (
           <AppButton

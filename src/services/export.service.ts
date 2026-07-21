@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
+import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 import { storageService } from '@/services/storage.service';
 import type { EnergyReading } from '@/types/reading';
@@ -20,14 +21,14 @@ function escapeCsvValue(value: unknown): string {
   return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
 }
 
-function createTextFile(filename: string, contents: string): File {
-  const file = new File(Paths.cache, filename);
+function createTextFile(filename: string, contents: string): ExpoFile {
+  const file = new ExpoFile(Paths.cache, filename);
   file.create({ intermediates: true, overwrite: true });
   file.write(contents);
   return file;
 }
 
-async function shareFile(file: File, mimeType: string, dialogTitle: string): Promise<string> {
+async function shareFile(file: ExpoFile, mimeType: string, dialogTitle: string): Promise<string> {
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(file.uri, {
       mimeType,
@@ -37,6 +38,45 @@ async function shareFile(file: File, mimeType: string, dialogTitle: string): Pro
   }
 
   return file.uri;
+}
+
+function downloadTextFile(filename: string, contents: string, mimeType: string): string {
+  if (typeof document === 'undefined' || typeof URL === 'undefined') {
+    throw new Error('File downloads are unavailable in this environment.');
+  }
+
+  const fileUri = URL.createObjectURL(new Blob([contents], { type: mimeType }));
+  const link = document.createElement('a');
+  link.href = fileUri;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(fileUri);
+  }, 30_000);
+
+  return fileUri;
+}
+
+async function shareTextFile(filename: string, contents: string, mimeType: string, dialogTitle: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    return downloadTextFile(filename, contents, mimeType);
+  }
+
+  const file = createTextFile(filename, contents);
+  return shareFile(file, mimeType, dialogTitle);
+}
+
+async function readPickedBackupAsset(asset: DocumentPicker.DocumentPickerAsset): Promise<string> {
+  if (Platform.OS === 'web' && asset.file) {
+    return asset.file.text();
+  }
+
+  const file = new ExpoFile(asset.uri);
+  return file.text();
 }
 
 function buildReadingsCsv(readings: EnergyReading[]): string {
@@ -97,16 +137,14 @@ export const exportService = {
   async exportReadingsCsv(readings: EnergyReading[]): Promise<{ fileUri: string; filename: string }> {
     const filename = `watttrack-readings-${buildTimestampForFilename()}.csv`;
     const csv = buildReadingsCsv(readings);
-    const file = createTextFile(filename, csv);
-    const fileUri = await shareFile(file, 'text/csv', 'Export WattTrack readings');
+    const fileUri = await shareTextFile(filename, csv, 'text/csv', 'Export WattTrack readings');
     return { fileUri, filename };
   },
 
   async exportBackupFile(): Promise<{ backup: WattTrackBackup; fileUri: string; filename: string }> {
     const backup = await storageService.exportBackup();
     const filename = `watttrack-backup-${buildTimestampForFilename()}.json`;
-    const file = createTextFile(filename, JSON.stringify(backup, null, 2));
-    const fileUri = await shareFile(file, 'application/json', 'Export WattTrack backup');
+    const fileUri = await shareTextFile(filename, JSON.stringify(backup, null, 2), 'application/json', 'Export WattTrack backup');
     return { backup, fileUri, filename };
   },
 
@@ -121,7 +159,6 @@ export const exportService = {
       return null;
     }
 
-    const file = new File(result.assets[0].uri);
-    return file.text();
+    return readPickedBackupAsset(result.assets[0]);
   },
 };
