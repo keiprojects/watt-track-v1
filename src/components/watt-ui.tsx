@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -8,6 +8,9 @@ import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 
 export type WattIconName = ComponentProps<typeof Ionicons>['name'];
+export type WattMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+export type WattIconFamily = 'ionicons' | 'material-community';
+type WattIconValue = WattIconName | WattMaterialCommunityIconName;
 
 type ScreenScrollProps = {
   children: ReactNode;
@@ -43,13 +46,15 @@ type IconButtonProps = {
 };
 
 type IconSquareProps = {
-  icon: WattIconName;
+  icon: WattIconValue;
+  iconFamily?: WattIconFamily;
   colors?: readonly [string, string];
   size?: number;
 };
 
 type MetricTileProps = {
-  icon: WattIconName;
+  icon: WattIconValue;
+  iconFamily?: WattIconFamily;
   label: string;
   value: string;
   helper?: string;
@@ -68,6 +73,24 @@ export const wattGradients = {
   green: ['#85d46f', '#59ba68'] as const,
   violet: ['#7b7cf4', '#6953e8'] as const,
 };
+
+function WattVectorIcon({
+  icon,
+  iconFamily = 'ionicons',
+  size,
+  color,
+}: {
+  icon: WattIconValue;
+  iconFamily?: WattIconFamily;
+  size: number;
+  color: string;
+}) {
+  if (iconFamily === 'material-community') {
+    return <MaterialCommunityIcons name={icon as WattMaterialCommunityIconName} size={size} color={color} />;
+  }
+
+  return <Ionicons name={icon as WattIconName} size={size} color={color} />;
+}
 
 export function ScreenScroll({
   children,
@@ -201,7 +224,7 @@ export function SoftCard({ children, style, padding = 14, tone = 'default' }: So
   );
 }
 
-export function IconSquare({ icon, colors = wattGradients.blue, size = 52 }: IconSquareProps) {
+export function IconSquare({ icon, iconFamily = 'ionicons', colors = wattGradients.blue, size = 52 }: IconSquareProps) {
   return (
     <LinearGradient
       colors={colors}
@@ -216,18 +239,18 @@ export function IconSquare({ icon, colors = wattGradients.blue, size = 52 }: Ico
         borderCurve: 'continuous',
       }}
     >
-      <Ionicons name={icon} size={Math.max(22, size * 0.48)} color="#ffffff" />
+      <WattVectorIcon icon={icon} iconFamily={iconFamily} size={Math.max(22, size * 0.48)} color="#ffffff" />
     </LinearGradient>
   );
 }
 
-export function MetricTile({ icon, label, value, helper, delta, colors = wattGradients.blue }: MetricTileProps) {
+export function MetricTile({ icon, iconFamily = 'ionicons', label, value, helper, delta, colors = wattGradients.blue }: MetricTileProps) {
   const theme = useAppTheme();
 
   return (
     <SoftCard padding={12} style={{ flex: 1, minWidth: 142, minHeight: 132 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <IconSquare icon={icon} colors={colors} size={46} />
+        <IconSquare icon={icon} iconFamily={iconFamily} colors={colors} size={46} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={2} style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
             {label}

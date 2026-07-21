@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
@@ -17,8 +17,11 @@ import type { AppTheme } from '@/types/settings';
 import { useAppFormatters } from '@/utils/format';
 
 const APP_VERSION = '1.0.0';
+type SettingsIonIconName = ComponentProps<typeof Ionicons>['name'];
+type SettingsMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type SettingsIconFamily = 'ionicons' | 'material-community';
 
-const themeOptions: { label: string; value: AppTheme; icon: ComponentProps<typeof Ionicons>['name'] }[] = [
+const themeOptions: { label: string; value: AppTheme; icon: SettingsIonIconName }[] = [
   { label: 'System', value: 'system', icon: 'phone-portrait-outline' },
   { label: 'Light', value: 'light', icon: 'sunny-outline' },
   { label: 'Dark', value: 'dark', icon: 'moon-outline' },
@@ -26,12 +29,14 @@ const themeOptions: { label: string; value: AppTheme; icon: ComponentProps<typeo
 
 function SettingRow({
   icon,
+  iconFamily = 'ionicons',
   title,
   value,
   onPress,
   destructive = false,
 }: {
-  icon: ComponentProps<typeof Ionicons>['name'];
+  icon: SettingsIonIconName | SettingsMaterialCommunityIconName;
+  iconFamily?: SettingsIconFamily;
   title: string;
   value?: string;
   onPress?: () => void;
@@ -65,7 +70,11 @@ function SettingRow({
           backgroundColor: destructive ? theme.dangerSoft : theme.accentSoft,
         }}
       >
-        <Ionicons name={icon} size={17} color={destructive ? theme.dangerText : theme.accent} />
+        {iconFamily === 'material-community' ? (
+          <MaterialCommunityIcons name={icon as SettingsMaterialCommunityIconName} size={18} color={destructive ? theme.dangerText : theme.accent} />
+        ) : (
+          <Ionicons name={icon as SettingsIonIconName} size={17} color={destructive ? theme.dangerText : theme.accent} />
+        )}
       </View>
       <Text
         numberOfLines={1}
@@ -206,7 +215,8 @@ export default function SettingsScreen() {
             onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })}
           />
           <SettingRow
-            icon="flash-outline"
+            icon="transmission-tower"
+            iconFamily="material-community"
             title="Tariff / Electricity Rate"
             value={formatRate(systemProfile?.defaultImportRate ?? 0)}
             onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })}

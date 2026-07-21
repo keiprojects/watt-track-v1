@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,9 @@ import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 
 export type AppIconName = ComponentProps<typeof Ionicons>['name'];
+export type AppMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type AppIconFamily = 'ionicons' | 'material-community';
+type AppIconValue = AppIconName | AppMaterialCommunityIconName;
 
 type MotionSectionProps = {
   children: ReactNode;
@@ -34,7 +37,8 @@ type PanelProps = {
 };
 
 type IconBadgeProps = {
-  icon: AppIconName;
+  icon: AppIconValue;
+  iconFamily?: AppIconFamily;
   tone?: 'accent' | 'muted' | 'danger' | 'warning' | 'inverse';
   size?: number;
 };
@@ -58,7 +62,8 @@ type AppButtonProps = {
 };
 
 type StatPillProps = {
-  icon: AppIconName;
+  icon: AppIconValue;
+  iconFamily?: AppIconFamily;
   label: string;
   value: string;
   tone?: 'default' | 'accent' | 'warning';
@@ -118,6 +123,24 @@ function getIconColors(
   return { backgroundColor: theme.accentSoft, color: theme.accent };
 }
 
+function AppVectorIcon({
+  icon,
+  iconFamily = 'ionicons',
+  size,
+  color,
+}: {
+  icon: AppIconValue;
+  iconFamily?: AppIconFamily;
+  size: number;
+  color: string;
+}) {
+  if (iconFamily === 'material-community') {
+    return <MaterialCommunityIcons name={icon as AppMaterialCommunityIconName} size={size} color={color} />;
+  }
+
+  return <Ionicons name={icon as AppIconName} size={size} color={color} />;
+}
+
 export function MotionSection({ children, index = 0, style }: MotionSectionProps) {
   return (
     <Animated.View
@@ -163,7 +186,7 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
   );
 }
 
-export function IconBadge({ icon, tone = 'accent', size = 42 }: IconBadgeProps) {
+export function IconBadge({ icon, iconFamily = 'ionicons', tone = 'accent', size = 42 }: IconBadgeProps) {
   const theme = useAppTheme();
   const palette = getIconColors(tone, theme);
 
@@ -181,7 +204,7 @@ export function IconBadge({ icon, tone = 'accent', size = 42 }: IconBadgeProps) 
         borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}
     >
-      <Ionicons name={icon} size={Math.max(18, size * 0.44)} color={palette.color} />
+      <AppVectorIcon icon={icon} iconFamily={iconFamily} size={Math.max(18, size * 0.44)} color={palette.color} />
     </View>
   );
 }
@@ -287,7 +310,7 @@ export function AppButton({
   );
 }
 
-export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps) {
+export function StatPill({ icon, iconFamily = 'ionicons', label, value, tone = 'default' }: StatPillProps) {
   const theme = useAppTheme();
   const highlightColor = tone === 'accent' ? theme.accent : tone === 'warning' ? theme.warningText : theme.text;
 
@@ -306,7 +329,7 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <IconBadge icon={icon} tone={tone === 'accent' ? 'accent' : tone === 'warning' ? 'warning' : 'muted'} size={32} />
+        <IconBadge icon={icon} iconFamily={iconFamily} tone={tone === 'accent' ? 'accent' : tone === 'warning' ? 'warning' : 'muted'} size={32} />
         <Text
           selectable
           style={{

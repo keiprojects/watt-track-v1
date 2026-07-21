@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, SectionList, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -312,7 +312,7 @@ export default function HistoryScreen() {
                 backgroundColor: theme.accentSoft,
               }}
             >
-              <Ionicons name="grid" size={20} color={theme.accent} />
+              <MaterialCommunityIcons name="transmission-tower" size={21} color={theme.accent} />
             </View>
             <View style={{ width: 54, gap: 2 }}>
               <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>

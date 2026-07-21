@@ -57,7 +57,7 @@ export function EnergyChart({
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         <StatPill icon="sunny-outline" label="Avg solar" value={formatKwh(solarAverage)} tone="accent" />
-        <StatPill icon="flash-outline" label="Avg grid" value={formatKwh(gridAverage)} />
+        <StatPill icon="transmission-tower" iconFamily="material-community" label="Avg grid" value={formatKwh(gridAverage)} />
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>

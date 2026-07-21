@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
@@ -224,7 +224,8 @@ export default function DashboardScreen() {
           colors={wattGradients.amber}
         />
         <MetricTile
-          icon="grid"
+          icon="transmission-tower"
+          iconFamily="material-community"
           label="Grid Consumed"
           value={formatCompactKwh(currentGrid)}
           delta={formatDelta(currentGrid, previousReading?.gridConsumptionKwh)}
@@ -262,7 +263,7 @@ export default function DashboardScreen() {
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Ionicons name="grid" size={17} color={theme.accent} />
+              <MaterialCommunityIcons name="transmission-tower" size={18} color={theme.accent} />
               <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(billingSummary.gridConsumedKwh)}</Text>
             </View>
           </View>

@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ComponentProps, type ReactNode } from 'react';
 import { Alert, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-gifted-charts';
 
@@ -49,6 +49,9 @@ import { createId } from '@/utils/ids';
 
 type AnalyticsRange = 'day' | 'week' | 'month' | 'year';
 type ForecastWindow = '30d' | '90d' | 'all';
+type FlowIonIconName = ComponentProps<typeof Ionicons>['name'];
+type FlowMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type FlowIconFamily = 'ionicons' | 'material-community';
 type CostDraft = {
   date: string;
   category: SystemCostCategory;
@@ -430,11 +433,13 @@ function BillStat({ label, value, accent = false }: { label: string; value: stri
 
 function FlowNode({
   icon,
+  iconFamily = 'ionicons',
   label,
   value,
   tone,
 }: {
-  icon: 'sunny' | 'grid' | 'home' | 'leaf' | 'battery-charging-outline';
+  icon: FlowIonIconName | FlowMaterialCommunityIconName;
+  iconFamily?: FlowIconFamily;
   label: string;
   value: string;
   tone: 'amber' | 'blue' | 'green';
@@ -457,7 +462,11 @@ function FlowNode({
         backgroundColor,
       }}
     >
-      <Ionicons name={icon} size={21} color={color} />
+      {iconFamily === 'material-community' ? (
+        <MaterialCommunityIcons name={icon as FlowMaterialCommunityIconName} size={22} color={color} />
+      ) : (
+        <Ionicons name={icon as FlowIonIconName} size={21} color={color} />
+      )}
       <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>{value}</Text>
       <Text style={{ color: theme.textMuted, fontSize: 10, textAlign: 'center', fontFamily: fontFamilies.body }}>{label}</Text>
     </View>
@@ -484,7 +493,7 @@ function EnergyFlow({
       <FlowNode icon="sunny" label="Generated" value={`${formatCompactKwh(generated)} kWh`} tone="amber" />
       <Ionicons name="arrow-down" size={18} color={theme.textSubtle} />
       <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-        <FlowNode icon="grid" label="From Grid" value={`${formatCompactKwh(grid)} kWh`} tone="blue" />
+        <FlowNode icon="transmission-tower" iconFamily="material-community" label="From Grid" value={`${formatCompactKwh(grid)} kWh`} tone="blue" />
         <Ionicons name="arrow-forward" size={15} color={theme.textSubtle} />
         <FlowNode icon="home" label="Used" value={`${formatCompactKwh(used)} kWh`} tone="blue" />
         <Ionicons name="arrow-forward" size={15} color={theme.textSubtle} />

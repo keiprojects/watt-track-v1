@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ComponentProps } from 'react';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
-import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
 import { z } from 'zod';
 
 import { DateTimePickerField } from '@/components/date-time-picker-field';
@@ -24,6 +24,9 @@ import type { SystemProfile } from '@/types/system';
 import { formatShortDate, getTodayDateInputValue, isValidDateInputValue, isValidTimeInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
+
+type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type UnitInputIconFamily = 'ionicons' | 'material-community';
 
 const optionalNumberField = z.preprocess(
   (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
@@ -114,19 +117,23 @@ function FieldError({ message }: { message?: string }) {
 
 function UnitInput({
   icon,
+  iconFamily = 'ionicons',
   label,
   value,
   onChangeText,
   unit = 'kWh',
   placeholder = '0',
+  keyboardType = 'numeric',
   error,
 }: {
-  icon: WattIconName;
+  icon: WattIconName | MaterialCommunityIconName;
+  iconFamily?: UnitInputIconFamily;
   label: string;
   value: unknown;
   onChangeText: (value: string) => void;
   unit?: string;
   placeholder?: string;
+  keyboardType?: KeyboardTypeOptions;
   error?: string;
 }) {
   const theme = useAppTheme();
@@ -157,7 +164,11 @@ function UnitInput({
             backgroundColor: theme.accentSoft,
           }}
         >
-          <Ionicons name={icon} size={19} color={theme.accent} />
+          {iconFamily === 'material-community' ? (
+            <MaterialCommunityIcons name={icon as MaterialCommunityIconName} size={19} color={theme.accent} />
+          ) : (
+            <Ionicons name={icon as WattIconName} size={19} color={theme.accent} />
+          )}
         </View>
         <Text numberOfLines={2} style={{ flex: 1, minWidth: 0, color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
           {label}
@@ -165,7 +176,7 @@ function UnitInput({
         <TextInput
           value={value == null ? '' : String(value)}
           onChangeText={onChangeText}
-          keyboardType="numeric"
+          keyboardType={keyboardType}
           placeholder={placeholder}
           placeholderTextColor={theme.textSubtle}
           style={{
@@ -429,7 +440,14 @@ export function ReadingForm({
           control={control}
           name="gridReading"
           render={({ field: { onChange, value } }) => (
-            <UnitInput icon="grid-outline" label={gridLabel} value={value} onChangeText={onChange} error={errors.gridReading?.message} />
+            <UnitInput
+              icon="transmission-tower"
+              iconFamily="material-community"
+              label={gridLabel}
+              value={value}
+              onChangeText={onChange}
+              error={errors.gridReading?.message}
+            />
           )}
         />
         <Controller
@@ -448,6 +466,26 @@ export function ReadingForm({
             )}
           />
         ) : null}
+      </View>
+
+      <View style={{ gap: 10 }}>
+        <SectionHeader title="Rate Override" />
+        <Controller
+          control={control}
+          name="importRate"
+          render={({ field: { onChange, value } }) => (
+            <UnitInput
+              icon="cash-outline"
+              label="Import Rate"
+              value={value}
+              onChangeText={onChange}
+              unit="PHP/kWh"
+              placeholder={String(systemProfile.defaultImportRate)}
+              keyboardType="decimal-pad"
+              error={errors.importRate?.message}
+            />
+          )}
+        />
       </View>
 
       {hasCumulativeMode ? (

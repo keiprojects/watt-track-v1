@@ -56,6 +56,34 @@ function formatTimeValue(date: Date): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function ClearPickerButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: 52,
+        width: 52,
+        flexShrink: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 18,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surfaceRaised,
+        opacity: pressed ? 0.78 : 1,
+      })}
+    >
+      <Ionicons name="close-outline" size={20} color={theme.textMuted} />
+    </Pressable>
+  );
+}
+
 export function DateTimePickerField({
   mode,
   value,
@@ -75,6 +103,8 @@ export function DateTimePickerField({
 
   const fieldStyle = {
     flex: 1,
+    minWidth: 0,
+    minHeight: 52,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
@@ -111,25 +141,21 @@ export function DateTimePickerField({
 
     return (
       <View style={{ gap: 10 }}>
-        <View style={fieldStyle}>
-          <input
-            aria-label={mode === 'date' ? 'Pick a date' : 'Pick a time'}
-            type={mode}
-            value={value}
-            max={maxDateValue}
-            onChange={(event) => onChange(event.currentTarget.value)}
-            style={webInputStyle}
-          />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={fieldStyle}>
+            <input
+              aria-label={mode === 'date' ? 'Pick a date' : 'Pick a time'}
+              type={mode}
+              value={value}
+              max={maxDateValue}
+              onChange={(event) => onChange(event.currentTarget.value)}
+              style={webInputStyle}
+            />
+          </View>
+          {allowClear && value ? (
+            <ClearPickerButton label="Clear time" onPress={() => onChange('')} />
+          ) : null}
         </View>
-        {allowClear && value ? (
-          <AppButton
-            label="Clear time"
-            icon="close-outline"
-            tone="ghost"
-            fullWidth={false}
-            onPress={() => onChange('')}
-          />
-        ) : null}
       </View>
     );
   }
@@ -149,10 +175,14 @@ export function DateTimePickerField({
           <Text
             style={{
               flex: 1,
+              minWidth: 0,
               color: value ? theme.text : theme.textSubtle,
               fontSize: 15,
               fontFamily: fontFamilies.body,
             }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.82}
           >
             {displayValue || placeholder}
           </Text>
@@ -164,13 +194,7 @@ export function DateTimePickerField({
         </Pressable>
 
         {allowClear && value ? (
-          <AppButton
-            label="Clear"
-            icon="close-outline"
-            tone="ghost"
-            fullWidth={false}
-            onPress={() => onChange('')}
-          />
+          <ClearPickerButton label="Clear time" onPress={() => onChange('')} />
         ) : null}
       </View>
 
