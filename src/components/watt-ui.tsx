@@ -166,11 +166,15 @@ export function SoftCard({ children, style, padding = 14, tone = 'default' }: So
   const theme = useAppTheme();
   const backgroundColor =
     tone === 'blue'
-      ? '#f0f6ff'
+      ? theme.mode === 'dark'
+        ? theme.accentSoft
+        : '#f0f6ff'
       : tone === 'green'
-        ? '#effaf1'
+        ? theme.mode === 'dark'
+          ? theme.statusBackground
+          : '#effaf1'
         : tone === 'amber'
-          ? '#fff8e9'
+          ? theme.warningSoft
           : tone === 'plain'
             ? theme.background
             : theme.surface;

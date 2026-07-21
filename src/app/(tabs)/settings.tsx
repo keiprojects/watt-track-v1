@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { SegmentedControl } from '@/components/segmented-control';
 import { ListChevron, ScreenHeader, ScreenScroll, SectionHeader, SoftCard } from '@/components/watt-ui';
 import { notificationService } from '@/services/notification.service';
 import { storageService } from '@/services/storage.service';
@@ -12,9 +13,16 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
+import type { AppTheme } from '@/types/settings';
 import { useAppFormatters } from '@/utils/format';
 
 const APP_VERSION = '1.0.0';
+
+const themeOptions: { label: string; value: AppTheme; icon: ComponentProps<typeof Ionicons>['name'] }[] = [
+  { label: 'System', value: 'system', icon: 'phone-portrait-outline' },
+  { label: 'Light', value: 'light', icon: 'sunny-outline' },
+  { label: 'Dark', value: 'dark', icon: 'moon-outline' },
+];
 
 function SettingRow({
   icon,
@@ -87,6 +95,8 @@ export default function SettingsScreen() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
+  const themePreference = useSettingsStore((state) => state.settings.theme);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const { formatCurrency, formatRate } = useAppFormatters();
 
   const rehydrateAllStores = async () => {
@@ -150,6 +160,41 @@ export default function SettingsScreen() {
           <ListChevron />
         </SoftCard>
       </Pressable>
+
+      <View style={{ gap: 10 }}>
+        <SectionHeader title="Preferences" />
+        <SoftCard>
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View
+                style={{
+                  height: 32,
+                  width: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 12,
+                  backgroundColor: theme.accentSoft,
+                }}
+              >
+                <Ionicons name="contrast-outline" size={17} color={theme.accent} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>Theme</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+                  Use your device setting or choose a fixed appearance.
+                </Text>
+              </View>
+            </View>
+            <SegmentedControl
+              options={themeOptions}
+              value={themePreference}
+              onChange={(nextTheme) => {
+                void updateSettings({ theme: nextTheme });
+              }}
+            />
+          </View>
+        </SoftCard>
+      </View>
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="System" />

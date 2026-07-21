@@ -202,6 +202,9 @@ function SubmitButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const theme = useAppTheme();
+  const foregroundColor = disabled ? theme.textSubtle : theme.mode === 'dark' ? '#0a101b' : '#ffffff';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -216,14 +219,14 @@ function SubmitButton({
         gap: 9,
         borderRadius: 15,
         borderCurve: 'continuous',
-        backgroundColor: disabled ? '#9bb7f4' : '#2563eb',
+        backgroundColor: disabled ? theme.surfaceRaised : theme.accent,
         paddingHorizontal: 16,
         opacity: pressed ? 0.78 : 1,
-        boxShadow: '0 12px 24px rgba(37, 99, 235, 0.18)',
+        boxShadow: `0 12px 24px ${theme.accentGlow}`,
       })}
     >
-      <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
-      <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+      <Text style={{ color: foregroundColor, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
+      <Ionicons name="arrow-forward" size={18} color={foregroundColor} />
     </Pressable>
   );
 }

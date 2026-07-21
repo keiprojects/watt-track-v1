@@ -257,7 +257,7 @@ function OptionChip({
         borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: selected ? theme.primaryChart : theme.border,
-        backgroundColor: selected ? '#effaf1' : theme.surface,
+        backgroundColor: selected ? theme.statusBackground : theme.surface,
         paddingHorizontal: 13,
         opacity: pressed ? 0.72 : 1,
       })}
@@ -360,7 +360,7 @@ function FinancialMetric({
             justifyContent: 'center',
             borderRadius: 12,
             borderCurve: 'continuous',
-            backgroundColor: isGreen ? '#dcf7d5' : theme.surfaceMuted,
+            backgroundColor: isGreen ? theme.statusBackground : theme.surfaceMuted,
           }}
         >
           <Ionicons name={icon} size={18} color={isGreen ? theme.statusText : theme.textMuted} />
@@ -441,7 +441,7 @@ function FlowNode({
 }) {
   const theme = useAppTheme();
   const color = tone === 'amber' ? theme.warningText : tone === 'green' ? theme.primaryChart : theme.accent;
-  const backgroundColor = tone === 'amber' ? theme.warningSoft : tone === 'green' ? '#edf9ef' : theme.accentSoft;
+  const backgroundColor = tone === 'amber' ? theme.warningSoft : tone === 'green' ? theme.statusBackground : theme.accentSoft;
 
   return (
     <View
@@ -1096,7 +1096,7 @@ export default function InsightsScreen() {
                           justifyContent: 'center',
                           borderRadius: 15,
                           borderCurve: 'continuous',
-                          backgroundColor: cost.costTreatment === 'capital' ? '#effaf1' : theme.surfaceMuted,
+                          backgroundColor: cost.costTreatment === 'capital' ? theme.statusBackground : theme.surfaceMuted,
                         }}
                       >
                         <Ionicons name="card-outline" size={20} color={cost.costTreatment === 'capital' ? theme.primaryChart : theme.textMuted} />
