@@ -12,3 +12,10 @@ export type WattTrackBackup = {
   systemCosts: SystemCost[];
   appSettings: AppSettings;
 };
+
+export type LocalBackupSnapshot = {
+  id: string;
+  createdAt: string;
+  summary: string;
+  backup: WattTrackBackup;
+};

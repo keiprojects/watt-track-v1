@@ -86,7 +86,7 @@ Suggested answers:
 
 Suggested note:
 
-Watt Track is a local-first manual solar tracking app. System profile, readings, costs, settings, and backups are stored on the user's device. The app may call Open-Meteo over HTTPS using a user-entered location string to display weather. Users can export CSV/JSON files through the device share sheet.
+Watt Track is a local-first manual solar tracking app. System profile, readings, costs, settings, and local backup restore points are stored on the user's device. The app may call Open-Meteo over HTTPS using a user-entered location string to display weather. Users can export CSV/JSON files through the device share sheet.
 
 ## Apple App Privacy Draft
 
@@ -133,7 +133,7 @@ Store copy should explain:
 
 - Notifications are used only for optional daily reading reminders.
 - File picker access is used only when the user imports a Watt Track backup.
-- Sharing/file creation is used only when the user exports CSV or JSON backups.
+- Sharing/file creation is used only when the user exports CSV or JSON backups. Local restore points remain in device-local app storage.
 
 ## iOS Review Notes
 

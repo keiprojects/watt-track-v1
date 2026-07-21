@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   systemCosts: 'watttrack.systemCosts',
   appSettings: 'watttrack.appSettings',
   schemaVersion: 'watttrack.schemaVersion',
+  localBackups: 'watttrack.localBackups',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

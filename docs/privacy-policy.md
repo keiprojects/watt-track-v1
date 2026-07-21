@@ -12,6 +12,7 @@ Watt Track stores the following information locally on your device:
 - Energy readings, including dates, times, meter or daily values, calculated usage, calculated savings, notes, and validation warnings.
 - System costs, including dates, categories, descriptions, amounts, cost treatment, and notes.
 - App settings, including theme, display precision, dashboard period, onboarding state, and optional daily reminder preferences.
+- Local backup restore points created when you choose to create a backup.
 
 This data is stored using device-local app storage. Watt Track does not require an account and does not sync this data to a Watt Track server.
 
@@ -23,7 +24,7 @@ The app does not use GPS location permissions. The weather location is based on 
 
 ## Backups and Exports
 
-Watt Track lets you create CSV exports and JSON backup files. These files are created only when you choose to export them.
+Watt Track lets you create local backup restore points, CSV exports, and JSON backup files. Local restore points and backup files are created only when you choose to create or export a backup.
 
 After an export is created, you control where the file is saved or shared through your device's file and sharing tools. Anyone with access to an exported backup may be able to read the data inside it.
 
@@ -50,7 +51,7 @@ Weather requests may be sent to Open-Meteo when weather is displayed. Exported f
 
 ## Data Deletion
 
-You can delete local app data from inside Watt Track by using the reset or clear data controls. You can also remove the app from your device to delete its local app storage, subject to your operating system's backup and restore behavior.
+You can delete local app data, including local backup restore points, from inside Watt Track by using the reset or clear data controls. You can also remove the app from your device to delete its local app storage, subject to your operating system's backup and restore behavior.
 
 Exported CSV or JSON files are outside Watt Track's control after you save or share them. Delete those files from their saved locations if you no longer want to keep them.
 

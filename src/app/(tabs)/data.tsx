@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { IconSquare, ScreenHeader, ScreenScroll, SectionHeader, SoftCard, wattGradients } from '@/components/watt-ui';
@@ -14,15 +14,12 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
+import type { LocalBackupSnapshot, WattTrackBackup } from '@/types/backup';
 
-type BackupEntry = {
-  id: string;
-  createdAt: Date;
-  summary: string;
-};
+type RestoreMode = 'replace' | 'merge';
 
-function formatBackupDate(date: Date) {
-  return date.toLocaleString(undefined, {
+function formatBackupDate(date: string) {
+  return new Date(date).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -36,11 +33,13 @@ function DataButton({
   icon,
   onPress,
   tone = 'default',
+  disabled = false,
 }: {
   label: string;
   icon: ComponentProps<typeof Ionicons>['name'];
   onPress: () => void;
   tone?: 'default' | 'primary' | 'danger';
+  disabled?: boolean;
 }) {
   const theme = useAppTheme();
   const primary = tone === 'primary';
@@ -50,6 +49,8 @@ function DataButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: 54,
@@ -62,7 +63,7 @@ function DataButton({
         borderWidth: 1,
         borderColor: primary ? theme.accent : danger ? theme.dangerSoft : theme.border,
         backgroundColor: primary ? theme.accent : danger ? theme.dangerSoft : theme.surface,
-        opacity: pressed ? 0.74 : 1,
+        opacity: disabled ? 0.48 : pressed ? 0.74 : 1,
       })}
     >
       <Ionicons name={icon} size={18} color={primary ? '#ffffff' : danger ? theme.dangerText : theme.accent} />
@@ -82,21 +83,27 @@ export default function DataScreen() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const systemProfile = useSystemStore((state) => state.systemProfile);
-  const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [backups, setBackups] = useState<LocalBackupSnapshot[]>([]);
   const backupSummary = `${readings.length} readings | ${costs.length} costs | ${systemProfile ? '1 profile' : '0 profiles'}`;
+
+  useEffect(() => {
+    void storageService
+      .getLocalBackups()
+      .then(setBackups)
+      .catch((error: unknown) => {
+        if (__DEV__) {
+          console.error('Failed to load local backups.', error);
+        }
+      });
+  }, []);
 
   const rehydrateAllStores = async () => {
     await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts()]);
   };
 
-  const importData = async () => {
+  const restoreBackup = async (backup: string | WattTrackBackup, mode: RestoreMode) => {
     try {
-      const payload = await exportService.pickBackupContents();
-      if (!payload) {
-        return;
-      }
-
-      const importedBackup = await storageService.importBackup(payload);
+      const importedBackup = await storageService.importBackup(backup, mode);
       let reminderWarning: string | null = null;
 
       if (importedBackup.appSettings.reminderEnabled && importedBackup.appSettings.reminderTime) {
@@ -114,23 +121,60 @@ export default function DataScreen() {
       }
       await rehydrateAllStores();
       Alert.alert(
-        'Import complete',
+        'Restore complete',
         reminderWarning
           ? `Your WattTrack backup was restored, but daily reminders were turned off. ${reminderWarning}`
           : 'Your WattTrack backup was restored.',
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to import backup.';
-      Alert.alert('Import failed', message);
+      const message = error instanceof Error ? error.message : 'Unable to restore backup.';
+      Alert.alert('Restore failed', message);
+    }
+  };
+
+  const showRestoreOptions = (backup: string | WattTrackBackup) => {
+    Alert.alert(
+      'Restore backup?',
+      'Merge data keeps records created on this device and combines them with the backup. Replace data deletes current app data and restores the backup only.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace data',
+          style: 'destructive',
+          onPress: () => {
+            void restoreBackup(backup, 'replace');
+          },
+        },
+        {
+          text: 'Merge data',
+          onPress: () => {
+            void restoreBackup(backup, 'merge');
+          },
+        },
+      ],
+    );
+  };
+
+  const restoreFromFile = async () => {
+    try {
+      const payload = await exportService.pickBackupContents();
+      if (!payload) {
+        return;
+      }
+
+      showRestoreOptions(payload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to select backup file.';
+      Alert.alert('Restore failed', message);
     }
   };
 
   const createBackup = async () => {
     try {
-      await exportService.exportBackupFile();
-      const createdAt = new Date();
-      setBackups((current) => [{ id: createdAt.toISOString(), createdAt, summary: backupSummary }, ...current]);
-      Alert.alert('Backup created', 'A WattTrack backup file was created.');
+      const backup = await storageService.createLocalBackup();
+      await exportService.exportBackupFile(backup.backup);
+      setBackups(await storageService.getLocalBackups());
+      Alert.alert('Backup created', 'A local restore point was saved and a WattTrack backup file was created.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to create backup.';
       Alert.alert('Backup failed', message);
@@ -184,7 +228,17 @@ export default function DataScreen() {
         <SectionHeader title="Export & Restore" />
         <DataButton label="Create backup" icon="archive-outline" tone="primary" onPress={() => void createBackup()} />
         <DataButton label="Export readings CSV" icon="document-text-outline" onPress={() => void exportCsv()} />
-        <DataButton label="Import backup" icon="download-outline" onPress={() => void importData()} />
+        <DataButton
+          label="Restore latest local backup"
+          icon="reload-outline"
+          disabled={backups.length === 0}
+          onPress={() => {
+            if (backups[0]) {
+              showRestoreOptions(backups[0].backup);
+            }
+          }}
+        />
+        <DataButton label="Restore from file" icon="download-outline" onPress={() => void restoreFromFile()} />
       </View>
 
       <View style={{ gap: 10 }}>
@@ -192,17 +246,24 @@ export default function DataScreen() {
         <SoftCard>
           {backups.length === 0 ? (
             <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>
-              Backups created in this session will appear here.
+              Local restore points will appear here after you create a backup.
             </Text>
           ) : (
             <View style={{ gap: 12 }}>
               {backups.map((backup) => (
-                <View key={backup.id} style={{ gap: 3 }}>
+                <Pressable
+                  key={backup.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Restore backup from ${formatBackupDate(backup.createdAt)}`}
+                  onPress={() => showRestoreOptions(backup.backup)}
+                  style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.72 : 1 })}
+                >
                   <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>
                     {formatBackupDate(backup.createdAt)}
                   </Text>
                   <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>{backup.summary}</Text>
-                </View>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyHeavy }}>Restore backup</Text>
+                </Pressable>
               ))}
             </View>
           )}

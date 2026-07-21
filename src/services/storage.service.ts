@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { DEFAULT_APP_SETTINGS } from '@/constants/defaults';
 import { CURRENT_SCHEMA_VERSION, STORAGE_KEYS, type StorageKey } from '@/constants/storageKeys';
-import type { WattTrackBackup } from '@/types/backup';
+import type { LocalBackupSnapshot, WattTrackBackup } from '@/types/backup';
 import type { SystemCost } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import type { AppSettings } from '@/types/settings';
@@ -107,6 +107,50 @@ const backupSchema = z.object({
   appSettings: appSettingsSchema,
 });
 
+const localBackupSnapshotSchema = z.object({
+  id: z.string().min(1),
+  createdAt: z.string(),
+  summary: z.string().min(1),
+  backup: backupSchema,
+});
+
+const MAX_LOCAL_BACKUPS = 8;
+
+type RestoreMode = 'replace' | 'merge';
+
+function summarizeBackup(backup: WattTrackBackup): string {
+  return `${backup.energyReadings.length} readings | ${backup.systemCosts.length} costs | ${backup.systemProfile ? '1 profile' : '0 profiles'}`;
+}
+
+function mergeByNewestUpdatedAt<T extends { id: string; updatedAt: string }>(backupItems: T[], localItems: T[]): T[] {
+  const mergedById = new Map<string, T>();
+
+  for (const item of backupItems) {
+    mergedById.set(item.id, item);
+  }
+
+  for (const item of localItems) {
+    const existing = mergedById.get(item.id);
+    if (!existing || item.updatedAt.localeCompare(existing.updatedAt) >= 0) {
+      mergedById.set(item.id, item);
+    }
+  }
+
+  return Array.from(mergedById.values());
+}
+
+function mergeSystemProfile(backupProfile: SystemProfile | null, localProfile: SystemProfile | null): SystemProfile | null {
+  if (!backupProfile) {
+    return localProfile;
+  }
+
+  if (!localProfile) {
+    return backupProfile;
+  }
+
+  return localProfile.updatedAt.localeCompare(backupProfile.updatedAt) >= 0 ? localProfile : backupProfile;
+}
+
 async function readJson<T>(key: StorageKey, fallback: T, schema?: z.ZodType<T>): Promise<T> {
   const value = await AsyncStorage.getItem(key);
   if (!value) {
@@ -205,19 +249,46 @@ export const storageService = {
       appSettings,
     };
   },
-  async importBackup(payload: string | WattTrackBackup): Promise<WattTrackBackup> {
+  async getLocalBackups(): Promise<LocalBackupSnapshot[]> {
+    return readJson<LocalBackupSnapshot[]>(STORAGE_KEYS.localBackups, [], z.array(localBackupSnapshotSchema));
+  },
+  async createLocalBackup(): Promise<LocalBackupSnapshot> {
+    const backup = await storageService.exportBackup();
+    const snapshot: LocalBackupSnapshot = {
+      id: backup.exportedAt,
+      createdAt: backup.exportedAt,
+      summary: summarizeBackup(backup),
+      backup,
+    };
+    const existingBackups = await storageService.getLocalBackups();
+    await writeJson(STORAGE_KEYS.localBackups, [snapshot, ...existingBackups].slice(0, MAX_LOCAL_BACKUPS));
+    return snapshot;
+  },
+  async importBackup(payload: string | WattTrackBackup, mode: RestoreMode = 'replace'): Promise<WattTrackBackup> {
     const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
     const backup = backupSchema.parse(parsed) as WattTrackBackup;
+    const backupToRestore =
+      mode === 'merge'
+        ? {
+            appName: 'WattTrack' as const,
+            schemaVersion: CURRENT_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            systemProfile: mergeSystemProfile(backup.systemProfile, await storageService.getSystemProfile()),
+            energyReadings: mergeByNewestUpdatedAt(backup.energyReadings, await storageService.getEnergyReadings()),
+            systemCosts: mergeByNewestUpdatedAt(backup.systemCosts, await storageService.getSystemCosts()),
+            appSettings: await storageService.getAppSettings(),
+          }
+        : backup;
 
     await Promise.all([
-      writeJson(STORAGE_KEYS.systemProfile, backup.systemProfile),
-      writeJson(STORAGE_KEYS.energyReadings, backup.energyReadings),
-      writeJson(STORAGE_KEYS.systemCosts, backup.systemCosts),
-      writeJson(STORAGE_KEYS.appSettings, backup.appSettings),
-      writeJson(STORAGE_KEYS.schemaVersion, backup.schemaVersion),
+      writeJson(STORAGE_KEYS.systemProfile, backupToRestore.systemProfile),
+      writeJson(STORAGE_KEYS.energyReadings, backupToRestore.energyReadings),
+      writeJson(STORAGE_KEYS.systemCosts, backupToRestore.systemCosts),
+      writeJson(STORAGE_KEYS.appSettings, backupToRestore.appSettings),
+      writeJson(STORAGE_KEYS.schemaVersion, backupToRestore.schemaVersion),
     ]);
 
-    return backup;
+    return backupToRestore;
   },
   async clearAllData(): Promise<void> {
     await Promise.all([
@@ -226,6 +297,7 @@ export const storageService = {
       AsyncStorage.removeItem(STORAGE_KEYS.systemCosts),
       AsyncStorage.removeItem(STORAGE_KEYS.appSettings),
       AsyncStorage.removeItem(STORAGE_KEYS.schemaVersion),
+      AsyncStorage.removeItem(STORAGE_KEYS.localBackups),
     ]);
   },
 };

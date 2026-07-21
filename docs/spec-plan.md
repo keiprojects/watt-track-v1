@@ -109,9 +109,9 @@ Navigation rules:
 ### Data safety flow
 
 1. User opens Settings.
-2. User exports CSV or JSON backup.
-3. User may import a JSON backup after validation and confirmation.
-4. App warns before replacing existing data.
+2. User creates a local restore point and may export CSV or JSON backup.
+3. User may restore a local restore point or import a JSON backup file after validation and confirmation.
+4. App offers merge or replace before restoring backup data.
 
 ## Screen Specs
 
@@ -295,7 +295,8 @@ Required actions:
 - edit system profile
 - export CSV
 - export JSON backup
-- import JSON backup
+- restore local backup
+- import/restore JSON backup file
 - enable or disable reminder
 - delete all readings
 - reset application
@@ -487,6 +488,7 @@ Required storage keys:
 - `watttrack.systemCosts`
 - `watttrack.appSettings`
 - `watttrack.schemaVersion`
+- `watttrack.localBackups`
 
 Required storage service methods:
 
@@ -501,6 +503,8 @@ Required storage service methods:
 - `updateSystemCost()`
 - `deleteSystemCost()`
 - `exportBackup()`
+- `getLocalBackups()`
+- `createLocalBackup()`
 - `importBackup()`
 - `clearAllData()`
 

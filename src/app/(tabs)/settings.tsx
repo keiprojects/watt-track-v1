@@ -5,6 +5,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 
 import { SegmentedControl } from '@/components/segmented-control';
 import { ListChevron, ScreenHeader, ScreenScroll, SectionHeader, SoftCard } from '@/components/watt-ui';
+import { APP_VERSION } from '@/constants/about';
 import { notificationService } from '@/services/notification.service';
 import { storageService } from '@/services/storage.service';
 import { useCostsStore } from '@/stores/costs.store';
@@ -16,7 +17,6 @@ import { fontFamilies } from '@/theme/typography';
 import type { AppTheme } from '@/types/settings';
 import { useAppFormatters } from '@/utils/format';
 
-const APP_VERSION = '1.0.0';
 type SettingsIonIconName = ComponentProps<typeof Ionicons>['name'];
 type SettingsMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 type SettingsIconFamily = 'ionicons' | 'material-community';
@@ -243,7 +243,12 @@ export default function SettingsScreen() {
         <SectionHeader title="About" />
         <SoftCard>
           <SettingRow icon="shield-checkmark-outline" title="Privacy & Support" value="Local data" onPress={() => router.push('/privacy' as never)} />
-          <SettingRow icon="information-circle-outline" title="About Watt Track" value={`Version ${APP_VERSION}`} />
+          <SettingRow
+            icon="information-circle-outline"
+            title="About Watt Track"
+            value={`Version ${APP_VERSION}`}
+            onPress={() => router.push('/about' as never)}
+          />
         </SoftCard>
       </View>
     </ScreenScroll>

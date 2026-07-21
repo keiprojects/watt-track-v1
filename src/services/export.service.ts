@@ -141,8 +141,8 @@ export const exportService = {
     return { fileUri, filename };
   },
 
-  async exportBackupFile(): Promise<{ backup: WattTrackBackup; fileUri: string; filename: string }> {
-    const backup = await storageService.exportBackup();
+  async exportBackupFile(backupToExport?: WattTrackBackup): Promise<{ backup: WattTrackBackup; fileUri: string; filename: string }> {
+    const backup = backupToExport ?? (await storageService.exportBackup());
     const filename = `watttrack-backup-${buildTimestampForFilename()}.json`;
     const fileUri = await shareTextFile(filename, JSON.stringify(backup, null, 2), 'application/json', 'Export WattTrack backup');
     return { backup, fileUri, filename };
