@@ -27,6 +27,14 @@ const themeOptions: { label: string; value: AppTheme; icon: SettingsIonIconName 
   { label: 'Dark', value: 'dark', icon: 'moon-outline' },
 ];
 
+function formatCoordinates(latitude?: number, longitude?: number): string | undefined {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return undefined;
+  }
+
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
 function SettingRow({
   icon,
   iconFamily = 'ionicons',
@@ -107,6 +115,9 @@ export default function SettingsScreen() {
   const themePreference = useSettingsStore((state) => state.settings.theme);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const { formatCurrency, formatRate } = useAppFormatters();
+  const profileLocationSummary =
+    [systemProfile?.location, formatCoordinates(systemProfile?.latitude, systemProfile?.longitude)].filter(Boolean).join(' | ') ||
+    'Set your system location';
 
   const rehydrateAllStores = async () => {
     await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts()]);
@@ -163,7 +174,7 @@ export default function SettingsScreen() {
               {systemProfile?.systemName ?? 'Watt Track'}
             </Text>
             <Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-              {systemProfile?.location ?? 'Set your system location'}
+              {profileLocationSummary}
             </Text>
           </View>
           <ListChevron />

@@ -5,6 +5,8 @@ export type SystemProfile = {
   id: string;
   systemName: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
   installationDate: string;
   currency: 'PHP';
   timezone: string;

@@ -1,10 +1,11 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
 import { CurrentWeatherCard } from '@/components/current-weather-card';
+import { HouseEnergyHero } from '@/components/house-energy-hero';
 import {
   DatePill,
   IconSquare,
@@ -21,6 +22,7 @@ import {
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
+import { useCurrentWeather } from '@/hooks/use-current-weather';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
@@ -28,8 +30,6 @@ import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import { formatMonthDayLabel, formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
-
-const heroImage = require('../../../assets/images/solar-home-hero-card.png');
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -71,6 +71,11 @@ export default function DashboardScreen() {
   const costs = useCostsStore((state) => state.costs);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const { formatCurrency } = useAppFormatters();
+  const currentWeather = useCurrentWeather({
+    location: systemProfile?.location,
+    latitude: systemProfile?.latitude,
+    longitude: systemProfile?.longitude,
+  });
   const today = getTodayDateInputValue();
   const latestReading = readings[0];
   const previousReading = readings[1];
@@ -120,15 +125,16 @@ export default function DashboardScreen() {
           </Text>
           <Text style={{ color: theme.textMuted, fontSize: 13, fontFamily: fontFamilies.body }}>Here's your energy overview.</Text>
         </View>
-        <CurrentWeatherCard location={systemProfile?.location} variant="compact" />
+        <CurrentWeatherCard
+          weather={currentWeather.weather}
+          errorMessage={currentWeather.errorMessage}
+          isLoading={currentWeather.isLoading}
+          variant="compact"
+        />
       </View>
 
       <SoftCard padding={0}>
-        <Image
-          source={heroImage}
-          resizeMode="cover"
-          style={{ width: '100%', height: 172 }}
-        />
+        <HouseEnergyHero weather={currentWeather.weather} isLoading={currentWeather.isLoading} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open reading history"

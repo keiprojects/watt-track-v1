@@ -45,11 +45,11 @@ Use these answers for the current app, subject to final review in Play Console.
 
 Recommended answer: The app collects user data.
 
-Reason: the app can transmit user-entered location text to Open-Meteo for weather lookup. The core energy, cost, settings, and reminder data is stored locally and is not sent to Watt Track servers.
+Reason: the app can transmit user-entered location text or manually saved site coordinates to Open-Meteo for weather lookup. The core energy, cost, settings, and reminder data is stored locally and is not sent to Watt Track servers.
 
 Data types to declare:
 
-- Location > Approximate location
+- Location > Approximate location, or precise location if exact coordinates remain user-enterable at release.
 
 Collection details:
 
@@ -86,7 +86,7 @@ Suggested answers:
 
 Suggested note:
 
-Watt Track is a local-first manual solar tracking app. System profile, readings, costs, settings, and local backup restore points are stored on the user's device. The app may call Open-Meteo over HTTPS using a user-entered location string to display weather. Users can export CSV/JSON files through the device share sheet.
+Watt Track is a local-first manual solar tracking app. System profile, readings, costs, settings, and local backup restore points are stored on the user's device. The app may call Open-Meteo over HTTPS using a user-entered location string or manually saved site coordinates to display weather. Users can export CSV/JSON files through the device share sheet.
 
 ## Apple App Privacy Draft
 
@@ -106,7 +106,7 @@ Recommended answer: No, assuming there are no accounts, analytics identifiers, c
 
 Recommended conservative answer if weather remains enabled:
 
-- Location > Coarse Location
+- Location > Coarse Location, or Precise Location if exact coordinates remain user-enterable at release
 - Purpose: App Functionality
 - Linked to user: No
 - Used for tracking: No

@@ -50,6 +50,8 @@ type WeatherCacheEntry = {
 
 type FetchCurrentWeatherOptions = {
   location?: string;
+  latitude?: number;
+  longitude?: number;
   signal?: AbortSignal;
   forceRefresh?: boolean;
 };
@@ -105,13 +107,35 @@ function buildResolvedLocation(result: GeocodingResult): string {
   return [result.name, result.admin1, result.country].filter(Boolean).join(', ');
 }
 
+function getValidCoordinates(latitude?: number, longitude?: number): { latitude: number; longitude: number } | null {
+  const isValid =
+    typeof latitude === 'number' &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === 'number' &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180;
+
+  return isValid ? { latitude, longitude } : null;
+}
+
+function formatCoordinates(latitude: number, longitude: number): string {
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
 export async function fetchCurrentWeather({
   location,
+  latitude,
+  longitude,
   signal,
   forceRefresh = false,
 }: FetchCurrentWeatherOptions): Promise<CurrentWeatherSnapshot> {
   const normalizedLocation = location?.trim();
-  const searchLocation = normalizedLocation || DEFAULT_WEATHER_LOCATION;
+  const coordinates = getValidCoordinates(latitude, longitude);
+  const coordinateLabel = coordinates ? formatCoordinates(coordinates.latitude, coordinates.longitude) : undefined;
+  const searchLocation = coordinateLabel ?? normalizedLocation ?? DEFAULT_WEATHER_LOCATION;
   const cacheKey = searchLocation.toLowerCase();
   const cached = weatherCache.get(cacheKey);
 
@@ -120,29 +144,38 @@ export async function fetchCurrentWeather({
   }
 
   try {
-    const geocodingParams = new URLSearchParams({
-      name: searchLocation,
-      count: '1',
-      language: 'en',
-      format: 'json',
-    });
-    const geocodingResponse = await fetchJson<GeocodingResponse>(
-      `https://geocoding-api.open-meteo.com/v1/search?${geocodingParams.toString()}`,
-      signal,
-    );
-    const result = geocodingResponse.results?.[0];
+    let result: GeocodingResult | null = null;
+    let forecastLatitude = coordinates?.latitude;
+    let forecastLongitude = coordinates?.longitude;
 
-    if (!result) {
-      throw new WeatherServiceError(
-        normalizedLocation
-          ? `We couldn't find live weather for "${normalizedLocation}". Update your saved location to try again.`
-          : 'Add a system location to localize the weather feed.',
+    if (!coordinates) {
+      const geocodingParams = new URLSearchParams({
+        name: searchLocation,
+        count: '1',
+        language: 'en',
+        format: 'json',
+      });
+      const geocodingResponse = await fetchJson<GeocodingResponse>(
+        `https://geocoding-api.open-meteo.com/v1/search?${geocodingParams.toString()}`,
+        signal,
       );
+      result = geocodingResponse.results?.[0] ?? null;
+
+      if (!result) {
+        throw new WeatherServiceError(
+          normalizedLocation
+            ? `We couldn't find live weather for "${normalizedLocation}". Update your saved location to try again.`
+            : 'Add a system location to localize the weather feed.',
+        );
+      }
+
+      forecastLatitude = result.latitude;
+      forecastLongitude = result.longitude;
     }
 
     const forecastParams = new URLSearchParams({
-      latitude: String(result.latitude),
-      longitude: String(result.longitude),
+      latitude: String(forecastLatitude),
+      longitude: String(forecastLongitude),
       current:
         'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,is_day',
       timezone: 'auto',
@@ -158,9 +191,9 @@ export async function fetchCurrentWeather({
     }
 
     const snapshot: CurrentWeatherSnapshot = {
-      resolvedLocation: buildResolvedLocation(result),
+      resolvedLocation: result ? buildResolvedLocation(result) : normalizedLocation || coordinateLabel || DEFAULT_WEATHER_LOCATION,
       searchLocation,
-      isFallbackLocation: !normalizedLocation,
+      isFallbackLocation: !normalizedLocation && !coordinates,
       observedAt: forecastResponse.current.time,
       timezone: forecastResponse.timezone ?? 'auto',
       temperatureC: forecastResponse.current.temperature_2m,

@@ -1,215 +1,299 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { Image, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { useAppTheme } from '@/theme/use-app-theme';
+import { getWeatherVisualKind } from '@/components/weather-icon';
+import type { CurrentWeatherSnapshot } from '@/services/weather.service';
 
-function Cloud({ left, top, scale = 1 }: { left: number; top: number; scale?: number }) {
+const sunnyHeroImage = require('../../assets/images/solar-home-hero-card-sunny.png');
+const cloudyHeroImage = require('../../assets/images/solar-home-hero-card-cloudy.png');
+const rainyHeroImage = require('../../assets/images/solar-home-hero-card-rainy.png');
+const nightHeroImage = require('../../assets/images/solar-home-hero-card-night.png');
+
+type HouseEnergyHeroProps = {
+  weather?: CurrentWeatherSnapshot | null;
+  isLoading?: boolean;
+  height?: number;
+};
+
+type RainDropProps = {
+  left: `${number}%`;
+  delay: number;
+  duration: number;
+  travel: number;
+};
+
+type StarProps = {
+  left: `${number}%`;
+  top: number;
+  size: number;
+  delay: number;
+};
+
+const RAIN_DROPS: RainDropProps[] = [
+  { left: '6%', delay: 0, duration: 880, travel: 108 },
+  { left: '18%', delay: 180, duration: 980, travel: 116 },
+  { left: '31%', delay: 80, duration: 900, travel: 112 },
+  { left: '45%', delay: 260, duration: 960, travel: 118 },
+  { left: '58%', delay: 120, duration: 900, travel: 110 },
+  { left: '72%', delay: 320, duration: 1000, travel: 120 },
+  { left: '86%', delay: 40, duration: 860, travel: 108 },
+  { left: '96%', delay: 220, duration: 940, travel: 116 },
+];
+
+const SNOW_FLAKES: RainDropProps[] = [
+  { left: '12%', delay: 0, duration: 2300, travel: 112 },
+  { left: '28%', delay: 320, duration: 2700, travel: 106 },
+  { left: '47%', delay: 160, duration: 2450, travel: 116 },
+  { left: '66%', delay: 560, duration: 2850, travel: 108 },
+  { left: '84%', delay: 260, duration: 2550, travel: 118 },
+];
+
+const NIGHT_SPARKLES: StarProps[] = [
+  { left: '9%', top: 22, size: 2, delay: 0 },
+  { left: '24%', top: 46, size: 1.7, delay: 340 },
+  { left: '57%', top: 28, size: 2, delay: 700 },
+  { left: '83%', top: 44, size: 1.6, delay: 160 },
+];
+
+function getFallbackIsNight() {
+  const hour = new Date().getHours();
+  return hour < 6 || hour >= 18;
+}
+
+function FallingRain({ left, delay, duration, travel }: RainDropProps) {
+  const reducedMotion = useReducedMotion();
+  const fall = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      fall.value = 0.5;
+      return;
+    }
+
+    fall.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1, false),
+    );
+  }, [delay, duration, fall, reducedMotion]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: reducedMotion ? 0.36 : interpolate(fall.value, [0, 0.14, 0.9, 1], [0, 0.48, 0.48, 0]),
+    transform: [
+      { translateY: fall.value * travel },
+      { translateX: fall.value * -20 },
+      { rotate: '14deg' },
+    ],
+  }));
+
   return (
-    <View style={{ position: 'absolute', left, top, height: 28 * scale, width: 70 * scale }}>
-      <View
-        style={{
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
           position: 'absolute',
-          bottom: 0,
-          left: 0,
-          height: 15 * scale,
-          width: 70 * scale,
+          left,
+          top: -24,
+          height: 40,
+          width: 1.5,
           borderRadius: 999,
-          backgroundColor: 'rgba(255,255,255,0.82)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 3 * scale,
-          left: 13 * scale,
-          height: 25 * scale,
-          width: 25 * scale,
-          borderRadius: 999,
-          backgroundColor: 'rgba(255,255,255,0.88)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 2 * scale,
-          left: 34 * scale,
-          height: 20 * scale,
-          width: 20 * scale,
-          borderRadius: 999,
-          backgroundColor: 'rgba(255,255,255,0.84)',
-        }}
-      />
-    </View>
+          backgroundColor: 'rgba(210, 232, 255, 0.82)',
+        },
+        style,
+      ]}
+    />
   );
 }
 
-export function HouseEnergyHero() {
-  const theme = useAppTheme();
-  const isDark = theme.mode === 'dark';
-  const houseColor = isDark ? '#edf3f9' : '#ffffff';
-  const roofColor = isDark ? '#445d72' : '#536b80';
+function FallingSnow({ left, delay, duration, travel }: RainDropProps) {
+  const reducedMotion = useReducedMotion();
+  const fall = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      fall.value = 0.5;
+      return;
+    }
+
+    fall.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.quad) }), -1, false),
+    );
+  }, [delay, duration, fall, reducedMotion]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: reducedMotion ? 0.58 : interpolate(fall.value, [0, 0.16, 0.88, 1], [0, 0.66, 0.66, 0]),
+    transform: [
+      { translateY: fall.value * travel },
+      { translateX: Math.sin(fall.value * Math.PI * 2) * 8 },
+    ],
+  }));
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#153654', '#0e253c'] : ['#bfe4ff', '#eaf7ff']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left, top: -12 }, style]}>
+      <Ionicons name="snow" size={12} color="rgba(248, 252, 255, 0.94)" />
+    </Animated.View>
+  );
+}
+
+function Sparkle({ left, top, size, delay }: StarProps) {
+  const reducedMotion = useReducedMotion();
+  const twinkle = useSharedValue(0.58);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      twinkle.value = 0.8;
+      return;
+    }
+
+    twinkle.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.42, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        true,
+      ),
+    );
+  }, [delay, reducedMotion, twinkle]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: twinkle.value,
+    transform: [{ scale: 0.9 + twinkle.value * 0.16 }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left,
+          top,
+          height: size,
+          width: size,
+          borderRadius: 999,
+          backgroundColor: '#f9fbff',
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: HouseEnergyHeroProps) {
+  const reducedMotion = useReducedMotion();
+  const visualKind = weather ? getWeatherVisualKind(weather.weatherCode) : 'partly-cloudy';
+  const isNight = weather ? !weather.isDay : getFallbackIsNight();
+  const isRainy = visualKind === 'rain' || visualKind === 'storm' || (weather?.precipitationMm ?? 0) > 0;
+  const isStormy = visualKind === 'storm';
+  const isSnowy = visualKind === 'snow';
+  const isCloudy = visualKind === 'cloudy' || visualKind === 'fog';
+  const lightning = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      lightning.value = 0;
+      return;
+    }
+
+    lightning.value = isStormy
+      ? withRepeat(
+          withSequence(
+            withTiming(0, { duration: 2300, easing: Easing.linear }),
+            withTiming(0.62, { duration: 80, easing: Easing.linear }),
+            withTiming(0, { duration: 130, easing: Easing.linear }),
+            withTiming(0.42, { duration: 70, easing: Easing.linear }),
+            withTiming(0, { duration: 1000, easing: Easing.linear }),
+          ),
+          -1,
+          false,
+        )
+      : withTiming(0, { duration: 200 });
+  }, [isStormy, lightning, reducedMotion]);
+
+  const lightningStyle = useAnimatedStyle(() => ({
+    opacity: lightning.value,
+  }));
+
+  const imageSource = isNight
+    ? nightHeroImage
+    : isRainy || isStormy
+      ? rainyHeroImage
+      : isCloudy || isSnowy
+        ? cloudyHeroImage
+        : sunnyHeroImage;
+
+  return (
+    <View
       style={{
-        height: 150,
+        width: '100%',
+        height,
         overflow: 'hidden',
-        borderRadius: 26,
+        borderTopLeftRadius: 14,
+        borderTopRightRadius: 14,
         borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(31,66,96,0.08)',
-        boxShadow: isDark ? '0 14px 30px rgba(0,0,0,0.24)' : '0 14px 30px rgba(46,92,126,0.12)',
+        borderBottomWidth: 1,
+        borderColor: isNight || isRainy ? 'rgba(255,255,255,0.10)' : 'rgba(31,66,96,0.08)',
+        backgroundColor: '#bfe4ff',
       }}
     >
-      <Cloud left={20} top={30} scale={0.8} />
-      <Cloud left={230} top={54} scale={0.58} />
-
-      <View
+      <Image
+        source={imageSource}
+        resizeMode="cover"
         style={{
           position: 'absolute',
-          right: 18,
-          top: 18,
-          height: 48,
-          width: 48,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 999,
-          backgroundColor: isDark ? 'rgba(255,191,55,0.12)' : 'rgba(255,255,255,0.48)',
-        }}
-      >
-        <Ionicons name="sunny" size={31} color="#f7b92f" />
-      </View>
-
-      <View
-        style={{
-          position: 'absolute',
-          left: -42,
-          right: 110,
-          bottom: -50,
-          height: 112,
-          borderRadius: 999,
-          backgroundColor: isDark ? '#16404b' : '#b7e3d1',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 180,
-          right: -70,
-          bottom: -42,
-          height: 105,
-          borderRadius: 999,
-          backgroundColor: isDark ? '#123b3a' : '#9fd7bb',
+          inset: 0,
+          height: '100%',
+          width: '100%',
         }}
       />
 
-      <View
-        style={{
-          position: 'absolute',
-          left: '50%',
-          bottom: 8,
-          height: 105,
-          width: 220,
-          marginLeft: -110,
-        }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            left: 29,
-            bottom: 0,
-            height: 60,
-            width: 162,
-            borderRadius: 13,
-            borderCurve: 'continuous',
-            borderWidth: 1,
-            borderColor: isDark ? 'rgba(255,255,255,0.36)' : 'rgba(31,66,96,0.10)',
-            backgroundColor: houseColor,
-            boxShadow: isDark ? '0 10px 22px rgba(0,0,0,0.22)' : '0 10px 22px rgba(46,92,126,0.15)',
-          }}
-        />
+      {isNight ? NIGHT_SPARKLES.map((star) => <Sparkle key={`${star.left}-${star.top}`} {...star} />) : null}
+      {isRainy ? RAIN_DROPS.map((drop) => <FallingRain key={`${drop.left}-${drop.delay}`} {...drop} />) : null}
+      {isSnowy ? SNOW_FLAKES.map((flake) => <FallingSnow key={`${flake.left}-${flake.delay}`} {...flake} />) : null}
 
+      {isLoading ? (
         <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
-            left: 18,
-            bottom: 52,
-            width: 0,
-            height: 0,
-            borderLeftWidth: 92,
-            borderRightWidth: 92,
-            borderBottomWidth: 52,
-            borderLeftColor: 'transparent',
-            borderRightColor: 'transparent',
-            borderBottomColor: roofColor,
+            left: 14,
+            top: 14,
+            height: 8,
+            width: 58,
+            borderRadius: 999,
+            backgroundColor: 'rgba(255, 255, 255, 0.34)',
           }}
         />
+      ) : null}
 
-        <View
-          style={{
-            position: 'absolute',
-            left: 62,
-            bottom: 69,
-            height: 29,
-            width: 88,
-            flexDirection: 'row',
-            gap: 3,
-            borderRadius: 5,
-            borderWidth: 2,
-            borderColor: '#88c6ff',
-            backgroundColor: '#1768d7',
-            padding: 3,
-            transform: [{ rotate: '-8deg' }],
-          }}
-        >
-          {Array.from({ length: 4 }).map((_, index) => (
-            <View key={index} style={{ flex: 1, borderRadius: 2, backgroundColor: index % 2 === 0 ? '#2e80e7' : '#5aa2f2' }} />
-          ))}
-        </View>
-
-        <View
-          style={{
-            position: 'absolute',
-            left: 95,
-            bottom: 0,
-            height: 38,
-            width: 27,
-            borderTopLeftRadius: 7,
-            borderTopRightRadius: 7,
-            backgroundColor: '#d99c58',
-          }}
+      {isStormy ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(255, 244, 184, 0.34)',
+            },
+            lightningStyle,
+          ]}
         />
-        <View
-          style={{
-            position: 'absolute',
-            left: 48,
-            bottom: 22,
-            height: 21,
-            width: 25,
-            borderRadius: 5,
-            borderWidth: 3,
-            borderColor: houseColor,
-            backgroundColor: '#9ad5ff',
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            right: 46,
-            bottom: 22,
-            height: 21,
-            width: 25,
-            borderRadius: 5,
-            borderWidth: 3,
-            borderColor: houseColor,
-            backgroundColor: '#9ad5ff',
-          }}
-        />
-      </View>
-    </LinearGradient>
+      ) : null}
+    </View>
   );
 }

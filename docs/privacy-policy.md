@@ -8,7 +8,7 @@ Watt Track is a local-first solar tracking app for manually recording household 
 
 Watt Track stores the following information locally on your device:
 
-- Solar system profile, including system name, optional location, installation date, timezone, currency, reading modes, capacity details, electricity rates, and billing cycle settings.
+- Solar system profile, including system name, optional location, optional site coordinates, installation date, timezone, currency, reading modes, capacity details, electricity rates, and billing cycle settings.
 - Energy readings, including dates, times, meter or daily values, calculated usage, calculated savings, notes, and validation warnings.
 - System costs, including dates, categories, descriptions, amounts, cost treatment, and notes.
 - App settings, including theme, display precision, dashboard period, onboarding state, and optional daily reminder preferences.
@@ -18,9 +18,9 @@ This data is stored using device-local app storage. Watt Track does not require 
 
 ## Data Sent Off Device
 
-Watt Track may send a saved or default location text query to Open-Meteo services to show current weather on the Home screen. This is used only to fetch weather context for the app experience.
+Watt Track may send saved location text, saved site coordinates, or a default location to Open-Meteo services to show current weather on the Home screen. This is used only to fetch weather context for the app experience.
 
-The app does not use GPS location permissions. The weather location is based on the location text you save in your system profile, or the default location used when no profile location is set.
+The app does not use GPS location permissions. The weather location is based on the location text or coordinates you manually save in your system profile, or the default location used when no profile location is set.
 
 ## Backups and Exports
 

@@ -1,14 +1,15 @@
-import { useEffect, useEffectEvent, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { SkeletonBlock } from '@/components/app-ui';
 import { AnimatedWeatherIcon, getWeatherVisualKind } from '@/components/weather-icon';
-import { fetchCurrentWeather, type CurrentWeatherSnapshot } from '@/services/weather.service';
+import type { CurrentWeatherSnapshot } from '@/services/weather.service';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 
 type CurrentWeatherCardProps = {
-  location?: string;
+  weather: CurrentWeatherSnapshot | null;
+  errorMessage?: string | null;
+  isLoading?: boolean;
   variant?: 'default' | 'compact';
 };
 
@@ -33,49 +34,13 @@ function WeatherCardSkeleton({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function CurrentWeatherCard({ location, variant = 'default' }: CurrentWeatherCardProps) {
+export function CurrentWeatherCard({
+  weather,
+  errorMessage,
+  isLoading = false,
+  variant = 'default',
+}: CurrentWeatherCardProps) {
   const theme = useAppTheme();
-  const [weather, setWeather] = useState<CurrentWeatherSnapshot | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadWeather = useEffectEvent(async (signal?: AbortSignal) => {
-    setErrorMessage(null);
-    setIsLoading(true);
-
-    try {
-      const snapshot = await fetchCurrentWeather({
-        location,
-        signal,
-      });
-      setWeather(snapshot);
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-
-      setWeather(null);
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to load current weather.');
-    } finally {
-      if (!signal?.aborted) {
-        setIsLoading(false);
-      }
-    }
-  });
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    setWeather(null);
-    setErrorMessage(null);
-    setIsLoading(true);
-    void loadWeather(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [location]);
-
   const visualKind = weather ? getWeatherVisualKind(weather.weatherCode) : 'partly-cloudy';
   const accentTint =
     visualKind === 'storm'

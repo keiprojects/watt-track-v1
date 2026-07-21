@@ -113,7 +113,7 @@ export default function PrivacyScreen() {
           <DisclosureRow
             icon="cloud-outline"
             title="Weather lookup"
-            description="If weather is shown, Watt Track may send your saved location text, or a default location, to Open-Meteo over HTTPS to retrieve current weather."
+            description="If weather is shown, Watt Track may send your saved location text, saved site coordinates, or a default location to Open-Meteo over HTTPS to retrieve current weather."
           />
           <DisclosureRow
             icon="archive-outline"

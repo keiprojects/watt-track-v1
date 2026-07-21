@@ -20,15 +20,31 @@ import { createId } from '@/utils/ids';
 
 const logoMark = require('../../assets/branding/logo-mark.png');
 
+function emptyInputToUndefined(value: unknown): unknown {
+  return typeof value === 'string' && value.trim() === '' ? undefined : value;
+}
+
 const optionalPositiveNumber = z.preprocess(
-  (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
+  (value) => (value === null || typeof value === 'undefined' ? undefined : emptyInputToUndefined(value)),
   z.coerce.number().positive('Must be greater than zero').optional(),
+);
+
+const optionalLatitude = z.preprocess(
+  (value) => (value === null || typeof value === 'undefined' ? undefined : emptyInputToUndefined(value)),
+  z.coerce.number().min(-90, 'Latitude must be between -90 and 90').max(90, 'Latitude must be between -90 and 90').optional(),
+);
+
+const optionalLongitude = z.preprocess(
+  (value) => (value === null || typeof value === 'undefined' ? undefined : emptyInputToUndefined(value)),
+  z.coerce.number().min(-180, 'Longitude must be between -180 and 180').max(180, 'Longitude must be between -180 and 180').optional(),
 );
 
 const onboardingSchema = z
   .object({
     systemName: z.string().trim().min(1, 'System name is required'),
     location: z.string().trim().optional(),
+    latitude: optionalLatitude,
+    longitude: optionalLongitude,
     installationDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
@@ -43,7 +59,7 @@ const onboardingSchema = z
       .min(1, 'Billing date must be from 1 to 31')
       .max(31, 'Billing date must be from 1 to 31'),
     defaultExportRate: z.preprocess(
-      (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
+      (value) => (value === null || typeof value === 'undefined' ? undefined : emptyInputToUndefined(value)),
       z.coerce.number().min(0, 'Export rate cannot be negative').optional(),
     ),
     solarCapacityKw: optionalPositiveNumber,
@@ -68,6 +84,14 @@ const onboardingSchema = z
         code: z.ZodIssueCode.custom,
         message: 'Export credit rate is required when export tracking is enabled',
         path: ['defaultExportRate'],
+      });
+    }
+
+    if ((typeof values.latitude === 'number') !== (typeof values.longitude === 'number')) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter both latitude and longitude for site coordinates',
+        path: typeof values.latitude === 'number' ? ['longitude'] : ['latitude'],
       });
     }
   });
@@ -252,6 +276,8 @@ export default function OnboardingScreen() {
     defaultValues: {
       systemName: systemProfile?.systemName ?? '',
       location: systemProfile?.location ?? '',
+      latitude: systemProfile?.latitude,
+      longitude: systemProfile?.longitude,
       installationDate: systemProfile?.installationDate ?? getTodayDateInputValue(),
       timezone: systemProfile?.timezone ?? 'Asia/Manila',
       initialSystemCost: systemProfile?.initialSystemCost ?? 0,
@@ -283,6 +309,8 @@ export default function OnboardingScreen() {
       id: systemProfile?.id ?? createId('system'),
       systemName: values.systemName.trim(),
       location: values.location?.trim() || undefined,
+      latitude: values.latitude,
+      longitude: values.longitude,
       installationDate: values.installationDate,
       currency: 'PHP',
       timezone: values.timezone.trim(),
@@ -369,6 +397,40 @@ export default function OnboardingScreen() {
                 value={value}
                 onChangeText={onChange}
                 placeholder="Davao City"
+                style={inputStyle(theme)}
+                placeholderTextColor={theme.textSubtle}
+              />
+            )}
+          />
+        </Field>
+
+        <Field label="Latitude" helper="Optional, for exact site weather." error={errors.latitude?.message}>
+          <Controller
+            control={control}
+            name="latitude"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                value={value == null ? '' : String(value)}
+                onChangeText={onChange}
+                keyboardType="numbers-and-punctuation"
+                placeholder="7.067653"
+                style={inputStyle(theme)}
+                placeholderTextColor={theme.textSubtle}
+              />
+            )}
+          />
+        </Field>
+
+        <Field label="Longitude" helper="Optional, for exact site weather." error={errors.longitude?.message}>
+          <Controller
+            control={control}
+            name="longitude"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                value={value == null ? '' : String(value)}
+                onChangeText={onChange}
+                keyboardType="numbers-and-punctuation"
+                placeholder="125.479258"
                 style={inputStyle(theme)}
                 placeholderTextColor={theme.textSubtle}
               />

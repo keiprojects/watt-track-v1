@@ -314,6 +314,8 @@ The system profile must store:
 - id
 - systemName
 - optional location
+- optional latitude
+- optional longitude
 - installationDate
 - currency fixed to `PHP` in MVP
 - timezone

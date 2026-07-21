@@ -31,6 +31,8 @@ const systemProfileSchema = z.object({
   id: z.string().min(1),
   systemName: z.string().min(1),
   location: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   installationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   currency: z.literal('PHP'),
   timezone: z.string().min(1),

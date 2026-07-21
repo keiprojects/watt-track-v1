@@ -31,7 +31,7 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     title: 'Weather lookup',
     body:
-      'If weather is shown, Watt Track may send your saved location text, or a default location, to Open-Meteo over HTTPS to retrieve current weather.',
+      'If weather is shown, Watt Track may send your saved location text, saved site coordinates, or a default location to Open-Meteo over HTTPS to retrieve current weather.',
   },
   {
     title: 'Backups and exports',
