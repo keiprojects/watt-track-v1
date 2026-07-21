@@ -127,7 +127,7 @@ export default function DashboardScreen() {
   const roiSummary = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const dailySummaries = useMemo(() => aggregateReadingsByDate(billingReadings).slice(-8), [billingReadings]);
   const sparklineData = dailySummaries.length
-    ? dailySummaries.map((summary) => ({ value: summary.estimatedSavings, label: formatMonthDayLabel(summary.date) }))
+    ? dailySummaries.map((summary) => ({ value: summary.estimatedSavings }))
     : [{ value: 0 }, { value: 0 }, { value: 0 }];
   const chartWidth = Math.min(width - 84, 280);
 
@@ -306,6 +306,8 @@ export default function DashboardScreen() {
             thickness={2}
             initialSpacing={0}
             endSpacing={0}
+            xAxisLabelsHeight={0}
+            labelsExtraHeight={0}
           />
         </View>
         <IconSquare icon="wallet" colors={wattGradients.amber} size={44} />
