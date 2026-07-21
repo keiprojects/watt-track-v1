@@ -92,6 +92,8 @@ export default function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen name="profile-settings" options={{ href: null }} />
+        <Tabs.Screen name="data" options={{ href: null }} />
       </Tabs>
       <WattTrackDrawer visible={profileDrawerVisible} onClose={() => setProfileDrawerVisible(false)} />
     </>
