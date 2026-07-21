@@ -141,7 +141,7 @@ export default function RootLayout() {
     return (
       <>
         <BootSplash onReady={handleAnimatedSplashReady} />
-        <StatusBar style="light" />
+        <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       </>
     );
   }
