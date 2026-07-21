@@ -282,6 +282,9 @@ Progress notes:
 - Dashboard chart scaling now adapts to the active range instead of relying on fixed y-axis labels.
 - Local storage hydration now falls back safely when persisted payloads are malformed, preventing boot-time stalls from invalid device data.
 - Asia/Manila date parsing and display formatting were tightened across dashboard, history, insights, and reading chronology utilities.
+- 2026-07-21 QA pass: `npm run typecheck`, `npx expo-doctor`, and `npm run export:android` completed successfully.
+- 2026-07-21 web smoke test covered first-run onboarding, cumulative reading entry, derived dashboard totals, history list/detail/edit route rendering, and invalid cumulative warning visibility.
+- Native-device QA is still required for local reminder delivery, share sheets, document picker import, app close/reopen persistence, and fully offline Android behavior.
 
 Definition of done:
 
@@ -323,12 +326,12 @@ Definition of done:
 
 Use this section as the release gate. Mark each item only when verified in app behavior.
 
-- [ ] User can create and edit a solar system profile.
-- [ ] User can enter cumulative or daily grid readings.
-- [ ] User can enter cumulative or daily solar readings.
-- [ ] App calculates daily grid consumption automatically.
-- [ ] App calculates daily solar generation automatically.
-- [ ] App calculates estimated savings from stored rates.
+- [x] User can create and edit a solar system profile.
+- [x] User can enter cumulative or daily grid readings.
+- [x] User can enter cumulative or daily solar readings.
+- [x] App calculates daily grid consumption automatically.
+- [x] App calculates daily solar generation automatically.
+- [x] App calculates estimated savings from stored rates.
 - [x] Dashboard displays daily and monthly summaries.
 - [x] History supports view, edit, and delete.
 - [x] Insights displays totals, savings, ROI, and payback.
@@ -337,12 +340,12 @@ Use this section as the release gate. Mark each item only when verified in app b
 - [ ] App works without internet.
 - [ ] User can export readings as CSV.
 - [ ] User can export and import JSON backup.
-- [ ] Invalid cumulative readings show warning.
-- [ ] Missing days are handled correctly.
-- [ ] No crash occurs when no readings exist.
-- [ ] Philippine peso formatting is supported.
-- [ ] Device-local and Asia/Manila date behavior is respected.
-- [ ] Estimated results are labeled appropriately.
+- [x] Invalid cumulative readings show warning.
+- [x] Missing days are handled correctly.
+- [x] No crash occurs when no readings exist.
+- [x] Philippine peso formatting is supported.
+- [x] Device-local and Asia/Manila date behavior is respected.
+- [x] Estimated results are labeled appropriately.
 
 ## Decision Log
 
