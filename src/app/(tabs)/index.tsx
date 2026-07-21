@@ -316,7 +316,7 @@ export default function DashboardScreen() {
   const roiAccent = theme.warningText;
   const greetingName = getGreetingName(systemProfile?.systemName);
   const roiLabel = `${roiSummary.roiPercentage.toFixed(1)}%`;
-  const centerBg = theme.mode === 'dark' ? '#111111' : theme.surface;
+  const centerBg = theme.mode === 'dark' ? theme.surface : theme.surface;
 
   return (
     <ScrollView
@@ -340,8 +340,8 @@ export default function DashboardScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open settings"
-            onPress={() => router.push('/(tabs)/settings')}
+            accessibilityLabel="Notifications"
+            onPress={() => {}}
             style={({ pressed }) => ({
               height: 42,
               width: 42,

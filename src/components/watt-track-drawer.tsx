@@ -13,14 +13,13 @@ const APP_VERSION = '1.0.0';
 
 const drawerColors = {
   background: '#101011',
-  avatarBackground: '#17171a',
-  border: 'rgba(255, 255, 255, 0.12)',
-  icon: '#b7b5bf',
-  text: '#d8d6df',
-  muted: '#a5a3ad',
+  avatarBackground: '#151517',
+  border: 'rgba(255, 255, 255, 0.13)',
+  icon: '#c3c1ca',
+  text: '#e5e3e9',
+  muted: '#a9a6b0',
   pressed: 'rgba(255, 255, 255, 0.06)',
-  scrim: 'rgba(0, 0, 0, 0.64)',
-  support: '#047857',
+  scrim: 'rgba(0, 0, 0, 0.66)',
 } as const;
 
 type DrawerItemProps = {
@@ -34,10 +33,6 @@ type WattTrackDrawerProps = {
   onClose: () => void;
 };
 
-function DrawerDivider() {
-  return <View style={{ height: 1, backgroundColor: drawerColors.border, marginTop: 22, marginBottom: 28 }} />;
-}
-
 function DrawerItem({ icon, label, onPress }: DrawerItemProps) {
   return (
     <Pressable
@@ -45,27 +40,26 @@ function DrawerItem({ icon, label, onPress }: DrawerItemProps) {
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
+        minHeight: 62,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 24,
-        minHeight: 58,
-        borderRadius: 16,
-        borderCurve: 'continuous',
-        paddingHorizontal: 10,
-        opacity: pressed ? 0.72 : 1,
+        gap: 20,
+        borderRadius: 14,
+        paddingHorizontal: 8,
         backgroundColor: pressed ? drawerColors.pressed : 'transparent',
+        opacity: pressed ? 0.82 : 1,
       })}
     >
-      <View style={{ width: 48, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={31} color={drawerColors.icon} />
+      <View style={{ width: 42, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={29} color={drawerColors.icon} />
       </View>
       <Text
         numberOfLines={1}
         style={{
           flex: 1,
           color: drawerColors.text,
-          fontSize: 18,
-          fontFamily: fontFamilies.bodyStrong,
+          fontSize: 19,
+          fontFamily: fontFamilies.body,
         }}
       >
         {label}
@@ -82,30 +76,26 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
   const drawerWidth = Math.min(356, width * 0.84);
   const lastSyncText = latestReading
     ? `${formatShortDate(latestReading.date)}${latestReading.time ? `, ${latestReading.time}` : ''}`
-    : 'Local profile';
+    : 'Local data only';
 
   const navigateTo = (route: string) => {
     onClose();
-    requestAnimationFrame(() => {
-      router.push(route as never);
-    });
+    requestAnimationFrame(() => router.push(route as never));
   };
 
   const openProfile = () => {
     onClose();
-    requestAnimationFrame(() => {
-      router.push({ pathname: '/onboarding', params: { mode: 'edit' } });
-    });
+    requestAnimationFrame(() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } }));
   };
 
   const showRatePrompt = () => {
     onClose();
-    Alert.alert('Rate WattTrack', 'Play Store rating can be connected once WattTrack is published.');
+    Alert.alert('Rate WattTrack', 'The store rating link will be enabled when WattTrack is published.');
   };
 
-  const showComingSoon = (title: string) => {
+  const showInfo = (title: string, message: string) => {
     onClose();
-    Alert.alert(title, 'This section will be connected soon.');
+    Alert.alert(title, message);
   };
 
   if (!visible) {
@@ -113,27 +103,26 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
   }
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: drawerColors.scrim }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close menu"
+          accessibilityLabel="Close profile menu"
           onPress={onClose}
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+          style={{ position: 'absolute', inset: 0 }}
         />
 
         <Animated.View
-          entering={SlideInLeft.duration(240)}
+          entering={SlideInLeft.duration(220)}
           style={{
             width: drawerWidth,
             flex: 1,
+            overflow: 'hidden',
             backgroundColor: drawerColors.background,
             paddingTop: Math.max(insets.top, 18),
             paddingBottom: Math.max(insets.bottom, 18),
             borderBottomRightRadius: 28,
-            borderCurve: 'continuous',
-            overflow: 'hidden',
-            boxShadow: '18px 0 48px rgba(0, 0, 0, 0.48)',
+            boxShadow: '16px 0 44px rgba(0, 0, 0, 0.46)',
           }}
         >
           <ScrollView
@@ -141,19 +130,18 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
             alwaysBounceVertical={false}
             contentContainerStyle={{
               paddingHorizontal: 28,
-              paddingTop: 18,
-              paddingBottom: Math.max(insets.bottom + 110, 140),
+              paddingTop: 22,
+              paddingBottom: Math.max(insets.bottom + 28, 48),
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
               <View
                 style={{
-                  height: 70,
-                  width: 70,
+                  height: 72,
+                  width: 72,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 28,
-                  borderCurve: 'continuous',
+                  borderRadius: 26,
                   borderWidth: 1,
                   borderColor: drawerColors.border,
                   backgroundColor: drawerColors.avatarBackground,
@@ -162,12 +150,12 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
                 <Text style={{ color: drawerColors.text, fontSize: 24, fontFamily: fontFamilies.displayMedium }}>WT</Text>
               </View>
 
-              <View style={{ flex: 1, minWidth: 0, gap: 7 }}>
-                <Text numberOfLines={1} style={{ color: drawerColors.text, fontSize: 24, fontFamily: fontFamilies.displayMedium }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+                <Text numberOfLines={1} style={{ color: drawerColors.text, fontSize: 26, fontFamily: fontFamilies.displayMedium }}>
                   WattTrack
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="cloud-outline" size={17} color={drawerColors.muted} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Ionicons name="cloud-outline" size={18} color={drawerColors.muted} />
                   <Text numberOfLines={1} style={{ flex: 1, color: drawerColors.muted, fontSize: 14, fontFamily: fontFamilies.body }}>
                     {lastSyncText}
                   </Text>
@@ -175,38 +163,25 @@ export function WattTrackDrawer({ visible, onClose }: WattTrackDrawerProps) {
               </View>
             </View>
 
-            <DrawerDivider />
+            <View style={{ height: 1, backgroundColor: drawerColors.border, marginTop: 28, marginBottom: 22 }} />
 
-            <View style={{ gap: 17 }}>
+            <View style={{ gap: 7 }}>
               <DrawerItem icon="person-outline" label="Profile" onPress={openProfile} />
-              <DrawerItem icon="settings-outline" label="Settings" onPress={() => navigateTo('/(tabs)/profile-settings')} />
+              <DrawerItem icon="settings-outline" label="Settings" onPress={() => navigateTo('/(tabs)/settings')} />
               <DrawerItem icon="server-outline" label="Data" onPress={() => navigateTo('/(tabs)/data')} />
               <DrawerItem icon="star-outline" label="Rate us" onPress={showRatePrompt} />
-              <DrawerItem icon="headset-outline" label="Support" onPress={() => showComingSoon('Support')} />
-              <DrawerItem icon="information-circle-outline" label="About" onPress={() => showComingSoon(`WattTrack ${APP_VERSION}`)} />
+              <DrawerItem
+                icon="headset-outline"
+                label="Support"
+                onPress={() => showInfo('Support', 'Support contact options will be added before public release.')}
+              />
+              <DrawerItem
+                icon="information-circle-outline"
+                label="About"
+                onPress={() => showInfo('About WattTrack', `WattTrack ${APP_VERSION}\nLocal solar savings and ROI tracking.`)}
+              />
             </View>
           </ScrollView>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Support"
-            onPress={() => showComingSoon('Support')}
-            style={({ pressed }) => ({
-              position: 'absolute',
-              left: 28,
-              bottom: Math.max(insets.bottom + 28, 48),
-              height: 64,
-              width: 64,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 32,
-              backgroundColor: drawerColors.support,
-              opacity: pressed ? 0.82 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <Ionicons name="heart-outline" size={31} color="#ecfdf5" />
-          </Pressable>
         </Animated.View>
       </View>
     </Modal>

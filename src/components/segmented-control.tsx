@@ -35,7 +35,14 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
   };
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        gap: 8,
+        paddingRight: 8,
+      }}
+    >
       {options.map((option) => {
         const selected = option.value === value;
 
@@ -51,7 +58,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
               borderCurve: 'continuous',
               borderWidth: 1,
               borderColor: selected ? theme.accent : theme.border,
-              backgroundColor: selected ? theme.accent : theme.surfaceRaised,
+              backgroundColor: selected ? theme.accentSoft : theme.surfaceRaised,
               paddingHorizontal: 14,
               paddingVertical: 10,
               opacity: pressed ? 0.88 : 1,
@@ -59,8 +66,16 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
             })}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {option.icon ? <Ionicons name={option.icon} size={14} color={selected ? theme.accentText : theme.textMuted} /> : null}
-              <Text style={{ color: selected ? theme.accentText : theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
+              {option.icon ? (
+                <Ionicons name={option.icon} size={14} color={selected ? theme.accent : theme.textMuted} />
+              ) : null}
+              <Text
+                style={{
+                  color: selected ? theme.accent : theme.textMuted,
+                  fontSize: 13,
+                  fontFamily: fontFamilies.bodyStrong,
+                }}
+              >
                 {option.label}
               </Text>
             </View>

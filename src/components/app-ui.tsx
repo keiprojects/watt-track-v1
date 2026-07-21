@@ -16,7 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/theme/use-app-theme';
-import { fontFamilies, fontWeights } from '@/theme/typography';
+import { fontFamilies } from '@/theme/typography';
 
 export type AppIconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -108,11 +108,11 @@ function getIconColors(
   }
 
   if (tone === 'inverse') {
-    return { backgroundColor: 'rgba(255, 255, 255, 0.10)', color: theme.textOnDark };
+    return { backgroundColor: 'rgba(255, 255, 255, 0.08)', color: theme.textOnDark };
   }
 
   if (tone === 'muted') {
-    return { backgroundColor: theme.surfaceRaised, color: theme.textMuted };
+    return { backgroundColor: theme.neutralSoft, color: theme.textMuted };
   }
 
   return { backgroundColor: theme.accentSoft, color: theme.accent };
@@ -134,7 +134,7 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
   const theme = useAppTheme();
   const backgroundColor =
     tone === 'inverse'
-      ? theme.surface
+      ? theme.header
       : tone === 'accent'
         ? theme.surfaceAccent
         : tone === 'muted'
@@ -143,15 +143,17 @@ export function Panel({ children, tone = 'default', style, padding = 20 }: Panel
 
   return (
     <View
-      className="gap-4 overflow-hidden border"
       style={[
         {
-          borderRadius: 24,
+          gap: 16,
+          borderRadius: 28,
           borderCurve: 'continuous',
-          borderColor: tone === 'accent' ? theme.accentGlow : theme.border,
+          borderWidth: 1,
+          borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : theme.border,
           backgroundColor,
-          padding,
-          boxShadow: tone === 'inverse' ? theme.shadow : theme.shadow,
+          padding: padding + 2,
+          boxShadow: tone === 'inverse' ? '0 26px 70px rgba(1, 3, 10, 0.46)' : theme.shadow,
+          overflow: 'hidden',
         },
         style,
       ]}
@@ -167,13 +169,16 @@ export function IconBadge({ icon, tone = 'accent', size = 42 }: IconBadgeProps) 
 
   return (
     <View
-      className="items-center justify-center"
       style={{
         height: size,
         width: size,
-        borderRadius: 999,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: Math.max(16, size / 2.4),
         borderCurve: 'continuous',
         backgroundColor: palette.backgroundColor,
+        borderWidth: 1,
+        borderColor: tone === 'inverse' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}
     >
       <Ionicons name={icon} size={Math.max(18, size * 0.44)} color={palette.color} />
@@ -185,32 +190,30 @@ export function SectionTitle({ title, description, icon, action, eyebrow }: Sect
   const theme = useAppTheme();
 
   return (
-    <View className="flex-row justify-between gap-4">
-      <View className="flex-1 gap-1.5">
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 16 }}>
+      <View style={{ flex: 1, gap: 6 }}>
         {eyebrow ? (
           <Text
-            className="uppercase tracking-[1.4px]"
             style={{
               color: theme.accent,
               fontSize: 11,
               fontFamily: fontFamilies.bodyStrong,
-              fontWeight: fontWeights.semibold,
+              letterSpacing: 1.4,
+              textTransform: 'uppercase',
             }}
           >
             {eyebrow}
           </Text>
         ) : null}
-        <View className="flex-row items-center gap-2.5">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           {icon ? <IconBadge icon={icon} size={36} /> : null}
           <Text
             selectable
-            className="shrink"
             style={{
+              flexShrink: 1,
               color: theme.text,
-              fontSize: 21,
+              fontSize: 22,
               fontFamily: fontFamilies.displayMedium,
-              fontWeight: fontWeights.semibold,
-              letterSpacing: -0.35,
             }}
           >
             {title}
@@ -219,19 +222,18 @@ export function SectionTitle({ title, description, icon, action, eyebrow }: Sect
         {description ? (
           <Text
             selectable
-            className="leading-5"
             style={{
               color: theme.textMuted,
               fontSize: 14,
+              lineHeight: 20,
               fontFamily: fontFamilies.body,
-              fontWeight: fontWeights.regular,
             }}
           >
             {description}
           </Text>
         ) : null}
       </View>
-      {action ? <View className="justify-start">{action}</View> : null}
+      {action ? <View style={{ justifyContent: 'flex-start' }}>{action}</View> : null}
     </View>
   );
 }
@@ -252,32 +254,35 @@ export function AppButton({
       : tone === 'secondary'
         ? { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.text }
         : tone === 'ghost'
-          ? { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
-          : { backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText };
+          ? { backgroundColor: 'transparent', borderColor: theme.border, color: theme.textMuted }
+          : { backgroundColor: theme.accent, borderColor: theme.accent, color: '#0a101b' };
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="flex-row items-center justify-center gap-2.5 border px-5 py-3"
       style={({ pressed }) => [
         {
           width: fullWidth ? '100%' : undefined,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
           borderRadius: 999,
           borderCurve: 'continuous',
+          borderWidth: 1,
           borderColor: palette.borderColor,
           backgroundColor: palette.backgroundColor,
+          paddingHorizontal: 18,
+          paddingVertical: 13,
           opacity: disabled ? 0.6 : pressed ? 0.88 : 1,
           transform: [{ scale: pressed ? 0.985 : 1 }],
-          boxShadow: tone === 'primary' && !disabled ? `0 12px 28px ${theme.accentGlow}` : 'none',
         },
         style,
       ]}
     >
       {icon ? <Ionicons name={icon} size={18} color={palette.color} /> : null}
-      <Text style={{ color: palette.color, fontSize: 14, fontFamily: fontFamilies.bodyStrong, fontWeight: fontWeights.semibold }}>
-        {label}
-      </Text>
+      <Text style={{ color: palette.color, fontSize: 14, fontFamily: fontFamilies.bodyStrong }}>{label}</Text>
     </Pressable>
   );
 }
@@ -288,15 +293,19 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
 
   return (
     <View
-      className="min-w-[124px] flex-1 gap-2 border p-3.5"
       style={{
+        minWidth: 124,
+        flex: 1,
+        gap: 8,
         borderRadius: 22,
         borderCurve: 'continuous',
-        borderColor: tone === 'accent' ? theme.accentGlow : theme.border,
-        backgroundColor: tone === 'accent' ? theme.surfaceAccent : theme.surface,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+        padding: 14,
       }}
     >
-      <View className="flex-row items-center gap-2">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBadge icon={icon} tone={tone === 'accent' ? 'accent' : tone === 'warning' ? 'warning' : 'muted'} size={32} />
         <Text
           selectable
@@ -304,7 +313,6 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
             color: theme.textMuted,
             fontSize: 12,
             fontFamily: fontFamilies.bodyStrong,
-            fontWeight: fontWeights.medium,
           }}
         >
           {label}
@@ -316,7 +324,6 @@ export function StatPill({ icon, label, value, tone = 'default' }: StatPillProps
           color: highlightColor,
           fontSize: 19,
           fontFamily: fontFamilies.bodyHeavy,
-          fontWeight: fontWeights.bold,
           fontVariant: ['tabular-nums'],
         }}
       >
@@ -332,22 +339,26 @@ export function ToggleChip({ label, selected, onPress, icon }: ToggleChipProps) 
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-2 border px-3.5 py-2.5"
       style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         borderRadius: 999,
         borderCurve: 'continuous',
+        borderWidth: 1,
         borderColor: selected ? theme.accent : theme.border,
-        backgroundColor: selected ? theme.accent : theme.surfaceRaised,
+        backgroundColor: selected ? theme.accentSoft : theme.surfaceRaised,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         opacity: pressed ? 0.88 : 1,
       })}
     >
-      {icon ? <Ionicons name={icon} size={14} color={selected ? theme.accentText : theme.textMuted} /> : null}
+      {icon ? <Ionicons name={icon} size={14} color={selected ? theme.accent : theme.textMuted} /> : null}
       <Text
         style={{
-          color: selected ? theme.accentText : theme.textMuted,
+          color: selected ? theme.accent : theme.textMuted,
           fontSize: 13,
           fontFamily: fontFamilies.bodyStrong,
-          fontWeight: fontWeights.semibold,
         }}
       >
         {label}
@@ -432,26 +443,58 @@ export function OverlaySheet({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View
-        className={variant === 'dialog' ? 'flex-1 justify-center p-5' : 'flex-1 justify-end p-5'}
-        style={{ backgroundColor: theme.scrim }}
+        style={{
+          flex: 1,
+          justifyContent: variant === 'dialog' ? 'center' : 'flex-end',
+          backgroundColor: theme.scrim,
+          padding: 20,
+        }}
       >
-        <Pressable onPress={onClose} className="absolute inset-0" />
+        <Pressable
+          onPress={onClose}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+          }}
+        />
         <Animated.View
           entering={variant === 'dialog' ? ZoomIn.duration(220) : SlideInUp.duration(260)}
-          className="w-full self-center gap-4 border px-5 pt-5"
           style={{
             maxHeight: variant === 'dialog' ? 520 : 640,
-            borderRadius: 28,
+            width: '100%',
+            alignSelf: 'center',
+            gap: 16,
+            borderRadius: 32,
             borderCurve: 'continuous',
+            borderWidth: 1,
             borderColor: theme.border,
             backgroundColor: theme.surfaceOverlay,
+            padding: 22,
             paddingBottom: Math.max(insets.bottom, 16),
             boxShadow: theme.shadow,
           }}
         >
-          {variant === 'drawer' ? <View className="h-1.5 w-12 self-center rounded-full" style={{ backgroundColor: theme.border }} /> : null}
+          {variant === 'drawer' ? (
+            <View
+              style={{
+                alignSelf: 'center',
+                width: 52,
+                height: 5,
+                borderRadius: 999,
+                backgroundColor: theme.border,
+              }}
+            />
+          ) : null}
           <SectionTitle title={title} description={description} />
-          <ScrollView contentContainerStyle={{ gap: 16 }} showsVerticalScrollIndicator={false} alwaysBounceVertical overScrollMode="always">
+          <ScrollView
+            contentContainerStyle={{ gap: 16 }}
+            showsVerticalScrollIndicator={false}
+            alwaysBounceVertical
+            overScrollMode="always"
+          >
             {children}
           </ScrollView>
           {footer ? footer : null}
