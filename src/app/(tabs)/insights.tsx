@@ -477,13 +477,13 @@ function EnergyFlow({
   generated,
   grid,
   used,
-  battery,
+  exported,
   saved,
 }: {
   generated: number;
   grid: number;
   used: number;
-  battery: number;
+  exported: number;
   saved: number;
 }) {
   const theme = useAppTheme();
@@ -497,7 +497,7 @@ function EnergyFlow({
         <Ionicons name="arrow-forward" size={15} color={theme.textSubtle} />
         <FlowNode icon="home" label="Used" value={`${formatCompactKwh(used)} kWh`} tone="blue" />
         <Ionicons name="arrow-forward" size={15} color={theme.textSubtle} />
-        <FlowNode icon="battery-charging-outline" label="To Battery" value={`${formatCompactKwh(battery)} kWh`} tone="green" />
+        <FlowNode icon="return-up-forward-outline" label="Exported" value={`${formatCompactKwh(exported)} kWh`} tone="green" />
       </View>
       <Ionicons name="arrow-down" size={18} color={theme.textSubtle} />
       <FlowNode icon="leaf" label="Saved" value={`${formatCompactKwh(saved)} kWh`} tone="green" />
@@ -747,7 +747,7 @@ export default function InsightsScreen() {
             generated={summary.solarGeneratedKwh}
             grid={summary.gridConsumedKwh}
             used={summary.homeUsageKwh}
-            battery={exportedEnergyKwh}
+            exported={exportedEnergyKwh}
             saved={summary.selfConsumedSolarKwh}
           />
         </View>
