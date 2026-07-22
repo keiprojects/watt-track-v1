@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect } from 'react';
-import { Image, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, type ImageSourcePropType } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -16,10 +16,11 @@ import Animated, {
 import { getWeatherVisualKind } from '@/components/weather-icon';
 import type { CurrentWeatherSnapshot } from '@/services/weather.service';
 
-const sunnyHeroImage = require('../../assets/images/solar-home-hero-card-sunny.png');
-const cloudyHeroImage = require('../../assets/images/solar-home-hero-card-cloudy.png');
-const rainyHeroImage = require('../../assets/images/solar-home-hero-card-rainy.png');
-const nightHeroImage = require('../../assets/images/solar-home-hero-card-night.png');
+const sunnyHeroImage = require('../../assets/images/solar-home-hero-card-sunny.png') as ImageSourcePropType;
+const cloudyHeroImage = require('../../assets/images/solar-home-hero-card-cloudy.png') as ImageSourcePropType;
+const rainyHeroImage = require('../../assets/images/solar-home-hero-card-rainy.png') as ImageSourcePropType;
+const rainyNightHeroImage = require('../../assets/images/solar-home-hero-card-rainy-night.png') as ImageSourcePropType;
+const nightHeroImage = require('../../assets/images/solar-home-hero-card-night.png') as ImageSourcePropType;
 
 type HouseEnergyHeroProps = {
   weather?: CurrentWeatherSnapshot | null;
@@ -203,6 +204,45 @@ export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: Ho
   const isSnowy = visualKind === 'snow';
   const isCloudy = visualKind === 'cloudy' || visualKind === 'fog';
   const lightning = useSharedValue(0);
+  const imageTransition = useSharedValue(1);
+
+  const imageSource = (isRainy || isStormy) && isNight
+    ? rainyNightHeroImage
+    : isRainy || isStormy
+      ? rainyHeroImage
+      : isCloudy || isSnowy
+        ? cloudyHeroImage
+        : isNight
+          ? nightHeroImage
+          : sunnyHeroImage;
+  const [currentImageSource, setCurrentImageSource] = useState<ImageSourcePropType>(imageSource);
+  const [previousImageSource, setPreviousImageSource] = useState<ImageSourcePropType | null>(null);
+
+  useEffect(() => {
+    if (imageSource === currentImageSource) {
+      return;
+    }
+
+    if (reducedMotion) {
+      setPreviousImageSource(null);
+      setCurrentImageSource(imageSource);
+      imageTransition.value = 1;
+      return;
+    }
+
+    setPreviousImageSource(currentImageSource);
+    setCurrentImageSource(imageSource);
+    imageTransition.value = 0;
+    imageTransition.value = withTiming(1, { duration: 650, easing: Easing.inOut(Easing.quad) });
+
+    const cleanupPreviousImage = setTimeout(() => {
+      setPreviousImageSource(null);
+    }, 720);
+
+    return () => {
+      clearTimeout(cleanupPreviousImage);
+    };
+  }, [currentImageSource, imageSource, imageTransition, reducedMotion]);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -225,17 +265,15 @@ export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: Ho
       : withTiming(0, { duration: 200 });
   }, [isStormy, lightning, reducedMotion]);
 
+  const previousImageStyle = useAnimatedStyle(() => ({
+    opacity: 1 - imageTransition.value,
+  }));
+  const currentImageStyle = useAnimatedStyle(() => ({
+    opacity: previousImageSource ? imageTransition.value : 1,
+  }));
   const lightningStyle = useAnimatedStyle(() => ({
     opacity: lightning.value,
   }));
-
-  const imageSource = isNight
-    ? nightHeroImage
-    : isRainy || isStormy
-      ? rainyHeroImage
-      : isCloudy || isSnowy
-        ? cloudyHeroImage
-        : sunnyHeroImage;
 
   return (
     <View
@@ -251,18 +289,38 @@ export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: Ho
         backgroundColor: '#bfe4ff',
       }}
     >
-      <Image
-        source={imageSource}
+      {previousImageSource ? (
+        <Animated.Image
+          source={previousImageSource}
+          resizeMode="cover"
+          style={[
+            {
+              position: 'absolute',
+              inset: 0,
+              height: '100%',
+              width: '100%',
+            },
+            previousImageStyle,
+          ]}
+        />
+      ) : null}
+      <Animated.Image
+        source={currentImageSource}
         resizeMode="cover"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          height: '100%',
-          width: '100%',
-        }}
+        style={[
+          {
+            position: 'absolute',
+            inset: 0,
+            height: '100%',
+            width: '100%',
+          },
+          currentImageStyle,
+        ]}
       />
 
-      {isNight ? NIGHT_SPARKLES.map((star) => <Sparkle key={`${star.left}-${star.top}`} {...star} />) : null}
+      {isNight && !isRainy && !isStormy && !isCloudy && !isSnowy
+        ? NIGHT_SPARKLES.map((star) => <Sparkle key={`${star.left}-${star.top}`} {...star} />)
+        : null}
       {isRainy ? RAIN_DROPS.map((drop) => <FallingRain key={`${drop.left}-${drop.delay}`} {...drop} />) : null}
       {isSnowy ? SNOW_FLAKES.map((flake) => <FallingSnow key={`${flake.left}-${flake.delay}`} {...flake} />) : null}
 
