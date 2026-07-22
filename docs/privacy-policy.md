@@ -69,4 +69,4 @@ For privacy or support questions, contact:
 
 Kei Projects
 
-Email: support@keiprojects.com
+Email: support@keiprojects.dev

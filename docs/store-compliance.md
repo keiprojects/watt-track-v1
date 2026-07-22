@@ -31,7 +31,7 @@ Publication target:
 
 - Source: `site/support/index.html`
 - Coolify URL after deploying the `site/` static directory: `https://support.keiprojects.dev/support/`
-- Support email: `support@keiprojects.com`
+- Support email: `support@keiprojects.dev`
 
 ## Google Play Data Safety Draft
 

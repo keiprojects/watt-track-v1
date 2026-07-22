@@ -1,6 +1,6 @@
 export const APP_NAME = 'Watt Track';
 export const APP_VERSION = '1.0.0';
-export const SUPPORT_EMAIL = 'support@keiprojects.com';
+export const SUPPORT_EMAIL = 'support@keiprojects.dev';
 
 export const OPEN_SOURCE_LICENSES = [
   { name: 'Expo', license: 'MIT', purpose: 'App runtime, native APIs, and development tooling.' },

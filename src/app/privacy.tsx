@@ -6,7 +6,7 @@ import { ScreenHeader, ScreenScroll, SectionHeader, SoftCard } from '@/component
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 
-const SUPPORT_EMAIL = 'support@keiprojects.com';
+const SUPPORT_EMAIL = 'support@keiprojects.dev';
 
 function BodyText({ children }: { children: string }) {
   const theme = useAppTheme();
