@@ -25,7 +25,7 @@ The first planned provider set is:
 Additional app-backed inverter candidates to validate:
 
 - SRNE
-- PowMr
+- PowMr via Solar of Things / SiSeLi
 - Zamdon
 
 Cloud data will be manually previewed and imported as local WattTrack readings. The feature will not add automatic server sync, real-time monitoring, or a WattTrack user account in v1.
@@ -106,6 +106,7 @@ type InverterProviderId =
   | 'goodwe-sems'
   | 'huawei-fusionsolar'
   | 'sungrow-isolarcloud'
+  | 'solar-of-things'
   | 'srne'
   | 'powmr'
   | 'zamdon';
@@ -231,11 +232,17 @@ References:
 
 ### PowMr
 
-Include as an app-backed validation candidate. PowMr systems may use Wi-Fi monitoring modules and app-based remote monitoring, but public cloud API access is not confirmed. Before adapter work, verify the exact app/cloud used by current PowMr models, whether the Wi-Fi module posts to a vendor cloud, and whether access is official, partner-gated, or only feasible through local/serial integrations.
+Include as an app-backed validation candidate, with WIFI-RELAB treated as a Solar of Things / SiSeLi cloud path rather than a PowMr-owned cloud path. PowMr's pairing guide lists WIFI-RELAB for POW-RELAB and related HVM models using RS232 with Solar of Things for remote monitoring, parameter programming, and system status viewing.
 
-Reference:
+Before adapter work, verify whether Solar of Things has official API access, whether the public SiSeLi portal exposes stable authenticated endpoints, and whether daily historical energy totals are available without relying on private mobile-app scraping. If no official API is available, keep this path as unsupported for direct cloud import and evaluate a local bridge through RS232/RS485, Home Assistant, Solar Assistant, or MQTT.
 
+References:
+
+- [PowMr solar inverter WiFi module pairing guide](https://powmr.com/blogs/accessories/solar-inverter-wifi-module-pairing-guide)
 - [PowMr WIFI-VM monitoring module manual](https://manuals.plus/ae/1005009331761462)
+- [Solar of Things web portal](https://solar.siseli.com/)
+- [Solar of Things on Google Play](https://play.google.com/store/apps/details?id=com.ssli.sise_solar)
+- [Solar of Things on the App Store](https://apps.apple.com/us/app/solar-of-things/id6445806075)
 
 ### Zamdon
 
