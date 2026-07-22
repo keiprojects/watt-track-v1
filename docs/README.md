@@ -21,5 +21,6 @@ This folder is the source of truth for implementation planning, feature scope, a
 - `privacy-policy.md`: draft user-facing privacy policy for store publication.
 - `store-compliance.md`: Google Play and Apple App Store compliance worksheet for release preparation.
 - `native-qa-checklist.md`: production-equivalent Android build QA checklist.
+- `cloud-inverter-integration-plan.md`: future-feature plan for optional inverter cloud imports.
 - `../site/privacy/index.html`: public privacy policy page source for Coolify static hosting.
 - `../site/support/index.html`: public support page source for Coolify static hosting.
