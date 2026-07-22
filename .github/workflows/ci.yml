@@ -43,6 +43,9 @@ jobs:
       - name: Run TypeScript checks
         run: npm run typecheck
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Validate Android bundle export
         run: npm run export:android
 

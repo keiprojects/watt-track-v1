@@ -1,6 +1,6 @@
 # Watt Track Store Compliance Worksheet
 
-Last updated: July 21, 2026
+Last updated: July 22, 2026
 
 This worksheet prepares the store compliance answers for the current Watt Track implementation. Re-check these answers before each release, especially if analytics, crash reporting, accounts, cloud sync, ads, subscriptions, or new third-party SDKs are added.
 
@@ -17,25 +17,21 @@ This worksheet prepares the store compliance answers for the current Watt Track 
 
 Required before store submission.
 
-Recommended action:
+Publication target:
 
-- Publish `docs/privacy-policy.md` as a public webpage.
-- Use a stable URL such as `https://keiprojects.com/watt-track/privacy` or a GitHub Pages URL.
+- Source: `site/privacy/index.html`
+- Coolify URL after deploying the `site/` static directory: `https://support.keiprojects.dev/privacy/`
 - Use the same URL in Google Play Console and App Store Connect.
-
-Temporary local source:
-
-- `docs/privacy-policy.md`
 
 ## Support URL
 
 Required or strongly expected for store review.
 
-Recommended action:
+Publication target:
 
-- Publish a simple support page with contact email, app name, version, troubleshooting notes, and privacy policy link.
-- Suggested URL: `https://keiprojects.com/watt-track/support`
-- Suggested email: `support@keiprojects.com`
+- Source: `site/support/index.html`
+- Coolify URL after deploying the `site/` static directory: `https://support.keiprojects.dev/support/`
+- Support email: `support@keiprojects.com`
 
 ## Google Play Data Safety Draft
 
@@ -143,8 +139,9 @@ Watt Track does not require an account. On first launch, complete onboarding wit
 
 ## Remaining Before Submission
 
-- Publish privacy policy URL.
-- Publish support URL.
+- Deploy the `site/` static directory in Coolify and confirm both public URLs return HTTP 200:
+  - `https://support.keiprojects.dev/privacy/`
+  - `https://support.keiprojects.dev/support/`
 - Confirm support email mailbox is active.
 - Verify Play Console Data Safety answers against final release binary.
 - Verify App Store Connect App Privacy answers against final release binary.

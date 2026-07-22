@@ -192,8 +192,8 @@ export function AnimatedWeatherIcon({
       }}
     >
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: 'none',
           position: 'absolute',
           height: size * 0.88,
           width: size * 0.88,
@@ -258,8 +258,8 @@ export function AnimatedWeatherIcon({
             <Ionicons name="rainy" size={glyphSize} color={cloudColor} />
           </Animated.View>
           <View
-            pointerEvents="none"
             style={{
+              pointerEvents: 'none',
               position: 'absolute',
               bottom: size * 0.06,
               flexDirection: 'row',
@@ -304,8 +304,8 @@ export function AnimatedWeatherIcon({
             <Ionicons name="cloud" size={cloudSize} color={cloudColor} />
           </Animated.View>
           <View
-            pointerEvents="none"
             style={{
+              pointerEvents: 'none',
               position: 'absolute',
               bottom: size * 0.08,
               flexDirection: 'row',

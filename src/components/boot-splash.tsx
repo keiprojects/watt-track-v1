@@ -92,9 +92,9 @@ export function BootSplash({ onReady }: BootSplashProps) {
         }}
       >
         <Animated.View
-          pointerEvents="none"
           style={[
             {
+              pointerEvents: 'none',
               position: 'absolute',
               top: 8,
               right: 34,

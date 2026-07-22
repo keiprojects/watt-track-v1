@@ -99,9 +99,9 @@ function FallingRain({ left, delay, duration, travel }: RainDropProps) {
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={[
         {
+          pointerEvents: 'none',
           position: 'absolute',
           left,
           top: -24,
@@ -141,7 +141,7 @@ function FallingSnow({ left, delay, duration, travel }: RainDropProps) {
   }));
 
   return (
-    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left, top: -12 }, style]}>
+    <Animated.View style={[{ pointerEvents: 'none', position: 'absolute', left, top: -12 }, style]}>
       <Ionicons name="snow" size={12} color="rgba(248, 252, 255, 0.94)" />
     </Animated.View>
   );
@@ -177,9 +177,9 @@ function Sparkle({ left, top, size, delay }: StarProps) {
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={[
         {
+          pointerEvents: 'none',
           position: 'absolute',
           left,
           top,
@@ -268,8 +268,8 @@ export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: Ho
 
       {isLoading ? (
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             left: 14,
             top: 14,
@@ -283,9 +283,9 @@ export function HouseEnergyHero({ weather, isLoading = false, height = 172 }: Ho
 
       {isStormy ? (
         <Animated.View
-          pointerEvents="none"
           style={[
             {
+              pointerEvents: 'none',
               position: 'absolute',
               inset: 0,
               backgroundColor: 'rgba(255, 244, 184, 0.34)',

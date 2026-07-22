@@ -1,6 +1,6 @@
 # Watt Track Privacy Policy
 
-Last updated: July 21, 2026
+Last updated: July 22, 2026
 
 Watt Track is a local-first solar tracking app for manually recording household solar, grid, exported energy, savings, costs, and payback estimates.
 

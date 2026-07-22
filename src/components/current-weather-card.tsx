@@ -134,8 +134,8 @@ export function CurrentWeatherCard({
       }}
     >
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: 'none',
           position: 'absolute',
           top: -20,
           right: -8,

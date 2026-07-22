@@ -34,9 +34,14 @@
       }
     },
     "owner": "keiprojects",
+    "description": "Local-first solar, grid, savings, and ROI tracking for household energy systems.",
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.keiprojects.watttrack",
+      "supportsTablet": false
     },
     "android": {
       "package": "com.keiprojects.watttrack",

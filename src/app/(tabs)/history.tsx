@@ -218,7 +218,7 @@ export default function HistoryScreen() {
                   {formatCurrency(totalSavings)}
                 </Text>
               </View>
-              <View pointerEvents="none" style={{ width: Math.max(120, chartWidth) }}>
+              <View style={{ pointerEvents: 'none', width: Math.max(120, chartWidth) }}>
                 <LineChart
                   data={lineData}
                   width={Math.max(120, chartWidth)}

@@ -1,6 +1,6 @@
 # WattTrack Development Plan
 
-Last updated: 2026-07-16
+Last updated: 2026-07-22
 Status owner: project repository
 
 ## Purpose
@@ -284,6 +284,10 @@ Progress notes:
 - Asia/Manila date parsing and display formatting were tightened across dashboard, history, insights, and reading chronology utilities.
 - 2026-07-21 QA pass: `npm run typecheck`, `npx expo-doctor`, and `npm run export:android` completed successfully.
 - 2026-07-21 web smoke test covered first-run onboarding, cumulative reading entry, derived dashboard totals, history list/detail/edit route rendering, and invalid cumulative warning visibility.
+- 2026-07-22 readiness pass added unit coverage for calculation, billing-cycle, ROI/payback, and backup import/merge validation; `npm test` and `npm run typecheck` pass locally.
+- 2026-07-22 CI now runs unit tests, and the Android preview workflow validates typecheck and unit tests before building the APK artifact.
+- 2026-07-22 Coolify-ready static sources were added for public privacy and support pages under `site/`.
+- 2026-07-22 local Android preview build attempt with `npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output output\watt-track-preview.apk` was blocked because EAS local Android builds require macOS or Linux, and this workspace is running on Windows. Use the GitHub `Build Android Preview APK` workflow for the APK build.
 - Native-device QA is still required for local reminder delivery, share sheets, document picker import, app close/reopen persistence, and fully offline Android behavior.
 
 Definition of done:
@@ -335,11 +339,11 @@ Use this section as the release gate. Mark each item only when verified in app b
 - [x] Dashboard displays daily and monthly summaries.
 - [x] History supports view, edit, and delete.
 - [x] Insights displays totals, savings, ROI, and payback.
-- [ ] Additional system costs can be recorded.
-- [ ] Data persists after app close and reopen.
-- [ ] App works without internet.
-- [ ] User can export readings as CSV.
-- [ ] User can export and import JSON backup.
+- [x] Additional system costs can be recorded.
+- [ ] Data persists after app close and reopen on Android preview or production build.
+- [ ] App works without internet on Android preview or production build.
+- [ ] User can export readings as CSV on Android preview or production build.
+- [ ] User can export and import JSON backup on Android preview or production build.
 - [x] Invalid cumulative readings show warning.
 - [x] Missing days are handled correctly.
 - [x] No crash occurs when no readings exist.

@@ -760,7 +760,7 @@ export default function InsightsScreen() {
               <Text style={{ color: theme.accent, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
             </View>
           </View>
-          <View pointerEvents="none">
+          <View style={{ pointerEvents: 'none' }}>
             <BarChart
               data={barData}
               width={chartWidth}
@@ -813,7 +813,7 @@ export default function InsightsScreen() {
               ROI {formatPercent(roi.roiPercentage)}
             </Text>
           </View>
-          <View pointerEvents="none" style={{ width: Math.min(chartWidth, 150) }}>
+          <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 150) }}>
             <LineChart
               data={savingsLineData}
               width={Math.min(chartWidth, 150)}
