@@ -140,7 +140,7 @@ export function BootSplash({ onReady }: BootSplashProps) {
           textAlign: 'center',
         }}
       >
-        Powering up your solar dashboard…
+        Powering up your solar dashboard...
       </Text>
     </Animated.View>
   );
