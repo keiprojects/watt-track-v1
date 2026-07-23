@@ -20,9 +20,7 @@ import {
   aggregateReadingsByDate,
   estimatePaybackForecast,
   filterBillingCycleReadings,
-  filterReadingsByDateRange,
   getBillingCycleWindow,
-  getPreviousBillingCycleWindow,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
@@ -106,16 +104,6 @@ function formatCompactKwh(value: number): string {
 
 function formatEnergy(value: number): string {
   return `${formatCompactKwh(value)} kWh`;
-}
-
-function formatSignedPercentDelta(current: number, previous: number): string {
-  if (previous === 0) {
-    return current === 0 ? '0%' : 'New';
-  }
-
-  const delta = ((current - previous) / previous) * 100;
-  const sign = delta > 0 ? '+' : '';
-  return `${sign}${delta.toFixed(0)}%`;
 }
 
 function getDateDisplayValue(date: string): string {
@@ -540,20 +528,6 @@ export default function InsightsScreen() {
     () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
   );
-  const previousBillingCycleWindow = useMemo(
-    () => getPreviousBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
-    [systemProfile?.billingCycleStartDay, today],
-  );
-  const previousBillingCycleReadings = useMemo(
-    () =>
-      filterReadingsByDateRange({
-        readings,
-        startDate: previousBillingCycleWindow.startDate,
-        endDate: previousBillingCycleWindow.endDate,
-      }),
-    [previousBillingCycleWindow.endDate, previousBillingCycleWindow.startDate, readings],
-  );
-  const previousBillingCycleSummary = useMemo(() => summarizeReadings(previousBillingCycleReadings), [previousBillingCycleReadings]);
   const lifetimeRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const paybackForecast = useMemo(
     () => estimatePaybackForecast({ readings, remainingAmount: lifetimeRoi.remainingAmount, window: forecastWindow }),
@@ -609,19 +583,10 @@ export default function InsightsScreen() {
   ];
   const rangeLabel = hasDateFilter ? 'Custom range' : getRangeLabel(anchorDate, selectedRange);
   const billingCycleLabel = `${formatMonthDayLabel(billingCycleWindow.startDate)} - ${formatMonthDayLabel(billingCycleWindow.endDate)}`;
-  const previousBillingCycleLabel = `${formatMonthDayLabel(previousBillingCycleWindow.startDate)} - ${formatMonthDayLabel(previousBillingCycleWindow.endDate)}`;
   const gridBillHelper =
     billingCycleSummary.estimatedGridCost > 0
       ? `${formatCurrency(billingCycleSummary.estimatedGridCost)} cycle-to-date`
       : 'Add grid readings to project bill';
-  const previousGridBillHelper =
-    previousBillingCycleReadings.length > 0
-      ? `${formatEnergy(previousBillingCycleSummary.gridConsumedKwh)} grid consumed`
-      : 'No previous cycle readings';
-  const previousGridBillComparison =
-    previousBillingCycleReadings.length > 0
-      ? `${formatSignedPercentDelta(billingCycleSummary.estimatedGridCost, previousBillingCycleSummary.estimatedGridCost)} vs current cycle to date`
-      : previousGridBillHelper;
   const projectedPaybackLabel = paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD';
   const paybackHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Add more savings data'
@@ -869,24 +834,6 @@ export default function InsightsScreen() {
             <BillStat label="Days" value={`${billingCycleWindow.elapsedDays}/${billingCycleWindow.totalDays}`} />
             <BillStat label="Avg / day" value={formatCurrency(averageBillingCycleGridCost)} accent />
             <BillStat label="Rate" value={formatRate(billingCycleRate)} />
-          </View>
-        </SoftCard>
-
-        <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={44} />
-          <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Previous Grid Bill</Text>
-            <Text
-              selectable
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.62}
-              style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-            >
-              {formatCurrency(previousBillingCycleSummary.estimatedGridCost)}
-            </Text>
-            <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{previousBillingCycleLabel}</Text>
-            <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>{previousGridBillComparison}</Text>
           </View>
         </SoftCard>
 

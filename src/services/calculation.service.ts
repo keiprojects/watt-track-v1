@@ -392,32 +392,6 @@ export function getBillingCycleWindow({
   };
 }
 
-export function getPreviousBillingCycleWindow({
-  today,
-  billingCycleStartDay,
-}: {
-  today: string;
-  billingCycleStartDay?: number;
-}): BillingCycleWindow {
-  const currentWindow = getBillingCycleWindow({ today, billingCycleStartDay });
-  return getBillingCycleWindow({
-    today: addDaysToDate(currentWindow.startDate, -1),
-    billingCycleStartDay,
-  });
-}
-
-export function filterReadingsByDateRange({
-  readings,
-  startDate,
-  endDate,
-}: {
-  readings: EnergyReading[];
-  startDate: string;
-  endDate: string;
-}): EnergyReading[] {
-  return readings.filter((reading) => isDateWithinRange(reading.date, startDate, endDate));
-}
-
 export function filterBillingCycleReadings({
   readings,
   today,

@@ -19,9 +19,7 @@ import {
 import {
   aggregateReadingsByDate,
   filterBillingCycleReadings,
-  filterReadingsByDateRange,
   getBillingCycleStartDate,
-  getPreviousBillingCycleWindow,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
@@ -99,20 +97,6 @@ export default function DashboardScreen() {
     [readings, systemProfile?.billingCycleStartDay, today],
   );
   const billingSummary = useMemo(() => summarizeReadings(billingReadings), [billingReadings]);
-  const previousBillingCycleWindow = useMemo(
-    () => getPreviousBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
-    [systemProfile?.billingCycleStartDay, today],
-  );
-  const previousBillingReadings = useMemo(
-    () =>
-      filterReadingsByDateRange({
-        readings,
-        startDate: previousBillingCycleWindow.startDate,
-        endDate: previousBillingCycleWindow.endDate,
-      }),
-    [previousBillingCycleWindow.endDate, previousBillingCycleWindow.startDate, readings],
-  );
-  const previousBillingSummary = useMemo(() => summarizeReadings(previousBillingReadings), [previousBillingReadings]);
   const roiSummary = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const dailySummaries = useMemo(() => aggregateReadingsByDate(billingReadings).slice(-8), [billingReadings]);
   const sparklineData = dailySummaries.length
@@ -129,12 +113,6 @@ export default function DashboardScreen() {
     ? `Recent reading: ${formatShortDate(latestReading.date)}${latestReading.time ? `, ${latestReading.time}` : ''}`
     : 'Add a reading to see current usage';
   const billingCycleStartLabel = formatMonthDayLabel(getBillingCycleStartDate(today, systemProfile?.billingCycleStartDay));
-  const previousBillLabel = `${formatMonthDayLabel(previousBillingCycleWindow.startDate)} - ${formatMonthDayLabel(previousBillingCycleWindow.endDate)}`;
-  const previousBillHelper =
-    previousBillingReadings.length > 0
-      ? `${formatCompactKwh(previousBillingSummary.gridConsumedKwh)} grid consumed`
-      : 'No readings in the previous cycle';
-  const previousBillDelta = previousBillingReadings.length > 0 ? formatDelta(billingSummary.estimatedGridCost, previousBillingSummary.estimatedGridCost) : undefined;
 
   return (
     <ScreenScroll gap={14}>
@@ -271,28 +249,6 @@ export default function DashboardScreen() {
               <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(billingSummary.selfConsumedSolarKwh)}</Text>
             </View>
           </View>
-        </View>
-      </SoftCard>
-
-      <SoftCard tone="blue" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={44} />
-        <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
-          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Previous Bill</Text>
-          <Text
-            selectable
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.68}
-            style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-          >
-            {formatCurrency(previousBillingSummary.estimatedGridCost)}
-          </Text>
-          <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-            {previousBillLabel}
-          </Text>
-          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-            {previousBillDelta ? `${previousBillDelta} vs current cycle to date` : previousBillHelper}
-          </Text>
         </View>
       </SoftCard>
 

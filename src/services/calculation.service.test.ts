@@ -3,11 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildReadingPreview,
   estimatePaybackForecast,
-  filterReadingsByDateRange,
   getBillingCycleWindow,
-  getPreviousBillingCycleWindow,
   recalculateReadings,
-  summarizeReadings,
   summarizeRoi,
 } from './calculation.service';
 import type { SystemCost } from '@/types/cost';
@@ -200,35 +197,6 @@ describe('billing cycle windows', () => {
       nextStartDate: '2026-02-28',
       elapsedDays: 16,
       totalDays: 28,
-    });
-  });
-
-  it('builds the completed previous billing cycle window', () => {
-    expect(getPreviousBillingCycleWindow({ today: '2026-07-23', billingCycleStartDay: 15 })).toMatchObject({
-      startDate: '2026-06-15',
-      endDate: '2026-07-14',
-      nextStartDate: '2026-07-15',
-      elapsedDays: 30,
-      totalDays: 30,
-    });
-  });
-
-  it('summarizes readings from the previous bill window', () => {
-    const previousWindow = getPreviousBillingCycleWindow({ today: '2026-07-23', billingCycleStartDay: 15 });
-    const previousReadings = filterReadingsByDateRange({
-      readings: [
-        reading({ id: 'before-cycle', date: '2026-06-14', gridConsumptionKwh: 4, estimatedGridCost: 48 }),
-        reading({ id: 'cycle-start', date: '2026-06-15', gridConsumptionKwh: 7, estimatedGridCost: 84 }),
-        reading({ id: 'cycle-end', date: '2026-07-14', gridConsumptionKwh: 8, estimatedGridCost: 96 }),
-        reading({ id: 'current-cycle', date: '2026-07-15', gridConsumptionKwh: 10, estimatedGridCost: 120 }),
-      ],
-      startDate: previousWindow.startDate,
-      endDate: previousWindow.endDate,
-    });
-
-    expect(summarizeReadings(previousReadings)).toMatchObject({
-      gridConsumedKwh: 15,
-      estimatedGridCost: 180,
     });
   });
 });
