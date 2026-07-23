@@ -2,6 +2,7 @@ export const STORAGE_KEYS = {
   systemProfile: 'watttrack.systemProfile',
   energyReadings: 'watttrack.energyReadings',
   systemCosts: 'watttrack.systemCosts',
+  billingCycleOverrides: 'watttrack.billingCycleOverrides',
   appSettings: 'watttrack.appSettings',
   schemaVersion: 'watttrack.schemaVersion',
   localBackups: 'watttrack.localBackups',
@@ -9,4 +10,4 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;

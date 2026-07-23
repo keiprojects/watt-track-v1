@@ -20,6 +20,7 @@ import {
   getNotificationsUnavailableMessage,
   loadNotificationsModule,
 } from '@/services/notifications.runtime';
+import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
@@ -34,6 +35,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const theme = useAppTheme();
+  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
@@ -52,7 +54,7 @@ export default function RootLayout() {
   useEffect(() => {
     let isMounted = true;
 
-    void Promise.allSettled([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts()]).then((results) => {
+    void Promise.allSettled([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]).then((results) => {
       if (__DEV__) {
         results.forEach((result) => {
           if (result.status === 'rejected') {
@@ -69,7 +71,7 @@ export default function RootLayout() {
     return () => {
       isMounted = false;
     };
-  }, [hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
+  }, [hydrateBillingCycles, hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -1,3 +1,4 @@
+import type { BillingCycleOverride } from '@/types/billing';
 import type { SystemCost } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import type { AppSettings } from '@/types/settings';
@@ -10,6 +11,7 @@ export type WattTrackBackup = {
   systemProfile: SystemProfile | null;
   energyReadings: EnergyReading[];
   systemCosts: SystemCost[];
+  billingCycleOverrides?: BillingCycleOverride[];
   appSettings: AppSettings;
 };
 

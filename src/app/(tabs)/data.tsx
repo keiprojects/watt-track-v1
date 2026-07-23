@@ -8,6 +8,7 @@ import { IconSquare, ScreenHeader, ScreenScroll, SectionHeader, SoftCard, wattGr
 import { exportService } from '@/services/export.service';
 import { notificationService } from '@/services/notification.service';
 import { storageService } from '@/services/storage.service';
+import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -78,13 +79,15 @@ export default function DataScreen() {
   const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
+  const cycleOverrides = useBillingCyclesStore((state) => state.cycleOverrides);
+  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
   const costs = useCostsStore((state) => state.costs);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
   const systemProfile = useSystemStore((state) => state.systemProfile);
   const [backups, setBackups] = useState<LocalBackupSnapshot[]>([]);
-  const backupSummary = `${readings.length} readings | ${costs.length} costs | ${systemProfile ? '1 profile' : '0 profiles'}`;
+  const backupSummary = `${readings.length} readings | ${costs.length} costs | ${cycleOverrides.length} bill cycles | ${systemProfile ? '1 profile' : '0 profiles'}`;
 
   useEffect(() => {
     void storageService
@@ -98,7 +101,7 @@ export default function DataScreen() {
   }, []);
 
   const rehydrateAllStores = async () => {
-    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts()]);
+    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]);
   };
 
   const restoreBackup = async (backup: string | WattTrackBackup, mode: RestoreMode) => {

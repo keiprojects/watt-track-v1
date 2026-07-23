@@ -8,6 +8,7 @@ import { ListChevron, ScreenHeader, ScreenScroll, SectionHeader, SoftCard } from
 import { APP_VERSION } from '@/constants/about';
 import { notificationService } from '@/services/notification.service';
 import { storageService } from '@/services/storage.service';
+import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -112,6 +113,7 @@ export default function SettingsScreen() {
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
+  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
   const themePreference = useSettingsStore((state) => state.settings.theme);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const { formatCurrency, formatRate } = useAppFormatters();
@@ -120,11 +122,11 @@ export default function SettingsScreen() {
     'Set your system location';
 
   const rehydrateAllStores = async () => {
-    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts()]);
+    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]);
   };
 
   const resetApplication = () => {
-    Alert.alert('Clear local data?', 'This removes your profile, readings, costs, settings, and reminder schedule from this device.', [
+    Alert.alert('Clear local data?', 'This removes your profile, readings, bill cycles, costs, settings, and reminder schedule from this device.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Clear data',

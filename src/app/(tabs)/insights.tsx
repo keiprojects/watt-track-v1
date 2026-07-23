@@ -19,18 +19,19 @@ import {
 import {
   aggregateReadingsByDate,
   estimatePaybackForecast,
-  filterBillingCycleReadings,
   getBillingCycleWindow,
   getPreviousBillingCycleWindow,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
+import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
+import type { BillingCycleOverride } from '@/types/billing';
 import type { EnergyReading } from '@/types/reading';
 import {
   addDaysToDate,
@@ -60,6 +61,22 @@ type CostDraft = {
   description: string;
   amount: string;
   notes: string;
+};
+type BillEstimate = {
+  cost: number;
+  rate: number;
+  hasOverride: boolean;
+};
+type BillCycleDraft = {
+  startDate: string;
+  endDate: string;
+  importRate: string;
+};
+type BillCycleWindow = {
+  startDate: string;
+  endDate: string;
+  elapsedDays: number;
+  totalDays: number;
 };
 
 const rangeOptions: { label: string; value: AnalyticsRange }[] = [
@@ -105,6 +122,53 @@ function formatCompactKwh(value: number): string {
 
 function formatEnergy(value: number): string {
   return `${formatCompactKwh(value)} kWh`;
+}
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function createBillCycleDraft(): BillCycleDraft {
+  return {
+    startDate: '',
+    endDate: '',
+    importRate: '',
+  };
+}
+
+function getEffectiveBillCycleWindow({
+  fallbackStartDate,
+  fallbackEndDate,
+  today,
+  override,
+}: {
+  fallbackStartDate: string;
+  fallbackEndDate: string;
+  today: string;
+  override?: BillingCycleOverride;
+}): BillCycleWindow {
+  const startDate = override?.cycleStartDate ?? fallbackStartDate;
+  const endDate = override?.cycleEndDate ?? fallbackEndDate;
+  const totalDays = Math.max(1, differenceInCalendarDays(endDate, startDate) + 1);
+  const elapsedDays = Math.max(1, Math.min(totalDays, differenceInCalendarDays(today, startDate) + 1));
+
+  return {
+    startDate,
+    endDate,
+    elapsedDays,
+    totalDays,
+  };
+}
+
+function estimateGridBill(summary: ReturnType<typeof summarizeReadings>, fallbackRate: number, overrideRate?: number): BillEstimate {
+  const weightedRate = summary.gridConsumedKwh === 0 ? fallbackRate : summary.estimatedGridCost / summary.gridConsumedKwh;
+  const rate = overrideRate ?? weightedRate;
+
+  return {
+    cost: roundMoney(summary.gridConsumedKwh * rate),
+    rate,
+    hasOverride: typeof overrideRate === 'number',
+  };
 }
 
 function formatSignedPercentDelta(current: number, previous: number): string {
@@ -500,6 +564,9 @@ export default function InsightsScreen() {
   const theme = useAppTheme();
   const { width } = useWindowDimensions();
   const readings = useReadingsStore((state) => state.readings);
+  const cycleOverrides = useBillingCyclesStore((state) => state.cycleOverrides);
+  const saveCycleOverride = useBillingCyclesStore((state) => state.saveCycleOverride);
+  const deleteCycleOverride = useBillingCyclesStore((state) => state.deleteCycleOverride);
   const costs = useCostsStore((state) => state.costs);
   const saveCost = useCostsStore((state) => state.saveCost);
   const updateCost = useCostsStore((state) => state.updateCost);
@@ -513,6 +580,8 @@ export default function InsightsScreen() {
   const [toDate, setToDate] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [forecastWindow, setForecastWindow] = useState<ForecastWindow>('30d');
+  const [currentCycleDraft, setCurrentCycleDraft] = useState<BillCycleDraft>(() => createBillCycleDraft());
+  const [previousCycleDraft, setPreviousCycleDraft] = useState<BillCycleDraft>(() => createBillCycleDraft());
   const [costDraft, setCostDraft] = useState<CostDraft>(() => createDefaultCostDraft());
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const hasDateFilter = Boolean(fromDate || toDate);
@@ -525,29 +594,49 @@ export default function InsightsScreen() {
     [anchorDate, fromDate, hasDateFilter, readings, selectedRange, toDate],
   );
   const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
-  const billingCycleReadings = useMemo(
-    () =>
-      filterBillingCycleReadings({
-        readings,
-        today,
-        billingCycleStartDay: systemProfile?.billingCycleStartDay,
-      }),
-    [readings, systemProfile?.billingCycleStartDay, today],
-  );
-  const billingCycleSummary = useMemo(() => summarizeReadings(billingCycleReadings), [billingCycleReadings]);
-  const billingCycleWindow = useMemo(
+  const computedBillingCycleWindow = useMemo(
     () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
   );
-  const previousBillingCycleWindow = useMemo(
+  const computedPreviousBillingCycleWindow = useMemo(
     () => getPreviousBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
   );
+  const currentCycleOverride = cycleOverrides.find((override) => override.anchorCycleStartDate === computedBillingCycleWindow.startDate);
+  const previousCycleOverride = cycleOverrides.find((override) => override.anchorCycleStartDate === computedPreviousBillingCycleWindow.startDate);
+  const billingCycleWindow = getEffectiveBillCycleWindow({
+    fallbackStartDate: computedBillingCycleWindow.startDate,
+    fallbackEndDate: computedBillingCycleWindow.endDate,
+    today,
+    override: currentCycleOverride,
+  });
+  const previousBillingCycleWindow = getEffectiveBillCycleWindow({
+    fallbackStartDate: computedPreviousBillingCycleWindow.startDate,
+    fallbackEndDate: computedPreviousBillingCycleWindow.endDate,
+    today: computedPreviousBillingCycleWindow.endDate,
+    override: previousCycleOverride,
+  });
+  const billingCycleReadingsEndDate = today.localeCompare(billingCycleWindow.endDate) <= 0 ? today : billingCycleWindow.endDate;
+  const billingCycleReadings = useMemo(
+    () => readings.filter((reading) => isDateWithinRange(reading.date, billingCycleWindow.startDate, billingCycleReadingsEndDate)),
+    [billingCycleReadingsEndDate, billingCycleWindow.startDate, readings],
+  );
+  const billingCycleSummary = useMemo(() => summarizeReadings(billingCycleReadings), [billingCycleReadings]);
   const previousBillingCycleReadings = useMemo(
     () => readings.filter((reading) => isDateWithinRange(reading.date, previousBillingCycleWindow.startDate, previousBillingCycleWindow.endDate)),
     [previousBillingCycleWindow.endDate, previousBillingCycleWindow.startDate, readings],
   );
   const previousBillingCycleSummary = useMemo(() => summarizeReadings(previousBillingCycleReadings), [previousBillingCycleReadings]);
+  const billingCycleEstimate = estimateGridBill(
+    billingCycleSummary,
+    systemProfile?.defaultImportRate ?? 0,
+    currentCycleOverride?.importRate,
+  );
+  const previousBillingCycleEstimate = estimateGridBill(
+    previousBillingCycleSummary,
+    systemProfile?.defaultImportRate ?? 0,
+    previousCycleOverride?.importRate,
+  );
   const lifetimeRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const paybackForecast = useMemo(
     () => estimatePaybackForecast({ readings, remainingAmount: lifetimeRoi.remainingAmount, window: forecastWindow }),
@@ -559,13 +648,10 @@ export default function InsightsScreen() {
   const averageDailySavings = rangeDailySummaries.length === 0 ? 0 : summary.estimatedSavings / rangeDailySummaries.length;
   const averageSolarPerDay = rangeDailySummaries.length === 0 ? 0 : summary.solarGeneratedKwh / rangeDailySummaries.length;
   const averageDailyGridCost = rangeDailySummaries.length === 0 ? 0 : summary.estimatedGridCost / rangeDailySummaries.length;
-  const averageBillingCycleGridCost = billingCycleSummary.estimatedGridCost / billingCycleWindow.elapsedDays;
+  const averageBillingCycleGridCost = billingCycleEstimate.cost / billingCycleWindow.elapsedDays;
   const expectedGridMonthlyBill = averageBillingCycleGridCost * billingCycleWindow.totalDays;
   const billingCycleProgress = Math.min(100, Math.max(0, (billingCycleWindow.elapsedDays / billingCycleWindow.totalDays) * 100));
-  const billingCycleRate =
-    billingCycleSummary.gridConsumedKwh === 0
-      ? systemProfile?.defaultImportRate ?? 0
-      : billingCycleSummary.estimatedGridCost / billingCycleSummary.gridConsumedKwh;
+  const billingCycleRate = billingCycleEstimate.rate;
   const solarContribution = summary.homeUsageKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.homeUsageKwh) * 100;
   const selfConsumptionShare = summary.solarGeneratedKwh === 0 ? 0 : (summary.selfConsumedSolarKwh / summary.solarGeneratedKwh) * 100;
   const lowestSolarDay = rangeDailySummaries.reduce<(typeof rangeDailySummaries)[number] | undefined>((lowest, reading) => {
@@ -607,8 +693,8 @@ export default function InsightsScreen() {
   const billingCycleLabel = `${formatMonthDayLabel(billingCycleWindow.startDate)} - ${formatMonthDayLabel(billingCycleWindow.endDate)}`;
   const previousBillingCycleLabel = `${formatMonthDayLabel(previousBillingCycleWindow.startDate)} - ${formatMonthDayLabel(previousBillingCycleWindow.endDate)}`;
   const gridBillHelper =
-    billingCycleSummary.estimatedGridCost > 0
-      ? `${formatCurrency(billingCycleSummary.estimatedGridCost)} cycle-to-date`
+    billingCycleEstimate.cost > 0
+      ? `${formatCurrency(billingCycleEstimate.cost)} cycle-to-date${billingCycleEstimate.hasOverride ? ' at bill rate' : ''}`
       : 'Add grid readings to project bill';
   const previousGridBillHelper =
     previousBillingCycleReadings.length > 0
@@ -616,7 +702,7 @@ export default function InsightsScreen() {
       : 'No previous cycle readings';
   const previousGridBillComparison =
     previousBillingCycleReadings.length > 0
-      ? `${formatSignedPercentDelta(billingCycleSummary.estimatedGridCost, previousBillingCycleSummary.estimatedGridCost)} vs current cycle to date`
+      ? `${formatSignedPercentDelta(billingCycleEstimate.cost, previousBillingCycleEstimate.cost)} vs current cycle to date`
       : previousGridBillHelper;
   const projectedPaybackLabel = paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD';
   const paybackHelper = !paybackForecast.hasEnoughSavingsData
@@ -634,9 +720,65 @@ export default function InsightsScreen() {
     setCostDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
   };
 
+  const updateCurrentCycleDraftField = <Key extends keyof BillCycleDraft>(key: Key, value: BillCycleDraft[Key]) => {
+    setCurrentCycleDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
+  };
+
+  const updatePreviousCycleDraftField = <Key extends keyof BillCycleDraft>(key: Key, value: BillCycleDraft[Key]) => {
+    setPreviousCycleDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
+  };
+
   const resetCostDraft = () => {
     setEditingCostId(null);
     setCostDraft(createDefaultCostDraft());
+  };
+
+  const saveBillingCycleDraft = async ({
+    anchorCycleStartDate,
+    fallbackStartDate,
+    fallbackEndDate,
+    draft,
+    existingOverride,
+    clearDraft,
+  }: {
+    anchorCycleStartDate: string;
+    fallbackStartDate: string;
+    fallbackEndDate: string;
+    draft: BillCycleDraft;
+    existingOverride?: BillingCycleOverride;
+    clearDraft: () => void;
+  }) => {
+    const cycleStartDate = draft.startDate || existingOverride?.cycleStartDate || fallbackStartDate;
+    const cycleEndDate = draft.endDate || existingOverride?.cycleEndDate || fallbackEndDate;
+    const importRate = draft.importRate.trim() ? Number(draft.importRate) : existingOverride?.importRate;
+
+    if (!isValidDateInputValue(cycleStartDate) || !isValidDateInputValue(cycleEndDate) || cycleStartDate > cycleEndDate) {
+      Alert.alert('Check the bill period', 'Enter a valid start and end date for the utility bill period.');
+      return;
+    }
+
+    if (typeof importRate === 'number' && (!Number.isFinite(importRate) || importRate <= 0)) {
+      Alert.alert('Check the bill rate', 'Enter a valid import rate, or leave it blank to keep using reading rates.');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await saveCycleOverride({
+      id: existingOverride?.id ?? createId('bill-cycle'),
+      anchorCycleStartDate,
+      cycleStartDate,
+      cycleEndDate,
+      importRate,
+      createdAt: existingOverride?.createdAt ?? now,
+      updatedAt: now,
+    });
+    clearDraft();
+    Alert.alert('Bill cycle saved', 'This cycle will use the saved bill period and rate without editing historical readings.');
+  };
+
+  const clearBillingCycleOverride = async (overrideId: string) => {
+    await deleteCycleOverride(overrideId);
+    Alert.alert('Bill cycle cleared', 'This cycle is back to the profile billing day and reading rates.');
   };
 
   const startEditingCost = (cost: SystemCost) => {
@@ -866,14 +1008,70 @@ export default function InsightsScreen() {
               <BillStat label="Cycle" value={billingCycleLabel} />
               <BillStat label="Days" value={`${billingCycleWindow.elapsedDays}/${billingCycleWindow.totalDays}`} />
               <BillStat label="Avg / day" value={formatCurrency(averageBillingCycleGridCost)} accent />
-              <BillStat label="Rate" value={formatRate(billingCycleRate)} />
+              <BillStat label={billingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(billingCycleRate)} />
+            </View>
+
+            <View style={{ gap: 10 }}>
+              <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Bill cycle override</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <DateTimePickerField
+                    mode="date"
+                    value={currentCycleDraft.startDate}
+                    displayValue={currentCycleDraft.startDate ? getDateDisplayValue(currentCycleDraft.startDate) : ''}
+                    placeholder={formatShortDate(billingCycleWindow.startDate)}
+                    onChange={(value) => updateCurrentCycleDraftField('startDate', value)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateTimePickerField
+                    mode="date"
+                    value={currentCycleDraft.endDate}
+                    displayValue={currentCycleDraft.endDate ? getDateDisplayValue(currentCycleDraft.endDate) : ''}
+                    placeholder={formatShortDate(billingCycleWindow.endDate)}
+                    onChange={(value) => updateCurrentCycleDraftField('endDate', value)}
+                  />
+                </View>
+              </View>
+              <TextInput
+                value={currentCycleDraft.importRate}
+                onChangeText={(value) => updateCurrentCycleDraftField('importRate', value)}
+                keyboardType="numeric"
+                placeholder={formatRate(billingCycleRate)}
+                placeholderTextColor={theme.textSubtle}
+                style={inputStyle(theme)}
+              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <ActionButton
+                  label="Save cycle"
+                  icon="save-outline"
+                  onPress={() =>
+                    void saveBillingCycleDraft({
+                      anchorCycleStartDate: computedBillingCycleWindow.startDate,
+                      fallbackStartDate: computedBillingCycleWindow.startDate,
+                      fallbackEndDate: computedBillingCycleWindow.endDate,
+                      draft: currentCycleDraft,
+                      existingOverride: currentCycleOverride,
+                      clearDraft: () => setCurrentCycleDraft(createBillCycleDraft()),
+                    })
+                  }
+                />
+                {currentCycleOverride ? (
+                  <ActionButton
+                    label="Clear"
+                    icon="close-outline"
+                    tone="secondary"
+                    onPress={() => void clearBillingCycleOverride(currentCycleOverride.id)}
+                  />
+                ) : null}
+              </View>
             </View>
           </SoftCard>
 
           <SoftCard style={{ flex: 1, minWidth: 280 }}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Previous Grid Bill</Text>
+                <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Previous Grid Estimate</Text>
                 <Text
                   selectable
                   numberOfLines={1}
@@ -881,7 +1079,7 @@ export default function InsightsScreen() {
                   minimumFontScale={0.62}
                   style={{ color: theme.text, fontSize: 28, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
                 >
-                  {formatCurrency(previousBillingCycleSummary.estimatedGridCost)}
+                  {formatCurrency(previousBillingCycleEstimate.cost)}
                 </Text>
                 <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{previousBillingCycleLabel}</Text>
                 <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>{previousGridBillComparison}</Text>
@@ -892,6 +1090,63 @@ export default function InsightsScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <BillStat label="Cycle" value={previousBillingCycleLabel} />
               <BillStat label="Grid" value={formatEnergy(previousBillingCycleSummary.gridConsumedKwh)} />
+              <BillStat label={previousBillingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(previousBillingCycleEstimate.rate)} />
+            </View>
+
+            <View style={{ gap: 10 }}>
+              <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Bill cycle override</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <DateTimePickerField
+                    mode="date"
+                    value={previousCycleDraft.startDate}
+                    displayValue={previousCycleDraft.startDate ? getDateDisplayValue(previousCycleDraft.startDate) : ''}
+                    placeholder={formatShortDate(previousBillingCycleWindow.startDate)}
+                    onChange={(value) => updatePreviousCycleDraftField('startDate', value)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateTimePickerField
+                    mode="date"
+                    value={previousCycleDraft.endDate}
+                    displayValue={previousCycleDraft.endDate ? getDateDisplayValue(previousCycleDraft.endDate) : ''}
+                    placeholder={formatShortDate(previousBillingCycleWindow.endDate)}
+                    onChange={(value) => updatePreviousCycleDraftField('endDate', value)}
+                  />
+                </View>
+              </View>
+              <TextInput
+                value={previousCycleDraft.importRate}
+                onChangeText={(value) => updatePreviousCycleDraftField('importRate', value)}
+                keyboardType="numeric"
+                placeholder={formatRate(previousBillingCycleEstimate.rate)}
+                placeholderTextColor={theme.textSubtle}
+                style={inputStyle(theme)}
+              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <ActionButton
+                  label="Save cycle"
+                  icon="save-outline"
+                  onPress={() =>
+                    void saveBillingCycleDraft({
+                      anchorCycleStartDate: computedPreviousBillingCycleWindow.startDate,
+                      fallbackStartDate: computedPreviousBillingCycleWindow.startDate,
+                      fallbackEndDate: computedPreviousBillingCycleWindow.endDate,
+                      draft: previousCycleDraft,
+                      existingOverride: previousCycleOverride,
+                      clearDraft: () => setPreviousCycleDraft(createBillCycleDraft()),
+                    })
+                  }
+                />
+                {previousCycleOverride ? (
+                  <ActionButton
+                    label="Clear"
+                    icon="close-outline"
+                    tone="secondary"
+                    onPress={() => void clearBillingCycleOverride(previousCycleOverride.id)}
+                  />
+                ) : null}
+              </View>
             </View>
           </SoftCard>
         </View>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { DEFAULT_APP_SETTINGS } from '@/constants/defaults';
 import { CURRENT_SCHEMA_VERSION, STORAGE_KEYS, type StorageKey } from '@/constants/storageKeys';
 import type { LocalBackupSnapshot, WattTrackBackup } from '@/types/backup';
+import type { BillingCycleOverride } from '@/types/billing';
 import type { SystemCost } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import type { AppSettings } from '@/types/settings';
@@ -85,6 +86,17 @@ const systemCostSchema = z.object({
   updatedAt: z.string(),
 });
 
+const billingCycleOverrideSchema = z.object({
+  id: z.string().min(1),
+  anchorCycleStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  cycleStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  cycleEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  importRate: z.number().min(0).optional(),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 const appSettingsSchema = z
   .object({
     theme: appThemeSchema,
@@ -106,6 +118,7 @@ const backupSchema = z.object({
   systemProfile: systemProfileSchema.nullable(),
   energyReadings: z.array(energyReadingSchema),
   systemCosts: z.array(systemCostSchema),
+  billingCycleOverrides: z.array(billingCycleOverrideSchema).optional().default([]),
   appSettings: appSettingsSchema,
 });
 
@@ -121,7 +134,7 @@ const MAX_LOCAL_BACKUPS = 8;
 type RestoreMode = 'replace' | 'merge';
 
 function summarizeBackup(backup: WattTrackBackup): string {
-  return `${backup.energyReadings.length} readings | ${backup.systemCosts.length} costs | ${backup.systemProfile ? '1 profile' : '0 profiles'}`;
+  return `${backup.energyReadings.length} readings | ${backup.systemCosts.length} costs | ${backup.billingCycleOverrides?.length ?? 0} bill cycles | ${backup.systemProfile ? '1 profile' : '0 profiles'}`;
 }
 
 function mergeByNewestUpdatedAt<T extends { id: string; updatedAt: string }>(backupItems: T[], localItems: T[]): T[] {
@@ -231,13 +244,39 @@ export const storageService = {
       costs.filter((cost) => cost.id !== costId),
     );
   },
+  getBillingCycleOverrides: () => readJson<BillingCycleOverride[]>(STORAGE_KEYS.billingCycleOverrides, [], z.array(billingCycleOverrideSchema)),
+  async saveBillingCycleOverride(cycleOverride: BillingCycleOverride): Promise<void> {
+    const cycleOverrides = await readJson<BillingCycleOverride[]>(STORAGE_KEYS.billingCycleOverrides, [], z.array(billingCycleOverrideSchema));
+    await writeJson(
+      STORAGE_KEYS.billingCycleOverrides,
+      [
+        cycleOverride,
+        ...cycleOverrides.filter((override) => override.id !== cycleOverride.id && override.anchorCycleStartDate !== cycleOverride.anchorCycleStartDate),
+      ],
+    );
+  },
+  async updateBillingCycleOverride(updatedOverride: BillingCycleOverride): Promise<void> {
+    const cycleOverrides = await readJson<BillingCycleOverride[]>(STORAGE_KEYS.billingCycleOverrides, [], z.array(billingCycleOverrideSchema));
+    await writeJson(
+      STORAGE_KEYS.billingCycleOverrides,
+      cycleOverrides.map((override) => (override.id === updatedOverride.id ? updatedOverride : override)),
+    );
+  },
+  async deleteBillingCycleOverride(overrideId: string): Promise<void> {
+    const cycleOverrides = await readJson<BillingCycleOverride[]>(STORAGE_KEYS.billingCycleOverrides, [], z.array(billingCycleOverrideSchema));
+    await writeJson(
+      STORAGE_KEYS.billingCycleOverrides,
+      cycleOverrides.filter((override) => override.id !== overrideId),
+    );
+  },
   getAppSettings: () => readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS, appSettingsSchema),
   saveAppSettings: (settings: AppSettings) => writeJson(STORAGE_KEYS.appSettings, settings),
   async exportBackup(): Promise<WattTrackBackup> {
-    const [systemProfile, energyReadings, systemCosts, appSettings] = await Promise.all([
+    const [systemProfile, energyReadings, systemCosts, billingCycleOverrides, appSettings] = await Promise.all([
       readJson<SystemProfile | null>(STORAGE_KEYS.systemProfile, null, systemProfileSchema.nullable()),
       readJson<EnergyReading[]>(STORAGE_KEYS.energyReadings, [], z.array(energyReadingSchema)),
       readJson<SystemCost[]>(STORAGE_KEYS.systemCosts, [], z.array(systemCostSchema)),
+      readJson<BillingCycleOverride[]>(STORAGE_KEYS.billingCycleOverrides, [], z.array(billingCycleOverrideSchema)),
       readJson<AppSettings>(STORAGE_KEYS.appSettings, DEFAULT_APP_SETTINGS, appSettingsSchema),
     ]);
 
@@ -248,6 +287,7 @@ export const storageService = {
       systemProfile,
       energyReadings,
       systemCosts,
+      billingCycleOverrides,
       appSettings,
     };
   },
@@ -278,6 +318,7 @@ export const storageService = {
             systemProfile: mergeSystemProfile(backup.systemProfile, await storageService.getSystemProfile()),
             energyReadings: mergeByNewestUpdatedAt(backup.energyReadings, await storageService.getEnergyReadings()),
             systemCosts: mergeByNewestUpdatedAt(backup.systemCosts, await storageService.getSystemCosts()),
+            billingCycleOverrides: mergeByNewestUpdatedAt(backup.billingCycleOverrides ?? [], await storageService.getBillingCycleOverrides()),
             appSettings: await storageService.getAppSettings(),
           }
         : backup;
@@ -286,6 +327,7 @@ export const storageService = {
       writeJson(STORAGE_KEYS.systemProfile, backupToRestore.systemProfile),
       writeJson(STORAGE_KEYS.energyReadings, backupToRestore.energyReadings),
       writeJson(STORAGE_KEYS.systemCosts, backupToRestore.systemCosts),
+      writeJson(STORAGE_KEYS.billingCycleOverrides, backupToRestore.billingCycleOverrides ?? []),
       writeJson(STORAGE_KEYS.appSettings, backupToRestore.appSettings),
       writeJson(STORAGE_KEYS.schemaVersion, backupToRestore.schemaVersion),
     ]);
@@ -297,6 +339,7 @@ export const storageService = {
       AsyncStorage.removeItem(STORAGE_KEYS.systemProfile),
       AsyncStorage.removeItem(STORAGE_KEYS.energyReadings),
       AsyncStorage.removeItem(STORAGE_KEYS.systemCosts),
+      AsyncStorage.removeItem(STORAGE_KEYS.billingCycleOverrides),
       AsyncStorage.removeItem(STORAGE_KEYS.appSettings),
       AsyncStorage.removeItem(STORAGE_KEYS.schemaVersion),
       AsyncStorage.removeItem(STORAGE_KEYS.localBackups),
