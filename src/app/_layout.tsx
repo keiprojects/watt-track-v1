@@ -29,12 +29,21 @@ import { useSystemStore } from '@/stores/system.store';
 
 const ANIMATED_SPLASH_MIN_DURATION_MS = 1600;
 
+function AppStatusBar() {
+  const theme = useAppTheme();
+
+  return (
+    <StatusBar
+      style={theme.mode === 'dark' ? 'light' : 'dark'}
+    />
+  );
+}
+
 void SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore duplicate calls when Fast Refresh remounts the layout.
 });
 
 export default function RootLayout() {
-  const theme = useAppTheme();
   const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
@@ -143,7 +152,7 @@ export default function RootLayout() {
     return (
       <>
         <BootSplash onReady={handleAnimatedSplashReady} />
-        <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
+        <AppStatusBar />
       </>
     );
   }
@@ -157,7 +166,7 @@ export default function RootLayout() {
         <Stack.Screen name="readings/[readingId]" />
         <Stack.Screen name="readings/edit/[readingId]" />
       </Stack>
-      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
+      <AppStatusBar />
     </>
   );
 }
