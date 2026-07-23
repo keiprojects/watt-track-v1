@@ -4,6 +4,7 @@ import {
   buildReadingPreview,
   estimatePaybackForecast,
   getBillingCycleWindow,
+  getPreviousBillingCycleWindow,
   recalculateReadings,
   summarizeRoi,
 } from './calculation.service';
@@ -197,6 +198,16 @@ describe('billing cycle windows', () => {
       nextStartDate: '2026-02-28',
       elapsedDays: 16,
       totalDays: 28,
+    });
+  });
+
+  it('builds the completed previous billing cycle window', () => {
+    expect(getPreviousBillingCycleWindow({ today: '2026-07-23', billingCycleStartDay: 15 })).toMatchObject({
+      startDate: '2026-06-15',
+      endDate: '2026-07-14',
+      nextStartDate: '2026-07-15',
+      elapsedDays: 30,
+      totalDays: 30,
     });
   });
 });

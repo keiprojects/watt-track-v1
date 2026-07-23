@@ -392,6 +392,20 @@ export function getBillingCycleWindow({
   };
 }
 
+export function getPreviousBillingCycleWindow({
+  today,
+  billingCycleStartDay,
+}: {
+  today: string;
+  billingCycleStartDay?: number;
+}): BillingCycleWindow {
+  const currentWindow = getBillingCycleWindow({ today, billingCycleStartDay });
+  return getBillingCycleWindow({
+    today: addDaysToDate(currentWindow.startDate, -1),
+    billingCycleStartDay,
+  });
+}
+
 export function filterBillingCycleReadings({
   readings,
   today,
