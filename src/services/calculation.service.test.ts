@@ -6,6 +6,7 @@ import {
   getBillingCycleWindow,
   getPreviousBillingCycleWindow,
   recalculateReadings,
+  summarizeGridMeterReadings,
   summarizeRoi,
 } from './calculation.service';
 import type { SystemCost } from '@/types/cost';
@@ -124,6 +125,21 @@ describe('recalculateReadings', () => {
       gridConsumptionKwh: 0,
       solarGenerationKwh: 35,
       exportedEnergyKwh: 5,
+    });
+  });
+});
+
+describe('summarizeGridMeterReadings', () => {
+  it('calculates bill usage from grid meter reading movement within the cycle', () => {
+    const summary = summarizeGridMeterReadings([
+      reading({ id: 'cycle-start', date: '2026-06-21', gridReading: 31429, gridConsumptionKwh: 488, importRate: 13.05 }),
+      reading({ id: 'mid-cycle', date: '2026-07-01', gridReading: 31580, importRate: 13.05 }),
+      reading({ id: 'cycle-end', date: '2026-07-21', gridReading: 31766, importRate: 13.05 }),
+    ]);
+
+    expect(summary).toMatchObject({
+      totalGridMeterConsumptionKwh: 337,
+      estimatedGridMeterCost: 4397.85,
     });
   });
 });

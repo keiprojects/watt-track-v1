@@ -21,6 +21,7 @@ import {
   estimatePaybackForecast,
   getBillingCycleWindow,
   getPreviousBillingCycleWindow,
+  summarizeGridMeterReadings,
   summarizeReadings,
   summarizeRoi,
 } from '@/services/calculation.service';
@@ -64,6 +65,7 @@ type CostDraft = {
 };
 type BillEstimate = {
   cost: number;
+  gridKwh: number;
   rate: number;
   hasOverride: boolean;
 };
@@ -160,12 +162,13 @@ function getEffectiveBillCycleWindow({
   };
 }
 
-function estimateGridBill(summary: ReturnType<typeof summarizeReadings>, fallbackRate: number, overrideRate?: number): BillEstimate {
-  const weightedRate = summary.gridConsumedKwh === 0 ? fallbackRate : summary.estimatedGridCost / summary.gridConsumedKwh;
+function estimateGridBill(summary: ReturnType<typeof summarizeGridMeterReadings>, fallbackRate: number, overrideRate?: number): BillEstimate {
+  const weightedRate = summary.totalGridMeterConsumptionKwh === 0 ? fallbackRate : summary.estimatedGridMeterCost / summary.totalGridMeterConsumptionKwh;
   const rate = overrideRate ?? weightedRate;
 
   return {
-    cost: roundMoney(summary.gridConsumedKwh * rate),
+    cost: roundMoney(summary.totalGridMeterConsumptionKwh * rate),
+    gridKwh: summary.totalGridMeterConsumptionKwh,
     rate,
     hasOverride: typeof overrideRate === 'number',
   };
@@ -593,7 +596,26 @@ export default function InsightsScreen() {
         : filterReadingsForRange(readings, anchorDate, selectedRange),
     [anchorDate, fromDate, hasDateFilter, readings, selectedRange, toDate],
   );
-  const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
+  const summary = useMemo(() => {
+    const readingSummary = summarizeReadings(filteredReadings);
+
+    if (systemProfile?.gridInputMode !== 'cumulative') {
+      return readingSummary;
+    }
+
+    const gridMeterSummary = summarizeGridMeterReadings(filteredReadings);
+
+    if (gridMeterSummary.gridReadingCount < 2) {
+      return readingSummary;
+    }
+
+    return {
+      ...readingSummary,
+      gridConsumedKwh: gridMeterSummary.totalGridMeterConsumptionKwh,
+      estimatedGridCost: gridMeterSummary.estimatedGridMeterCost,
+      homeUsageKwh: roundMoney(gridMeterSummary.totalGridMeterConsumptionKwh + readingSummary.selfConsumedSolarKwh),
+    };
+  }, [filteredReadings, systemProfile?.gridInputMode]);
   const computedBillingCycleWindow = useMemo(
     () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
@@ -621,19 +643,22 @@ export default function InsightsScreen() {
     () => readings.filter((reading) => isDateWithinRange(reading.date, billingCycleWindow.startDate, billingCycleReadingsEndDate)),
     [billingCycleReadingsEndDate, billingCycleWindow.startDate, readings],
   );
-  const billingCycleSummary = useMemo(() => summarizeReadings(billingCycleReadings), [billingCycleReadings]);
+  const billingCycleGridMeterSummary = useMemo(() => summarizeGridMeterReadings(billingCycleReadings), [billingCycleReadings]);
   const previousBillingCycleReadings = useMemo(
     () => readings.filter((reading) => isDateWithinRange(reading.date, previousBillingCycleWindow.startDate, previousBillingCycleWindow.endDate)),
     [previousBillingCycleWindow.endDate, previousBillingCycleWindow.startDate, readings],
   );
-  const previousBillingCycleSummary = useMemo(() => summarizeReadings(previousBillingCycleReadings), [previousBillingCycleReadings]);
+  const previousBillingCycleGridMeterSummary = useMemo(
+    () => summarizeGridMeterReadings(previousBillingCycleReadings),
+    [previousBillingCycleReadings],
+  );
   const billingCycleEstimate = estimateGridBill(
-    billingCycleSummary,
+    billingCycleGridMeterSummary,
     systemProfile?.defaultImportRate ?? 0,
     currentCycleOverride?.importRate,
   );
   const previousBillingCycleEstimate = estimateGridBill(
-    previousBillingCycleSummary,
+    previousBillingCycleGridMeterSummary,
     systemProfile?.defaultImportRate ?? 0,
     previousCycleOverride?.importRate,
   );
@@ -698,7 +723,7 @@ export default function InsightsScreen() {
       : 'Add grid readings to project bill';
   const previousGridBillHelper =
     previousBillingCycleReadings.length > 0
-      ? `${formatEnergy(previousBillingCycleSummary.gridConsumedKwh)} grid consumed`
+      ? `${formatEnergy(previousBillingCycleEstimate.gridKwh)} grid meter usage`
       : 'No previous cycle readings';
   const previousGridBillComparison =
     previousBillingCycleReadings.length > 0
@@ -1089,7 +1114,7 @@ export default function InsightsScreen() {
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <BillStat label="Cycle" value={previousBillingCycleLabel} />
-              <BillStat label="Grid" value={formatEnergy(previousBillingCycleSummary.gridConsumedKwh)} />
+              <BillStat label="Grid total" value={formatEnergy(previousBillingCycleEstimate.gridKwh)} />
               <BillStat label={previousBillingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(previousBillingCycleEstimate.rate)} />
             </View>
 

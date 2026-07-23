@@ -74,6 +74,12 @@ export type PreviousReadingSet = {
   export?: EnergyReading;
 };
 
+export type GridMeterReadingSummary = {
+  gridReadingCount: number;
+  totalGridMeterConsumptionKwh: number;
+  estimatedGridMeterCost: number;
+};
+
 function getDailyValue({
   mode,
   currentValue,
@@ -488,6 +494,30 @@ export function summarizeReadings(readings: EnergyReading[]) {
     homeUsageKwh: round(summary.homeUsageKwh),
     estimatedSavings: round(summary.estimatedSavings),
     estimatedGridCost: round(summary.estimatedGridCost),
+  };
+}
+
+export function summarizeGridMeterReadings(readings: EnergyReading[]): GridMeterReadingSummary {
+  const gridReadings = sortReadingsAscending(readings).filter((reading) => typeof reading.gridReading === 'number');
+  let totalGridMeterConsumptionKwh = 0;
+  let estimatedGridMeterCost = 0;
+
+  for (let index = 1; index < gridReadings.length; index += 1) {
+    const previousReading = gridReadings[index - 1];
+    const currentReading = gridReadings[index];
+    const currentValue = currentReading.gridReading ?? 0;
+    const previousValue = previousReading.gridReading ?? 0;
+    const delta = currentValue - previousValue;
+    const gridConsumptionKwh = delta >= 0 ? delta : currentReading.meterReset ? currentValue : 0;
+
+    totalGridMeterConsumptionKwh += gridConsumptionKwh;
+    estimatedGridMeterCost += gridConsumptionKwh * currentReading.importRate;
+  }
+
+  return {
+    gridReadingCount: gridReadings.length,
+    totalGridMeterConsumptionKwh: round(totalGridMeterConsumptionKwh),
+    estimatedGridMeterCost: round(estimatedGridMeterCost),
   };
 }
 
