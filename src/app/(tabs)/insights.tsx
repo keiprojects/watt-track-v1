@@ -592,9 +592,11 @@ export default function InsightsScreen() {
         { value: 0, label: 'Sun', frontColor: theme.primaryChart },
         { value: 0, frontColor: theme.accent },
       ];
-  const savingsLineData = dailySummaries.length
-    ? dailySummaries.map((summaryItem) => ({ value: summaryItem.estimatedSavings }))
-    : [{ value: 0 }, { value: 0 }, { value: 0 }];
+  const savingsValues = dailySummaries.map((summaryItem) => summaryItem.estimatedSavings);
+  const savingsTrendValues =
+    savingsValues.length === 0 ? [0, 0, 0] : savingsValues.length === 1 ? [savingsValues[0], savingsValues[0], savingsValues[0]] : savingsValues;
+  const savingsLineData = savingsTrendValues.map((value) => ({ value }));
+  const savingsChartMax = Math.max(...savingsTrendValues, 1) * 1.15;
   const pieData = [
     { value: Math.max(summary.solarGeneratedKwh, 0.01), color: theme.warningText, text: 'Generated' },
     { value: Math.max(summary.selfConsumedSolarKwh, 0.01), color: theme.primaryChart, text: 'Self' },
@@ -806,7 +808,7 @@ export default function InsightsScreen() {
 
         <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Range Savings</Text>
+            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Estimated Savings</Text>
             <Text selectable style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy }}>
               {formatCurrency(summary.estimatedSavings)}
             </Text>
@@ -830,6 +832,7 @@ export default function InsightsScreen() {
               startOpacity={0.26}
               endOpacity={0.02}
               thickness={2}
+              maxValue={savingsChartMax}
               initialSpacing={0}
               endSpacing={0}
             />

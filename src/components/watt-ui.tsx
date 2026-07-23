@@ -59,6 +59,11 @@ type MetricTileProps = {
   value: string;
   helper?: string;
   delta?: string;
+  trend?: {
+    value: string;
+    direction: 'up' | 'down' | 'flat';
+    tone: 'positive' | 'negative' | 'neutral';
+  };
   colors?: readonly [string, string];
 };
 
@@ -244,8 +249,11 @@ export function IconSquare({ icon, iconFamily = 'ionicons', colors = wattGradien
   );
 }
 
-export function MetricTile({ icon, iconFamily = 'ionicons', label, value, helper, delta, colors = wattGradients.blue }: MetricTileProps) {
+export function MetricTile({ icon, iconFamily = 'ionicons', label, value, helper, delta, trend, colors = wattGradients.blue }: MetricTileProps) {
   const theme = useAppTheme();
+  const trendColor =
+    trend?.tone === 'positive' ? theme.statusText : trend?.tone === 'negative' ? theme.dangerText : theme.textSubtle;
+  const trendIcon = trend?.direction === 'up' ? 'trending-up' : trend?.direction === 'down' ? 'trending-down' : 'remove';
 
   return (
     <SoftCard padding={12} style={{ flex: 1, minWidth: 142, minHeight: 132 }}>
@@ -270,7 +278,12 @@ export function MetricTile({ icon, iconFamily = 'ionicons', label, value, helper
         <Text numberOfLines={1} style={{ flex: 1, color: theme.textSubtle, fontSize: 11, fontFamily: fontFamilies.body }}>
           {helper ?? 'vs yesterday'}
         </Text>
-        {delta ? (
+        {trend ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Ionicons name={trendIcon} size={13} color={trendColor} />
+            <Text style={{ color: trendColor, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{trend.value}</Text>
+          </View>
+        ) : delta ? (
           <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{delta}</Text>
         ) : null}
       </View>

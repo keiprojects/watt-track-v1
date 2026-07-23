@@ -55,18 +55,36 @@ function formatCompactKwh(value: number): string {
   return `${value.toFixed(1)} kWh`;
 }
 
-function formatDelta(current: number, previous?: number): string | undefined {
+type MetricTrend = {
+  value: string;
+  direction: 'up' | 'down' | 'flat';
+  tone: 'positive' | 'negative' | 'neutral';
+};
+
+function formatMetricTrend(current: number, previous?: number, lowerIsBetter = false): MetricTrend | undefined {
   if (typeof previous !== 'number') {
     return undefined;
   }
 
+  const direction = current > previous ? 'up' : current < previous ? 'down' : 'flat';
+  const tone =
+    direction === 'flat' ? 'neutral' : lowerIsBetter ? (direction === 'down' ? 'positive' : 'negative') : direction === 'up' ? 'positive' : 'negative';
+
   if (previous === 0) {
-    return current === 0 ? '0%' : 'New';
+    return {
+      value: current === 0 ? '0%' : 'New',
+      direction,
+      tone,
+    };
   }
 
   const delta = ((current - previous) / previous) * 100;
   const sign = delta > 0 ? '+' : '';
-  return `${sign}${delta.toFixed(0)}%`;
+  return {
+    value: `${sign}${delta.toFixed(0)}%`,
+    direction,
+    tone,
+  };
 }
 
 export default function DashboardScreen() {
@@ -98,10 +116,28 @@ export default function DashboardScreen() {
   );
   const billingSummary = useMemo(() => summarizeReadings(billingReadings), [billingReadings]);
   const roiSummary = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
-  const dailySummaries = useMemo(() => aggregateReadingsByDate(billingReadings).slice(-8), [billingReadings]);
-  const sparklineData = dailySummaries.length
-    ? dailySummaries.map((summary) => ({ value: summary.estimatedSavings }))
-    : [{ value: 0 }, { value: 0 }, { value: 0 }];
+  const previousRoiSummary = useMemo(
+    () =>
+      summarizeRoi({
+        profile: systemProfile,
+        readings: readings.filter((reading) => reading.date < today),
+        costs: costs.filter((cost) => cost.date < today),
+      }),
+    [costs, readings, systemProfile, today],
+  );
+  const billingDailySummaries = useMemo(() => aggregateReadingsByDate(billingReadings), [billingReadings]);
+  const cumulativeSavingsValues = billingDailySummaries.reduce<number[]>((values, summary) => {
+    values.push((values.at(-1) ?? 0) + summary.estimatedSavings);
+    return values;
+  }, []);
+  const savingsTrendValues =
+    cumulativeSavingsValues.length === 0
+      ? [0, 0, 0]
+      : cumulativeSavingsValues.length === 1
+        ? [0, cumulativeSavingsValues[0], cumulativeSavingsValues[0]]
+        : cumulativeSavingsValues.slice(-8);
+  const sparklineData = savingsTrendValues.map((value) => ({ value }));
+  const savingsChartMax = Math.max(...savingsTrendValues, 1) * 1.15;
   const chartWidth = Math.min(width - 84, 280);
 
   const currentSolar = todaySummary?.solarGenerationKwh ?? 0;
@@ -194,7 +230,7 @@ export default function DashboardScreen() {
           icon="sunny"
           label="Solar Generated"
           value={formatCompactKwh(currentSolar)}
-          delta={formatDelta(currentSolar, yesterdaySummary?.solarGenerationKwh)}
+          trend={formatMetricTrend(currentSolar, yesterdaySummary?.solarGenerationKwh)}
           colors={wattGradients.amber}
         />
         <MetricTile
@@ -202,21 +238,21 @@ export default function DashboardScreen() {
           iconFamily="material-community"
           label="Grid Consumed"
           value={formatCompactKwh(currentGrid)}
-          delta={formatDelta(currentGrid, yesterdaySummary?.gridConsumptionKwh)}
+          trend={formatMetricTrend(currentGrid, yesterdaySummary?.gridConsumptionKwh, true)}
           colors={wattGradients.blue}
         />
         <MetricTile
           icon="home"
           label="Energy Saved"
           value={formatCompactKwh(currentSaved)}
-          delta={formatDelta(currentSaved, yesterdaySummary?.selfConsumedSolarKwh)}
+          trend={formatMetricTrend(currentSaved, yesterdaySummary?.selfConsumedSolarKwh)}
           colors={wattGradients.green}
         />
         <MetricTile
           icon="trending-up"
           label="ROI"
           value={`${roiSummary.roiPercentage.toFixed(1)}%`}
-          helper="Since installation"
+          trend={formatMetricTrend(roiSummary.roiPercentage, previousRoiSummary.roiPercentage)}
           colors={wattGradients.violet}
         />
       </View>
@@ -278,6 +314,7 @@ export default function DashboardScreen() {
             startOpacity={0.28}
             endOpacity={0.03}
             thickness={2}
+            maxValue={savingsChartMax}
             initialSpacing={0}
             endSpacing={0}
             xAxisLabelsHeight={0}
