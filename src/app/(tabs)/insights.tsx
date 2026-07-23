@@ -150,26 +150,6 @@ function filterReadingsForRange(readings: EnergyReading[], anchorDate: string, r
   return readings.filter((reading) => reading.date.startsWith(yearPrefix));
 }
 
-function filterCostsForRange(costs: SystemCost[], anchorDate: string, range: AnalyticsRange): SystemCost[] {
-  if (range === 'day') {
-    return costs.filter((cost) => cost.date === anchorDate);
-  }
-
-  if (range === 'week') {
-    return costs.filter((cost) => {
-      const diff = differenceInCalendarDays(anchorDate, cost.date);
-      return diff >= 0 && diff < 7;
-    });
-  }
-
-  if (range === 'month') {
-    return costs.filter((cost) => cost.date.startsWith(anchorDate.slice(0, 7)));
-  }
-
-  const yearPrefix = getYearPrefix(anchorDate);
-  return costs.filter((cost) => cost.date.startsWith(yearPrefix));
-}
-
 function getRangeLabel(anchorDate: string, range: AnalyticsRange): string {
   if (range === 'day') {
     return formatShortDate(anchorDate);
@@ -533,13 +513,6 @@ export default function InsightsScreen() {
         : filterReadingsForRange(readings, anchorDate, selectedRange),
     [anchorDate, fromDate, hasDateFilter, readings, selectedRange, toDate],
   );
-  const filteredCosts = useMemo(
-    () =>
-      hasDateFilter
-        ? costs.filter((cost) => isDateWithinRange(cost.date, fromDate || undefined, toDate || undefined))
-        : filterCostsForRange(costs, anchorDate, selectedRange),
-    [anchorDate, costs, fromDate, hasDateFilter, selectedRange, toDate],
-  );
   const summary = useMemo(() => summarizeReadings(filteredReadings), [filteredReadings]);
   const billingCycleReadings = useMemo(
     () =>
@@ -555,11 +528,10 @@ export default function InsightsScreen() {
     () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
   );
-  const roi = useMemo(() => summarizeRoi({ profile: systemProfile, readings: filteredReadings, costs: filteredCosts }), [filteredCosts, filteredReadings, systemProfile]);
-  const overallRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
+  const lifetimeRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const paybackForecast = useMemo(
-    () => estimatePaybackForecast({ readings, remainingAmount: overallRoi.remainingAmount, window: forecastWindow }),
-    [forecastWindow, overallRoi.remainingAmount, readings],
+    () => estimatePaybackForecast({ readings, remainingAmount: lifetimeRoi.remainingAmount, window: forecastWindow }),
+    [forecastWindow, lifetimeRoi.remainingAmount, readings],
   );
   const exportedEnergyKwh = filteredReadings.reduce((sum, reading) => sum + reading.exportedEnergyKwh, 0);
   const rangeDailySummaries = useMemo(() => aggregateReadingsByDate(filteredReadings), [filteredReadings]);
@@ -618,7 +590,7 @@ export default function InsightsScreen() {
   const projectedPaybackLabel = paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD';
   const paybackHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Add more savings data'
-    : overallRoi.remainingAmount === 0
+    : lifetimeRoi.remainingAmount === 0
       ? 'Investment recovered'
       : `${paybackForecast.basedOnReadingCount} day basis`;
 
@@ -805,12 +777,12 @@ export default function InsightsScreen() {
 
         <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Estimated Savings</Text>
+            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Range Savings</Text>
             <Text selectable style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy }}>
               {formatCurrency(summary.estimatedSavings)}
             </Text>
             <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-              ROI {formatPercent(roi.roiPercentage)}
+              ROI {formatPercent(lifetimeRoi.roiPercentage)}
             </Text>
           </View>
           <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 150) }}>
@@ -942,7 +914,7 @@ export default function InsightsScreen() {
             />
             <FinancialMetric
               label="Remaining to recover"
-              value={formatCurrency(overallRoi.remainingAmount)}
+              value={formatCurrency(lifetimeRoi.remainingAmount)}
               helper="All-time capital"
               icon="construct-outline"
             />
@@ -953,9 +925,9 @@ export default function InsightsScreen() {
           <SectionHeader title="Financial Breakdown" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             <FinancialMetric
-              label="Estimated savings"
-              value={formatCurrency(roi.totalEstimatedSavings)}
-              helper="Within range"
+              label="Gross savings"
+              value={formatCurrency(lifetimeRoi.totalEstimatedSavings)}
+              helper="All-time before maintenance"
               icon="cash-outline"
               tone="green"
             />
@@ -967,22 +939,26 @@ export default function InsightsScreen() {
             />
             <FinancialMetric
               label="ROI"
-              value={formatPercent(roi.roiPercentage)}
+              value={formatPercent(lifetimeRoi.roiPercentage)}
               helper="Net benefit / capital"
               icon="trending-up-outline"
             />
             <FinancialMetric
               label="Remaining to recover"
-              value={formatCurrency(roi.remainingAmount)}
+              value={formatCurrency(lifetimeRoi.remainingAmount)}
               helper="Unrecovered capital"
               icon="construct-outline"
             />
           </View>
           <SoftCard>
-            <InsightRow label="Total capital invested" value={formatCurrency(roi.totalCapitalInvestment)} />
-            <InsightRow label="Additional capital costs" value={formatCurrency(roi.additionalCapitalCosts)} />
-            <InsightRow label="Maintenance expenses" value={formatCurrency(roi.maintenanceCosts)} />
-            <InsightRow label="Net financial benefit" value={formatCurrency(roi.netSavings)} accent />
+            <InsightRow label="Total capital invested" value={formatCurrency(lifetimeRoi.totalCapitalInvestment)} />
+            <InsightRow label="Additional capital costs" value={formatCurrency(lifetimeRoi.additionalCapitalCosts)} />
+            <InsightRow label="Gross estimated savings" value={formatCurrency(lifetimeRoi.totalEstimatedSavings)} />
+            <InsightRow
+              label="Maintenance deducted"
+              value={lifetimeRoi.maintenanceCosts === 0 ? formatCurrency(0) : `-${formatCurrency(lifetimeRoi.maintenanceCosts)}`}
+            />
+            <InsightRow label="Net financial benefit" value={formatCurrency(lifetimeRoi.netSavings)} accent />
             <InsightRow label="Solar contribution" value={formatPercent(solarContribution)} />
             <InsightRow label="Self-consumption" value={formatPercent(selfConsumptionShare)} />
             <InsightRow label="Avg solar / day" value={formatKwh(averageSolarPerDay)} />

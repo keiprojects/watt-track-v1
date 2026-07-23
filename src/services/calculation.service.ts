@@ -446,47 +446,6 @@ export function filterInsightsReadingsByRange({
   return readings.filter((reading) => differenceInCalendarDays(today, reading.date) >= 0 && differenceInCalendarDays(today, reading.date) < days);
 }
 
-export function filterCostsByRange({
-  costs,
-  today,
-  range,
-  customStartDate,
-  customEndDate,
-}: {
-  costs: SystemCost[];
-  today: string;
-  range: InsightsRange;
-  customStartDate?: string;
-  customEndDate?: string;
-}): SystemCost[] {
-  if (range === 'all') {
-    return costs;
-  }
-
-  if (range === 'current-month') {
-    const monthPrefix = getMonthPrefix(today);
-    return costs.filter((cost) => cost.date.startsWith(monthPrefix));
-  }
-
-  if (range === 'previous-month') {
-    const previousMonthDate = addDaysToDate(`${getMonthPrefix(today)}-01`, -1);
-    const monthPrefix = getMonthPrefix(previousMonthDate);
-    return costs.filter((cost) => cost.date.startsWith(monthPrefix));
-  }
-
-  if (range === 'current-year') {
-    const yearPrefix = getYearPrefix(today);
-    return costs.filter((cost) => cost.date.startsWith(yearPrefix));
-  }
-
-  if (range === 'custom') {
-    return costs.filter((cost) => isDateWithinRange(cost.date, customStartDate, customEndDate));
-  }
-
-  const days = range === '7d' ? 7 : 30;
-  return costs.filter((cost) => differenceInCalendarDays(today, cost.date) >= 0 && differenceInCalendarDays(today, cost.date) < days);
-}
-
 export function summarizeReadings(readings: EnergyReading[]) {
   const summary = readings.reduce(
     (summary, reading) => {
