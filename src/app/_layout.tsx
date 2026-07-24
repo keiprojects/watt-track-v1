@@ -6,6 +6,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from 'react-native-safe-area-context';
+import {
   Manrope_500Medium,
   Manrope_700Bold,
   Manrope_800ExtraBold,
@@ -44,14 +48,20 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
-  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
+  const hydrateBillingCycles = useBillingCyclesStore(
+    (state) => state.hydrate,
+  );
   const hydrateCosts = useCostsStore((state) => state.hydrate);
   const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const hydrateSettings = useSettingsStore((state) => state.hydrate);
   const hydrateSystem = useSystemStore((state) => state.hydrate);
+
   const [hasBooted, setHasBooted] = useState(false);
-  const [hasShownAnimatedSplash, setHasShownAnimatedSplash] = useState(false);
+  const [hasShownAnimatedSplash, setHasShownAnimatedSplash] =
+    useState(false);
+
   const nativeSplashHiddenRef = useRef(false);
+
   const [fontsLoaded] = useFonts({
     Manrope_500Medium,
     Manrope_700Bold,
@@ -63,7 +73,13 @@ export default function RootLayout() {
   useEffect(() => {
     let isMounted = true;
 
-    void Promise.allSettled([hydrateSettings(), hydrateSystem(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]).then((results) => {
+    void Promise.allSettled([
+      hydrateSettings(),
+      hydrateSystem(),
+      hydrateReadings(),
+      hydrateCosts(),
+      hydrateBillingCycles(),
+    ]).then((results) => {
       if (__DEV__) {
         results.forEach((result) => {
           if (result.status === 'rejected') {
@@ -80,7 +96,13 @@ export default function RootLayout() {
     return () => {
       isMounted = false;
     };
-  }, [hydrateBillingCycles, hydrateCosts, hydrateReadings, hydrateSettings, hydrateSystem]);
+  }, [
+    hydrateBillingCycles,
+    hydrateCosts,
+    hydrateReadings,
+    hydrateSettings,
+    hydrateSystem,
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -98,6 +120,7 @@ export default function RootLayout() {
     }
 
     nativeSplashHiddenRef.current = true;
+
     void SplashScreen.hideAsync().catch(() => {
       // The React splash is already visible, so a duplicate hide is harmless.
     });
@@ -110,10 +133,12 @@ export default function RootLayout() {
 
     void (async () => {
       const Notifications = await loadNotificationsModule();
+
       if (!Notifications || !isMounted) {
         if (__DEV__) {
           console.info(getNotificationsUnavailableMessage());
         }
+
         return;
       }
 
@@ -126,20 +151,29 @@ export default function RootLayout() {
         }),
       });
 
-      const initialResponse = await Notifications.getLastNotificationResponseAsync();
+      const initialResponse =
+        await Notifications.getLastNotificationResponseAsync();
 
-      if (!handledInitialNotification && initialResponse?.notification.request.content.data?.route === '/(tabs)/add') {
+      if (
+        !handledInitialNotification &&
+        initialResponse?.notification.request.content.data?.route ===
+          '/(tabs)/add'
+      ) {
         handledInitialNotification = true;
         router.push('/(tabs)/add');
       }
 
-      subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        const route = response.notification.request.content.data?.route;
+      subscription =
+        Notifications.addNotificationResponseReceivedListener(
+          (response) => {
+            const route =
+              response.notification.request.content.data?.route;
 
-        if (route === '/(tabs)/add') {
-          router.push('/(tabs)/add');
-        }
-      });
+            if (route === '/(tabs)/add') {
+              router.push('/(tabs)/add');
+            }
+          },
+        );
     })();
 
     return () => {
@@ -150,23 +184,29 @@ export default function RootLayout() {
 
   if (!hasBooted || !fontsLoaded || !hasShownAnimatedSplash) {
     return (
-      <>
+      <SafeAreaProvider style={{ flex: 1 }}>
         <BootSplash onReady={handleAnimatedSplashReady} />
         <AppStatusBar />
-      </>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="readings/[readingId]" />
-        <Stack.Screen name="readings/edit/[readingId]" />
-      </Stack>
+    <SafeAreaProvider style={{ flex: 1 }}>
+      <SafeAreaView
+        edges={['top']}
+        style={{ flex: 1 }}
+      >
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="readings/[readingId]" />
+          <Stack.Screen name="readings/edit/[readingId]" />
+        </Stack>
+      </SafeAreaView>
+
       <AppStatusBar />
-    </>
+    </SafeAreaProvider>
   );
 }
