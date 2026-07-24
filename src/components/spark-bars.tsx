@@ -15,12 +15,12 @@ function sanitizeValue(value: number): number {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 
-export function SparkBars({ values, highlightIndex = values.length - 1, height = 132 }: SparkBarsProps) {
+export function SparkBars({ values, highlightIndex = values.length - 1, height = 148 }: SparkBarsProps) {
   const theme = useAppTheme();
   const { width: windowWidth } = useWindowDimensions();
   const normalizedValues = values.length > 0 ? values.map(sanitizeValue) : [0];
   const safeHighlightIndex = Math.min(Math.max(0, highlightIndex), normalizedValues.length - 1);
-  const chartWidth = Math.max(238, windowWidth - 92);
+  const chartWidth = Math.max(260, windowWidth - 76);
   const maxDataValue = Math.max(1, ...normalizedValues);
   const chartMaxValue = Math.max(1, Math.ceil(maxDataValue * 1.18 * 10) / 10);
   const inactiveBarColor = theme.mode === 'dark' ? 'rgba(214, 255, 77, 0.34)' : 'rgba(23, 105, 232, 0.28)';

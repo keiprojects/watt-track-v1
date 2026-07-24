@@ -28,7 +28,7 @@ export function BreakdownDonut({ centerValue, centerLabel, segments }: Breakdown
   const positiveSegments = segments.map((segment) => ({ ...segment, amount: sanitizeAmount(segment.amount) }));
   const total = positiveSegments.reduce((sum, segment) => sum + segment.amount, 0);
   const maxSegment = Math.max(1, ...positiveSegments.map((segment) => segment.amount));
-  const radius = Math.max(76, Math.min(96, (windowWidth - 150) / 2));
+  const radius = Math.max(86, Math.min(108, (windowWidth - 126) / 2));
   const innerRadius = radius * 0.64;
 
   const chartData = useMemo(

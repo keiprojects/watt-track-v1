@@ -20,7 +20,6 @@ import {
   aggregateReadingsByDate,
   estimatePaybackForecast,
   getBillingCycleWindow,
-  getPreviousBillingCycleWindow,
   summarizeGridMeterReadings,
   summarizeReadings,
   summarizeRoi,
@@ -172,16 +171,6 @@ function estimateGridBill(summary: ReturnType<typeof summarizeGridMeterReadings>
     rate,
     hasOverride: typeof overrideRate === 'number',
   };
-}
-
-function formatSignedPercentDelta(current: number, previous: number): string {
-  if (previous === 0) {
-    return current === 0 ? '0%' : 'New';
-  }
-
-  const delta = ((current - previous) / previous) * 100;
-  const sign = delta > 0 ? '+' : '';
-  return `${sign}${delta.toFixed(0)}%`;
 }
 
 function getDateDisplayValue(date: string): string {
@@ -584,7 +573,6 @@ export default function InsightsScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [forecastWindow, setForecastWindow] = useState<ForecastWindow>('30d');
   const [currentCycleDraft, setCurrentCycleDraft] = useState<BillCycleDraft>(() => createBillCycleDraft());
-  const [previousCycleDraft, setPreviousCycleDraft] = useState<BillCycleDraft>(() => createBillCycleDraft());
   const [costDraft, setCostDraft] = useState<CostDraft>(() => createDefaultCostDraft());
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const hasDateFilter = Boolean(fromDate || toDate);
@@ -620,23 +608,12 @@ export default function InsightsScreen() {
     () => getBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
     [systemProfile?.billingCycleStartDay, today],
   );
-  const computedPreviousBillingCycleWindow = useMemo(
-    () => getPreviousBillingCycleWindow({ today, billingCycleStartDay: systemProfile?.billingCycleStartDay }),
-    [systemProfile?.billingCycleStartDay, today],
-  );
   const currentCycleOverride = cycleOverrides.find((override) => override.anchorCycleStartDate === computedBillingCycleWindow.startDate);
-  const previousCycleOverride = cycleOverrides.find((override) => override.anchorCycleStartDate === computedPreviousBillingCycleWindow.startDate);
   const billingCycleWindow = getEffectiveBillCycleWindow({
     fallbackStartDate: computedBillingCycleWindow.startDate,
     fallbackEndDate: computedBillingCycleWindow.endDate,
     today,
     override: currentCycleOverride,
-  });
-  const previousBillingCycleWindow = getEffectiveBillCycleWindow({
-    fallbackStartDate: computedPreviousBillingCycleWindow.startDate,
-    fallbackEndDate: computedPreviousBillingCycleWindow.endDate,
-    today: computedPreviousBillingCycleWindow.endDate,
-    override: previousCycleOverride,
   });
   const billingCycleReadingsEndDate = today.localeCompare(billingCycleWindow.endDate) <= 0 ? today : billingCycleWindow.endDate;
   const billingCycleReadings = useMemo(
@@ -644,23 +621,10 @@ export default function InsightsScreen() {
     [billingCycleReadingsEndDate, billingCycleWindow.startDate, readings],
   );
   const billingCycleGridMeterSummary = useMemo(() => summarizeGridMeterReadings(billingCycleReadings), [billingCycleReadings]);
-  const previousBillingCycleReadings = useMemo(
-    () => readings.filter((reading) => isDateWithinRange(reading.date, previousBillingCycleWindow.startDate, previousBillingCycleWindow.endDate)),
-    [previousBillingCycleWindow.endDate, previousBillingCycleWindow.startDate, readings],
-  );
-  const previousBillingCycleGridMeterSummary = useMemo(
-    () => summarizeGridMeterReadings(previousBillingCycleReadings),
-    [previousBillingCycleReadings],
-  );
   const billingCycleEstimate = estimateGridBill(
     billingCycleGridMeterSummary,
     systemProfile?.defaultImportRate ?? 0,
     currentCycleOverride?.importRate,
-  );
-  const previousBillingCycleEstimate = estimateGridBill(
-    previousBillingCycleGridMeterSummary,
-    systemProfile?.defaultImportRate ?? 0,
-    previousCycleOverride?.importRate,
   );
   const lifetimeRoi = useMemo(() => summarizeRoi({ profile: systemProfile, readings, costs }), [costs, readings, systemProfile]);
   const paybackForecast = useMemo(
@@ -686,7 +650,7 @@ export default function InsightsScreen() {
 
     return lowest;
   }, undefined);
-  const chartWidth = Math.min(width - 64, 330);
+  const chartWidth = Math.min(width - 56, 360);
   const barData = dailySummaries.length
     ? dailySummaries.flatMap((summaryItem) => [
         {
@@ -716,19 +680,10 @@ export default function InsightsScreen() {
   ];
   const rangeLabel = hasDateFilter ? 'Custom range' : getRangeLabel(anchorDate, selectedRange);
   const billingCycleLabel = `${formatMonthDayLabel(billingCycleWindow.startDate)} - ${formatMonthDayLabel(billingCycleWindow.endDate)}`;
-  const previousBillingCycleLabel = `${formatMonthDayLabel(previousBillingCycleWindow.startDate)} - ${formatMonthDayLabel(previousBillingCycleWindow.endDate)}`;
   const gridBillHelper =
     billingCycleEstimate.cost > 0
       ? `${formatCurrency(billingCycleEstimate.cost)} cycle-to-date${billingCycleEstimate.hasOverride ? ' at bill rate' : ''}`
       : 'Add grid readings to project bill';
-  const previousGridBillHelper =
-    previousBillingCycleReadings.length > 0
-      ? `${formatEnergy(previousBillingCycleEstimate.gridKwh)} grid meter usage`
-      : 'No previous cycle readings';
-  const previousGridBillComparison =
-    previousBillingCycleReadings.length > 0
-      ? `${formatSignedPercentDelta(billingCycleEstimate.cost, previousBillingCycleEstimate.cost)} vs current cycle to date`
-      : previousGridBillHelper;
   const projectedPaybackLabel = paybackForecast.estimatedPaybackDate ? formatShortDate(paybackForecast.estimatedPaybackDate) : 'TBD';
   const paybackHelper = !paybackForecast.hasEnoughSavingsData
     ? 'Add more savings data'
@@ -747,10 +702,6 @@ export default function InsightsScreen() {
 
   const updateCurrentCycleDraftField = <Key extends keyof BillCycleDraft>(key: Key, value: BillCycleDraft[Key]) => {
     setCurrentCycleDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
-  };
-
-  const updatePreviousCycleDraftField = <Key extends keyof BillCycleDraft>(key: Key, value: BillCycleDraft[Key]) => {
-    setPreviousCycleDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
   };
 
   const resetCostDraft = () => {
@@ -934,7 +885,7 @@ export default function InsightsScreen() {
             <BarChart
               data={barData}
               width={chartWidth}
-              height={190}
+              height={220}
               barWidth={8}
               spacing={10}
               initialSpacing={8}
@@ -983,11 +934,11 @@ export default function InsightsScreen() {
               ROI {formatPercent(lifetimeRoi.roiPercentage)}
             </Text>
           </View>
-          <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 150) }}>
+          <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 185) }}>
             <LineChart
               data={savingsLineData}
-              width={Math.min(chartWidth, 150)}
-              height={94}
+              width={Math.min(chartWidth, 185)}
+              height={112}
               curved
               areaChart
               hideAxesAndRules
@@ -1092,88 +1043,6 @@ export default function InsightsScreen() {
               </View>
             </View>
           </SoftCard>
-
-          <SoftCard style={{ flex: 1, minWidth: 280 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
-              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Previous Grid Estimate</Text>
-                <Text
-                  selectable
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.62}
-                  style={{ color: theme.text, fontSize: 28, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-                >
-                  {formatCurrency(previousBillingCycleEstimate.cost)}
-                </Text>
-                <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{previousBillingCycleLabel}</Text>
-                <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>{previousGridBillComparison}</Text>
-              </View>
-              <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={46} />
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              <BillStat label="Cycle" value={previousBillingCycleLabel} />
-              <BillStat label="Grid total" value={formatEnergy(previousBillingCycleEstimate.gridKwh)} />
-              <BillStat label={previousBillingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(previousBillingCycleEstimate.rate)} />
-            </View>
-
-            <View style={{ gap: 10 }}>
-              <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Bill cycle override</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <DateTimePickerField
-                    mode="date"
-                    value={previousCycleDraft.startDate}
-                    displayValue={previousCycleDraft.startDate ? getDateDisplayValue(previousCycleDraft.startDate) : ''}
-                    placeholder={formatShortDate(previousBillingCycleWindow.startDate)}
-                    onChange={(value) => updatePreviousCycleDraftField('startDate', value)}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <DateTimePickerField
-                    mode="date"
-                    value={previousCycleDraft.endDate}
-                    displayValue={previousCycleDraft.endDate ? getDateDisplayValue(previousCycleDraft.endDate) : ''}
-                    placeholder={formatShortDate(previousBillingCycleWindow.endDate)}
-                    onChange={(value) => updatePreviousCycleDraftField('endDate', value)}
-                  />
-                </View>
-              </View>
-              <TextInput
-                value={previousCycleDraft.importRate}
-                onChangeText={(value) => updatePreviousCycleDraftField('importRate', value)}
-                keyboardType="numeric"
-                placeholder={formatRate(previousBillingCycleEstimate.rate)}
-                placeholderTextColor={theme.textSubtle}
-                style={inputStyle(theme)}
-              />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <ActionButton
-                  label="Save cycle"
-                  icon="save-outline"
-                  onPress={() =>
-                    void saveBillingCycleDraft({
-                      anchorCycleStartDate: computedPreviousBillingCycleWindow.startDate,
-                      fallbackStartDate: computedPreviousBillingCycleWindow.startDate,
-                      fallbackEndDate: computedPreviousBillingCycleWindow.endDate,
-                      draft: previousCycleDraft,
-                      existingOverride: previousCycleOverride,
-                      clearDraft: () => setPreviousCycleDraft(createBillCycleDraft()),
-                    })
-                  }
-                />
-                {previousCycleOverride ? (
-                  <ActionButton
-                    label="Clear"
-                    icon="close-outline"
-                    tone="secondary"
-                    onPress={() => void clearBillingCycleOverride(previousCycleOverride.id)}
-                  />
-                ) : null}
-              </View>
-            </View>
-          </SoftCard>
         </View>
 
         <SoftCard>
@@ -1182,8 +1051,8 @@ export default function InsightsScreen() {
             <PieChart
               data={pieData}
               donut
-              radius={76}
-              innerRadius={42}
+              radius={86}
+              innerRadius={48}
               innerCircleColor={theme.surface}
               strokeWidth={3}
               strokeColor={theme.surface}

@@ -37,7 +37,7 @@ export function WeeklyBarChart({
 
   const maxDataValue = Math.max(1, ...normalizedData.map((item) => item.value));
   const chartMaxValue = Math.max(1, Math.ceil(maxDataValue * 1.18 * 10) / 10);
-  const chartWidth = Math.max(238, windowWidth - 104);
+  const chartWidth = Math.max(260, windowWidth - 88);
   const inactiveBarColor = theme.mode === 'dark' ? 'rgba(214, 255, 77, 0.38)' : 'rgba(23, 105, 232, 0.30)';
   const activeValue = normalizedData[focusedIndex]?.value ?? 0;
   const activeValueLabel = focusedIndex === safeHighlightIndex && valueLabel
@@ -108,7 +108,7 @@ export function WeeklyBarChart({
         <BarChart
           data={chartData}
           width={chartWidth}
-          height={158}
+          height={180}
           maxValue={chartMaxValue}
           noOfSections={3}
           barWidth={18}

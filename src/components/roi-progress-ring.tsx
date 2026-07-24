@@ -9,7 +9,7 @@ type RoiProgressRingProps = {
   size?: number;
 };
 
-export function RoiProgressRing({ progress, size = 92 }: RoiProgressRingProps) {
+export function RoiProgressRing({ progress, size = 104 }: RoiProgressRingProps) {
   const theme = useAppTheme();
   const normalizedProgress = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
   const activeColor = theme.primaryChart;

@@ -20,7 +20,7 @@ function sanitizeValue(value: number): number {
 export function TrendLineChart({
   values,
   labels,
-  height = 180,
+  height = 200,
   highlightIndex = Math.max(0, values.length - 3),
   callout,
 }: TrendLineChartProps) {
@@ -30,7 +30,7 @@ export function TrendLineChart({
   const normalizedLabels = normalizedValues.map((_, index) => labels[index] ?? '');
   const safeHighlightIndex = Math.min(Math.max(0, highlightIndex), normalizedValues.length - 1);
   const highlightedValue = normalizedValues[safeHighlightIndex] ?? 0;
-  const chartWidth = Math.max(238, Math.min(windowWidth - 88, 340));
+  const chartWidth = Math.max(260, Math.min(windowWidth - 72, 380));
   const maxDataValue = Math.max(1, ...normalizedValues);
   const chartMaxValue = Math.max(1, Math.ceil(maxDataValue * 1.18 * 10) / 10);
   const pointSpacing = Math.max(34, (chartWidth - 30) / Math.max(normalizedValues.length - 1, 1));
@@ -84,7 +84,7 @@ export function TrendLineChart({
         <LineChart
           data={chartData}
           width={chartWidth}
-          height={Math.max(120, height - 38)}
+          height={Math.max(140, height - 38)}
           maxValue={chartMaxValue}
           noOfSections={3}
           spacing={pointSpacing}

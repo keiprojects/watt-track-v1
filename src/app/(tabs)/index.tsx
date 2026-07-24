@@ -298,11 +298,11 @@ export default function DashboardScreen() {
             {latestSavings > 0 ? `${formatCurrency(latestSavings)} latest reading` : 'Add readings to build the trend'}
           </Text>
         </View>
-        <View style={{ pointerEvents: 'none', width: chartWidth, maxWidth: 150, alignItems: 'flex-end' }}>
+        <View style={{ pointerEvents: 'none', width: chartWidth, maxWidth: 165, alignItems: 'flex-end' }}>
           <LineChart
             data={sparklineData}
-            width={Math.min(chartWidth, 140)}
-            height={82}
+            width={Math.min(chartWidth, 158)}
+            height={96}
             curved
             areaChart
             hideAxesAndRules
