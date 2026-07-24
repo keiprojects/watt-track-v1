@@ -192,21 +192,35 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <SafeAreaView
-        edges={['top']}
-        style={{ flex: 1 }}
+  <SafeAreaProvider
+    style={{
+      flex: 1,
+      backgroundColor: theme.background,
+    }}
+  >
+    <SafeAreaView
+      edges={['top']}
+      style={{
+        flex: 1,
+        backgroundColor: theme.background,
+      }}
+    >
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: theme.background,
+          },
+        }}
       >
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="readings/[readingId]" />
-          <Stack.Screen name="readings/edit/[readingId]" />
-        </Stack>
-      </SafeAreaView>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="readings/[readingId]" />
+        <Stack.Screen name="readings/edit/[readingId]" />
+      </Stack>
+    </SafeAreaView>
 
-      <AppStatusBar />
-    </SafeAreaProvider>
-  );
-}
+    <AppStatusBar />
+  </SafeAreaProvider>
+);
