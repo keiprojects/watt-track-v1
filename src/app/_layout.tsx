@@ -3,8 +3,8 @@ import 'react-native-gesture-handler';
 import { router, Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { StatusBar } from 'react-native';
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -35,10 +35,23 @@ const ANIMATED_SPLASH_MIN_DURATION_MS = 1600;
 
 function AppStatusBar() {
   const theme = useAppTheme();
+  const statusBarStyle = theme.mode === 'dark' ? 'light-content' : 'dark-content';
+
+  useEffect(() => {
+    if (process.env.EXPO_OS !== 'android') {
+      return;
+    }
+
+    StatusBar.setBackgroundColor(theme.background, true);
+    StatusBar.setTranslucent(false);
+  }, [theme.background]);
 
   return (
     <StatusBar
-      style={theme.mode === 'dark' ? 'light' : 'dark'}
+      barStyle={statusBarStyle}
+      backgroundColor={theme.background}
+      translucent={false}
+      animated
     />
   );
 }
@@ -48,6 +61,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
+  const theme = useAppTheme();
   const hydrateBillingCycles = useBillingCyclesStore(
     (state) => state.hydrate,
   );
@@ -184,7 +198,7 @@ export default function RootLayout() {
 
   if (!hasBooted || !fontsLoaded || !hasShownAnimatedSplash) {
     return (
-      <SafeAreaProvider style={{ flex: 1 }}>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: theme.background }}>
         <BootSplash onReady={handleAnimatedSplashReady} />
         <AppStatusBar />
       </SafeAreaProvider>
@@ -192,35 +206,36 @@ export default function RootLayout() {
   }
 
   return (
-  <SafeAreaProvider
-    style={{
-      flex: 1,
-      backgroundColor: theme.background,
-    }}
-  >
-    <SafeAreaView
-      edges={['top']}
+    <SafeAreaProvider
       style={{
         flex: 1,
         backgroundColor: theme.background,
       }}
     >
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: theme.background,
-          },
+      <SafeAreaView
+        edges={['top']}
+        style={{
+          flex: 1,
+          backgroundColor: theme.background,
         }}
       >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="readings/[readingId]" />
-        <Stack.Screen name="readings/edit/[readingId]" />
-      </Stack>
-    </SafeAreaView>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: theme.background,
+            },
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="readings/[readingId]" />
+          <Stack.Screen name="readings/edit/[readingId]" />
+        </Stack>
+      </SafeAreaView>
 
-    <AppStatusBar />
-  </SafeAreaProvider>
-);
+      <AppStatusBar />
+    </SafeAreaProvider>
+  );
+}
