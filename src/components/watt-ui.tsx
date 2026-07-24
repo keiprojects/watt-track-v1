@@ -45,6 +45,25 @@ type IconButtonProps = {
   selected?: boolean;
 };
 
+type CommandButtonProps = {
+  label: string;
+  icon: WattIconName;
+  onPress: () => void;
+  tone?: 'default' | 'primary' | 'danger' | 'secondary';
+  disabled?: boolean;
+  compact?: boolean;
+  flex?: number;
+};
+
+type SettingsListRowProps = {
+  icon: WattIconValue;
+  iconFamily?: WattIconFamily;
+  title: string;
+  value?: string;
+  onPress?: () => void;
+  destructive?: boolean;
+};
+
 type IconSquareProps = {
   icon: WattIconValue;
   iconFamily?: WattIconFamily;
@@ -190,6 +209,53 @@ export function IconButton({ icon, label, onPress, selected = false }: IconButto
   );
 }
 
+export function CommandButton({
+  label,
+  icon,
+  onPress,
+  tone = 'default',
+  disabled = false,
+  compact = false,
+  flex,
+}: CommandButtonProps) {
+  const theme = useAppTheme();
+  const primary = tone === 'primary';
+  const danger = tone === 'danger';
+  const secondary = tone === 'secondary';
+  const textColor = primary ? '#ffffff' : danger ? theme.dangerText : secondary ? theme.text : theme.text;
+  const iconColor = primary ? '#ffffff' : danger ? theme.dangerText : theme.accent;
+  const backgroundColor = primary ? theme.accent : danger ? theme.dangerSoft : secondary ? theme.surface : theme.surface;
+  const borderColor = primary ? theme.accent : danger ? theme.dangerSoft : theme.border;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex,
+        minHeight: compact ? 46 : 54,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 9,
+        borderRadius: compact ? 12 : 14,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor,
+        backgroundColor,
+        paddingHorizontal: 12,
+        opacity: disabled ? 0.48 : pressed ? 0.74 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={18} color={iconColor} />
+      <Text style={{ color: textColor, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function SoftCard({ children, style, padding = 14, tone = 'default' }: SoftCardProps) {
   const theme = useAppTheme();
   const backgroundColor =
@@ -325,6 +391,65 @@ export function DatePill({ label, icon = 'calendar-outline' }: { label: string; 
       </Text>
       <Ionicons name={icon} size={15} color={theme.textMuted} />
     </View>
+  );
+}
+
+export function SettingsListRow({
+  icon,
+  iconFamily = 'ionicons',
+  title,
+  value,
+  onPress,
+  destructive = false,
+}: SettingsListRowProps) {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={title}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => ({
+        minHeight: 58,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          height: 32,
+          width: 32,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 12,
+          backgroundColor: destructive ? theme.dangerSoft : theme.accentSoft,
+        }}
+      >
+        <WattVectorIcon icon={icon} iconFamily={iconFamily} size={18} color={destructive ? theme.dangerText : theme.accent} />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          flex: 1,
+          color: destructive ? theme.dangerText : theme.text,
+          fontSize: 14,
+          fontFamily: fontFamilies.bodyStrong,
+        }}
+      >
+        {title}
+      </Text>
+      {value ? (
+        <Text numberOfLines={1} style={{ maxWidth: 132, color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+          {value}
+        </Text>
+      ) : null}
+      {onPress ? <ListChevron /> : null}
+    </Pressable>
   );
 }
 

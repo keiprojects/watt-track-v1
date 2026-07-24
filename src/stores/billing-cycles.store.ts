@@ -1,11 +1,9 @@
 import { create } from 'zustand';
 
 import { storageService } from '@/services/storage.service';
+import { persistOptimisticState } from '@/stores/persistence';
 import type { BillingCycleOverride } from '@/types/billing';
-
-function sortOverridesDescending(overrides: BillingCycleOverride[]): BillingCycleOverride[] {
-  return [...overrides].sort((left, right) => right.anchorCycleStartDate.localeCompare(left.anchorCycleStartDate));
-}
+import { sortBillingCycleOverridesDescending } from '@/utils/domainSort';
 
 type BillingCyclesState = {
   cycleOverrides: BillingCycleOverride[];
@@ -21,7 +19,7 @@ export const useBillingCyclesStore = create<BillingCyclesState>((set, get) => ({
   hydrate: async () => {
     try {
       const cycleOverrides = await storageService.getBillingCycleOverrides();
-      set({ cycleOverrides: sortOverridesDescending(cycleOverrides), hasHydrated: true });
+      set({ cycleOverrides: sortBillingCycleOverridesDescending(cycleOverrides), hasHydrated: true });
     } catch (error) {
       if (__DEV__) {
         console.error('Failed to hydrate billing cycle store.', error);
@@ -31,16 +29,26 @@ export const useBillingCyclesStore = create<BillingCyclesState>((set, get) => ({
     }
   },
   saveCycleOverride: async (cycleOverride) => {
-    const cycleOverrides = sortOverridesDescending([
+    const previousCycleOverrides = get().cycleOverrides;
+    const cycleOverrides = sortBillingCycleOverridesDescending([
       cycleOverride,
       ...get().cycleOverrides.filter((override) => override.anchorCycleStartDate !== cycleOverride.anchorCycleStartDate),
     ]);
-    set({ cycleOverrides });
-    await storageService.saveBillingCycleOverride(cycleOverride);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { cycleOverrides: previousCycleOverrides },
+      nextState: { cycleOverrides },
+      persist: () => storageService.saveBillingCycleOverride(cycleOverride),
+    });
   },
   deleteCycleOverride: async (overrideId) => {
+    const previousCycleOverrides = get().cycleOverrides;
     const cycleOverrides = get().cycleOverrides.filter((override) => override.id !== overrideId);
-    set({ cycleOverrides });
-    await storageService.deleteBillingCycleOverride(overrideId);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { cycleOverrides: previousCycleOverrides },
+      nextState: { cycleOverrides },
+      persist: () => storageService.deleteBillingCycleOverride(overrideId),
+    });
   },
 }));

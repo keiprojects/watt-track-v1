@@ -8,6 +8,7 @@ import { DateTimePickerField } from '@/components/date-time-picker-field';
 import { DateRangeFilterSheet } from '@/components/date-range-filter-sheet';
 import {
   DatePill,
+  CommandButton,
   IconButton,
   IconSquare,
   ScreenHeader,
@@ -25,6 +26,10 @@ import {
   summarizeRoi,
 } from '@/services/calculation.service';
 import {
+  buildBillingCycleOverrideFromDraft,
+  buildSystemCostFromDraft,
+  createBillCycleDraft,
+  createDefaultCostDraft,
   estimateGridBill,
   filterReadingsForAnalyticsRange,
   getAnalyticsRangeLabel,
@@ -32,6 +37,10 @@ import {
   roundMoney,
   shiftAnalyticsAnchorDate,
   type AnalyticsRange,
+  type BillEstimate,
+  type BillCycleDraft,
+  type CostDraft,
+  type EffectiveBillCycleWindow,
 } from '@/services/insights.service';
 import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useCostsStore } from '@/stores/costs.store';
@@ -39,8 +48,8 @@ import { useReadingsStore } from '@/stores/readings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
-import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import type { BillingCycleOverride } from '@/types/billing';
+import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import {
   formatMonthDayLabel,
   formatShortDate,
@@ -56,19 +65,6 @@ type ForecastWindow = '30d' | '90d' | 'all';
 type FlowIonIconName = ComponentProps<typeof Ionicons>['name'];
 type FlowMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 type FlowIconFamily = 'ionicons' | 'material-community';
-type CostDraft = {
-  date: string;
-  category: SystemCostCategory;
-  costTreatment: CostTreatment;
-  description: string;
-  amount: string;
-  notes: string;
-};
-type BillCycleDraft = {
-  startDate: string;
-  endDate: string;
-  importRate: string;
-};
 
 const rangeOptions: { label: string; value: AnalyticsRange }[] = [
   { label: 'Day', value: 'day' },
@@ -96,31 +92,12 @@ const costTreatmentOptions: { label: string; value: CostTreatment }[] = [
   { label: 'Maintenance', value: 'maintenance' },
 ];
 
-function createDefaultCostDraft(): CostDraft {
-  return {
-    date: getTodayDateInputValue(),
-    category: 'installation',
-    costTreatment: 'capital',
-    description: '',
-    amount: '',
-    notes: '',
-  };
-}
-
 function formatCompactKwh(value: number): string {
   return value.toFixed(1);
 }
 
 function formatEnergy(value: number): string {
   return `${formatCompactKwh(value)} kWh`;
-}
-
-function createBillCycleDraft(): BillCycleDraft {
-  return {
-    startDate: '',
-    endDate: '',
-    importRate: '',
-  };
 }
 
 function getDateDisplayValue(date: string): string {
@@ -209,49 +186,6 @@ function OptionChip({
       <Text style={{ color: selected ? theme.statusText : theme.textMuted, fontSize: 13, fontFamily: fontFamilies.bodyStrong }}>
         {label}
       </Text>
-    </Pressable>
-  );
-}
-
-function ActionButton({
-  label,
-  icon,
-  tone = 'primary',
-  onPress,
-}: {
-  label: string;
-  icon: 'save-outline' | 'create-outline' | 'trash-outline' | 'close-outline';
-  tone?: 'primary' | 'secondary' | 'danger';
-  onPress: () => void;
-}) {
-  const theme = useAppTheme();
-  const color = tone === 'primary' ? '#ffffff' : tone === 'danger' ? theme.dangerText : theme.text;
-  const backgroundColor = tone === 'primary' ? theme.accent : tone === 'danger' ? theme.dangerSoft : theme.surface;
-  const borderColor = tone === 'primary' ? theme.accent : tone === 'danger' ? theme.dangerSoft : theme.border;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        minHeight: 46,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        borderRadius: 12,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor,
-        backgroundColor,
-        paddingHorizontal: 12,
-        opacity: pressed ? 0.72 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={18} color={color} />
-      <Text style={{ color, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>{label}</Text>
     </Pressable>
   );
 }
@@ -446,6 +380,564 @@ function EnergyFlow({
   );
 }
 
+function GenerationChartCard({
+  barData,
+  chartWidth,
+}: {
+  barData: { value: number; label?: string; frontColor: string }[];
+  chartWidth: number;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Generation vs Consumption</Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Text style={{ color: theme.primaryChart, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Generated</Text>
+          <Text style={{ color: theme.accent, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
+        </View>
+      </View>
+      <View style={{ pointerEvents: 'none' }}>
+        <BarChart
+          data={barData}
+          width={chartWidth}
+          height={220}
+          barWidth={8}
+          spacing={10}
+          initialSpacing={8}
+          endSpacing={8}
+          roundedTop
+          hideRules={false}
+          rulesColor={theme.chartGrid}
+          xAxisColor={theme.border}
+          yAxisColor="transparent"
+          yAxisTextStyle={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}
+          xAxisLabelTextStyle={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}
+          noOfSections={4}
+          disableScroll
+        />
+      </View>
+    </SoftCard>
+  );
+}
+
+function ReportTiles({
+  generated,
+  consumed,
+  saved,
+}: {
+  generated: number;
+  consumed: number;
+  saved: number;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={{ gap: 10 }}>
+      <SectionHeader title="Reports" />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <SoftCard tone="amber" style={{ flex: 1 }} padding={10}>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Generated</Text>
+          <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(generated)}</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
+        </SoftCard>
+        <SoftCard tone="blue" style={{ flex: 1 }} padding={10}>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
+          <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(consumed)}</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
+        </SoftCard>
+        <SoftCard tone="green" style={{ flex: 1 }} padding={10}>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Saved</Text>
+          <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(saved)}</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
+        </SoftCard>
+      </View>
+    </View>
+  );
+}
+
+function SavingsTrendCard({
+  savings,
+  roi,
+  chartWidth,
+  lineData,
+  maxValue,
+  formatCurrency,
+  formatPercent,
+}: {
+  savings: number;
+  roi: number;
+  chartWidth: number;
+  lineData: { value: number }[];
+  maxValue: number;
+  formatCurrency: (value: number) => string;
+  formatPercent: (value: number) => string;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+        <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Estimated Savings</Text>
+        <Text selectable style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy }}>
+          {formatCurrency(savings)}
+        </Text>
+        <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+          ROI {formatPercent(roi)}
+        </Text>
+      </View>
+      <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 185) }}>
+        <LineChart
+          data={lineData}
+          width={Math.min(chartWidth, 185)}
+          height={112}
+          curved
+          areaChart
+          hideAxesAndRules
+          hideDataPoints
+          disableScroll
+          color={theme.accent}
+          startFillColor={theme.accent}
+          endFillColor={theme.accent}
+          startOpacity={0.26}
+          endOpacity={0.02}
+          thickness={2}
+          maxValue={maxValue}
+          initialSpacing={0}
+          endSpacing={0}
+        />
+      </View>
+    </SoftCard>
+  );
+}
+
+function GridBillCard({
+  expectedGridMonthlyBill,
+  gridBillHelper,
+  billingCycleProgress,
+  billingCycleLabel,
+  billingCycleWindow,
+  averageBillingCycleGridCost,
+  billingCycleEstimate,
+  billingCycleRate,
+  currentCycleDraft,
+  currentCycleOverride,
+  onDraftChange,
+  onSave,
+  onClear,
+  formatCurrency,
+  formatRate,
+}: {
+  expectedGridMonthlyBill: number;
+  gridBillHelper: string;
+  billingCycleProgress: number;
+  billingCycleLabel: string;
+  billingCycleWindow: EffectiveBillCycleWindow;
+  averageBillingCycleGridCost: number;
+  billingCycleEstimate: BillEstimate;
+  billingCycleRate: number;
+  currentCycleDraft: BillCycleDraft;
+  currentCycleOverride?: BillingCycleOverride;
+  onDraftChange: <Key extends keyof BillCycleDraft>(key: Key, value: BillCycleDraft[Key]) => void;
+  onSave: () => void;
+  onClear: () => void;
+  formatCurrency: (value: number) => string;
+  formatRate: (value: number) => string;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 10 }}>
+      <SoftCard tone="blue" style={{ flex: 1, minWidth: 280 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Expected Grid Monthly Bill</Text>
+            <Text
+              selectable
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.62}
+              style={{ color: theme.text, fontSize: 28, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
+            >
+              {formatCurrency(expectedGridMonthlyBill)}
+            </Text>
+            <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{gridBillHelper}</Text>
+          </View>
+          <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={46} />
+        </View>
+
+        <View style={{ height: 8, overflow: 'hidden', borderRadius: 999, backgroundColor: theme.surface }}>
+          <View style={{ width: `${billingCycleProgress}%`, height: '100%', borderRadius: 999, backgroundColor: theme.accent }} />
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <BillStat label="Cycle" value={billingCycleLabel} />
+          <BillStat label="Days" value={`${billingCycleWindow.elapsedDays}/${billingCycleWindow.totalDays}`} />
+          <BillStat label="Avg / day" value={formatCurrency(averageBillingCycleGridCost)} accent />
+          <BillStat label={billingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(billingCycleRate)} />
+        </View>
+
+        <View style={{ gap: 10 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Bill cycle override</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <DateTimePickerField
+                mode="date"
+                value={currentCycleDraft.startDate}
+                displayValue={currentCycleDraft.startDate ? getDateDisplayValue(currentCycleDraft.startDate) : ''}
+                placeholder={formatShortDate(billingCycleWindow.startDate)}
+                onChange={(value) => onDraftChange('startDate', value)}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <DateTimePickerField
+                mode="date"
+                value={currentCycleDraft.endDate}
+                displayValue={currentCycleDraft.endDate ? getDateDisplayValue(currentCycleDraft.endDate) : ''}
+                placeholder={formatShortDate(billingCycleWindow.endDate)}
+                onChange={(value) => onDraftChange('endDate', value)}
+              />
+            </View>
+          </View>
+          <TextInput
+            value={currentCycleDraft.importRate}
+            onChangeText={(value) => onDraftChange('importRate', value)}
+            keyboardType="numeric"
+            placeholder={formatRate(billingCycleRate)}
+            placeholderTextColor={theme.textSubtle}
+            style={inputStyle(theme)}
+          />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <CommandButton label="Save cycle" icon="save-outline" compact flex={1} onPress={onSave} />
+            {currentCycleOverride ? <CommandButton label="Clear" icon="close-outline" tone="secondary" compact flex={1} onPress={onClear} /> : null}
+          </View>
+        </View>
+      </SoftCard>
+    </View>
+  );
+}
+
+function BreakdownCard({
+  pieData,
+  homeUsageKwh,
+  solarGeneratedKwh,
+  selfConsumedSolarKwh,
+  exportedEnergyKwh,
+  gridConsumedKwh,
+}: {
+  pieData: { value: number; color: string; text: string }[];
+  homeUsageKwh: number;
+  solarGeneratedKwh: number;
+  selfConsumedSolarKwh: number;
+  exportedEnergyKwh: number;
+  gridConsumedKwh: number;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard>
+      <SectionHeader title="Breakdown" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+        <PieChart
+          data={pieData}
+          donut
+          radius={86}
+          innerRadius={48}
+          innerCircleColor={theme.surface}
+          strokeWidth={3}
+          strokeColor={theme.surface}
+          centerLabelComponent={() => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ color: theme.text, fontSize: 18, fontFamily: fontFamilies.bodyHeavy }}>
+                {formatCompactKwh(homeUsageKwh)}
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 10, fontFamily: fontFamilies.body }}>kWh</Text>
+            </View>
+          )}
+        />
+        <View style={{ flex: 1, gap: 12 }}>
+          {[
+            { label: `Solar generated ${formatCompactKwh(solarGeneratedKwh)} kWh`, color: theme.warningText },
+            { label: `Self-consumed ${formatCompactKwh(selfConsumedSolarKwh)} kWh`, color: theme.primaryChart },
+            { label: `Exported ${formatCompactKwh(exportedEnergyKwh)} kWh`, color: theme.accent },
+            { label: `Grid ${formatCompactKwh(gridConsumedKwh)} kWh`, color: theme.textMuted },
+          ].map((item) => (
+            <View key={item.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: item.color }} />
+              <Text style={{ flex: 1, color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </SoftCard>
+  );
+}
+
+function PaybackSection({
+  forecastWindow,
+  onForecastWindowChange,
+  projectedPaybackLabel,
+  paybackHelper,
+  averageDailySavings,
+  remainingAmount,
+  formatCurrency,
+}: {
+  forecastWindow: ForecastWindow;
+  onForecastWindowChange: (window: ForecastWindow) => void;
+  projectedPaybackLabel: string;
+  paybackHelper: string;
+  averageDailySavings: number;
+  remainingAmount: number;
+  formatCurrency: (value: number) => string;
+}) {
+  return (
+    <View style={{ gap: 10 }}>
+      <SectionHeader title="Payback Forecast" />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {forecastOptions.map((option) => (
+          <OptionChip
+            key={option.value}
+            label={option.label}
+            selected={forecastWindow === option.value}
+            onPress={() => onForecastWindowChange(option.value)}
+          />
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <FinancialMetric label="Projected payback" value={projectedPaybackLabel} helper={paybackHelper} icon="time-outline" tone="green" />
+        <FinancialMetric label="Forecast daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" icon="calendar-outline" />
+        <FinancialMetric label="Remaining to recover" value={formatCurrency(remainingAmount)} helper="All-time capital" icon="construct-outline" />
+      </View>
+    </View>
+  );
+}
+
+function FinancialBreakdownSection({
+  lifetimeRoi,
+  solarContribution,
+  selfConsumptionShare,
+  averageDailySavings,
+  averageSolarPerDay,
+  averageDailyGridCost,
+  lowestSolarLabel,
+  formatCurrency,
+  formatKwh,
+  formatPercent,
+}: {
+  lifetimeRoi: ReturnType<typeof summarizeRoi>;
+  solarContribution: number;
+  selfConsumptionShare: number;
+  averageDailySavings: number;
+  averageSolarPerDay: number;
+  averageDailyGridCost: number;
+  lowestSolarLabel: string;
+  formatCurrency: (value: number) => string;
+  formatKwh: (value: number) => string;
+  formatPercent: (value: number) => string;
+}) {
+  return (
+    <View style={{ gap: 10 }}>
+      <SectionHeader title="Financial Breakdown" />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <FinancialMetric label="Gross savings" value={formatCurrency(lifetimeRoi.totalEstimatedSavings)} helper="All-time before maintenance" icon="cash-outline" tone="green" />
+        <FinancialMetric label="Avg daily savings" value={formatCurrency(averageDailySavings)} helper="Estimated" icon="calendar-outline" />
+        <FinancialMetric label="ROI" value={formatPercent(lifetimeRoi.roiPercentage)} helper="Net benefit / capital" icon="trending-up-outline" />
+        <FinancialMetric label="Remaining to recover" value={formatCurrency(lifetimeRoi.remainingAmount)} helper="Unrecovered capital" icon="construct-outline" />
+      </View>
+      <SoftCard>
+        <InsightRow label="Total capital invested" value={formatCurrency(lifetimeRoi.totalCapitalInvestment)} />
+        <InsightRow label="Additional capital costs" value={formatCurrency(lifetimeRoi.additionalCapitalCosts)} />
+        <InsightRow label="Gross estimated savings" value={formatCurrency(lifetimeRoi.totalEstimatedSavings)} />
+        <InsightRow
+          label="Maintenance deducted"
+          value={lifetimeRoi.maintenanceCosts === 0 ? formatCurrency(0) : `-${formatCurrency(lifetimeRoi.maintenanceCosts)}`}
+        />
+        <InsightRow label="Net financial benefit" value={formatCurrency(lifetimeRoi.netSavings)} accent />
+        <InsightRow label="Solar contribution" value={formatPercent(solarContribution)} />
+        <InsightRow label="Self-consumption" value={formatPercent(selfConsumptionShare)} />
+        <InsightRow label="Avg solar / day" value={formatKwh(averageSolarPerDay)} />
+        <InsightRow label="Avg daily grid cost" value={formatCurrency(averageDailyGridCost)} />
+        <InsightRow label="Lowest day" value={lowestSolarLabel} />
+      </SoftCard>
+    </View>
+  );
+}
+
+function CostFormCard({
+  isEditing,
+  costDraft,
+  onDraftChange,
+  onSave,
+  onCancel,
+}: {
+  isEditing: boolean;
+  costDraft: CostDraft;
+  onDraftChange: <Key extends keyof CostDraft>(key: Key, value: CostDraft[Key]) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <SoftCard>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <IconSquare icon="card-outline" colors={wattGradients.green} size={44} />
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          <Text style={{ color: theme.text, fontSize: 17, fontFamily: fontFamilies.bodyHeavy }}>
+            {isEditing ? 'Edit system cost' : 'Track a system cost'}
+          </Text>
+          <Text style={{ color: theme.textMuted, fontSize: 12, lineHeight: 18, fontFamily: fontFamilies.body }}>
+            Keep capital and maintenance separated so ROI stays honest.
+          </Text>
+        </View>
+      </View>
+
+      <FormField label="Date">
+        <DateTimePickerField
+          mode="date"
+          value={costDraft.date}
+          displayValue={getDateDisplayValue(costDraft.date)}
+          placeholder="Pick a date"
+          maximumDate={new Date()}
+          onChange={(value) => onDraftChange('date', value)}
+        />
+      </FormField>
+
+      <FormField label="Category">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {costCategoryOptions.map((option) => (
+            <OptionChip key={option.value} label={option.label} selected={costDraft.category === option.value} onPress={() => onDraftChange('category', option.value)} />
+          ))}
+        </View>
+      </FormField>
+
+      <FormField label="Treatment" helper="Capital affects investment. Maintenance reduces net savings.">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {costTreatmentOptions.map((option) => (
+            <OptionChip key={option.value} label={option.label} selected={costDraft.costTreatment === option.value} onPress={() => onDraftChange('costTreatment', option.value)} />
+          ))}
+        </View>
+      </FormField>
+
+      <FormField label="Description">
+        <TextInput
+          value={costDraft.description}
+          onChangeText={(value) => onDraftChange('description', value)}
+          placeholder="Inverter replacement"
+          placeholderTextColor={theme.textSubtle}
+          style={inputStyle(theme)}
+        />
+      </FormField>
+
+      <FormField label="Amount">
+        <TextInput
+          value={costDraft.amount}
+          onChangeText={(value) => onDraftChange('amount', value)}
+          keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor={theme.textSubtle}
+          style={inputStyle(theme)}
+        />
+      </FormField>
+
+      <FormField label="Notes" helper="Optional">
+        <TextInput
+          value={costDraft.notes}
+          onChangeText={(value) => onDraftChange('notes', value)}
+          placeholder="Labor, supplier, warranty..."
+          placeholderTextColor={theme.textSubtle}
+          multiline
+          style={[inputStyle(theme), { minHeight: 90, textAlignVertical: 'top' }]}
+        />
+      </FormField>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <CommandButton label={isEditing ? 'Update cost' : 'Save cost'} icon="save-outline" compact flex={1} onPress={onSave} />
+        {isEditing ? <CommandButton label="Cancel" icon="close-outline" tone="secondary" compact flex={1} onPress={onCancel} /> : null}
+      </View>
+    </SoftCard>
+  );
+}
+
+function CostListSection({
+  costs,
+  onEditCost,
+  onDeleteCost,
+  formatCurrency,
+}: {
+  costs: SystemCost[];
+  onEditCost: (cost: SystemCost) => void;
+  onDeleteCost: (cost: SystemCost) => void;
+  formatCurrency: (value: number) => string;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={{ gap: 10 }}>
+      <SectionHeader title="Tracked Costs" />
+      {costs.length === 0 ? (
+        <SoftCard>
+          <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>No extra costs tracked yet</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>
+            Add repairs, upgrades, maintenance, and other system costs here so ROI stays accurate.
+          </Text>
+        </SoftCard>
+      ) : (
+        <View style={{ gap: 10 }}>
+          {costs.map((cost) => (
+            <SoftCard key={cost.id}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <View style={{ flexDirection: 'row', flex: 1, minWidth: 0, gap: 12 }}>
+                  <View
+                    style={{
+                      height: 44,
+                      width: 44,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 15,
+                      borderCurve: 'continuous',
+                      backgroundColor: cost.costTreatment === 'capital' ? theme.statusBackground : theme.surfaceMuted,
+                    }}
+                  >
+                    <Ionicons name="card-outline" size={20} color={cost.costTreatment === 'capital' ? theme.primaryChart : theme.textMuted} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                    <Text numberOfLines={2} style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>
+                      {cost.description}
+                    </Text>
+                    <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
+                      {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  selectable
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={{ maxWidth: 110, color: theme.statusText, fontSize: 15, textAlign: 'right', fontFamily: fontFamilies.bodyHeavy }}
+                >
+                  {formatCurrency(cost.amount)}
+                </Text>
+              </View>
+
+              {cost.notes ? <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>{cost.notes}</Text> : null}
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <CommandButton label="Edit" icon="create-outline" tone="secondary" compact flex={1} onPress={() => onEditCost(cost)} />
+                <CommandButton label="Delete" icon="trash-outline" tone="danger" compact flex={1} onPress={() => onDeleteCost(cost)} />
+              </View>
+            </SoftCard>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function InsightsScreen() {
   const theme = useAppTheme();
   const { width } = useWindowDimensions();
@@ -618,30 +1110,22 @@ export default function InsightsScreen() {
     existingOverride?: BillingCycleOverride;
     clearDraft: () => void;
   }) => {
-    const cycleStartDate = draft.startDate || existingOverride?.cycleStartDate || fallbackStartDate;
-    const cycleEndDate = draft.endDate || existingOverride?.cycleEndDate || fallbackEndDate;
-    const importRate = draft.importRate.trim() ? Number(draft.importRate) : existingOverride?.importRate;
-
-    if (!isValidDateInputValue(cycleStartDate) || !isValidDateInputValue(cycleEndDate) || cycleStartDate > cycleEndDate) {
-      Alert.alert('Check the bill period', 'Enter a valid start and end date for the utility bill period.');
-      return;
-    }
-
-    if (typeof importRate === 'number' && (!Number.isFinite(importRate) || importRate <= 0)) {
-      Alert.alert('Check the bill rate', 'Enter a valid import rate, or leave it blank to keep using reading rates.');
-      return;
-    }
-
-    const now = new Date().toISOString();
-    await saveCycleOverride({
-      id: existingOverride?.id ?? createId('bill-cycle'),
+    const result = buildBillingCycleOverrideFromDraft({
       anchorCycleStartDate,
-      cycleStartDate,
-      cycleEndDate,
-      importRate,
-      createdAt: existingOverride?.createdAt ?? now,
-      updatedAt: now,
+      fallbackStartDate,
+      fallbackEndDate,
+      draft,
+      existingOverride,
+      id: createId('bill-cycle'),
+      now: new Date().toISOString(),
     });
+
+    if (!result.ok) {
+      Alert.alert(result.title, result.message);
+      return;
+    }
+
+    await saveCycleOverride(result.value);
     clearDraft();
     Alert.alert('Bill cycle saved', 'This cycle will use the saved bill period and rate without editing historical readings.');
   };
@@ -664,42 +1148,25 @@ export default function InsightsScreen() {
   };
 
   const saveCostDraft = async () => {
-    const amount = Number(costDraft.amount || 0);
-
-    if (!isValidDateInputValue(costDraft.date) || costDraft.date > today) {
-      Alert.alert('Check the date', 'Use a real date that is not in the future.');
-      return;
-    }
-
-    if (!costDraft.description.trim()) {
-      Alert.alert('Add a description', 'Name the repair, upgrade, maintenance, or install cost.');
-      return;
-    }
-
-    if (!Number.isFinite(amount) || amount < 0) {
-      Alert.alert('Check the amount', 'Use a valid amount of 0 or higher.');
-      return;
-    }
-
-    const now = new Date().toISOString();
     const existingCost = editingCostId ? costs.find((cost) => cost.id === editingCostId) : undefined;
-    const costRecord: SystemCost = {
-      id: existingCost?.id ?? createId('cost'),
-      date: costDraft.date,
-      category: costDraft.category,
-      costTreatment: costDraft.costTreatment,
-      description: costDraft.description.trim(),
-      amount,
-      notes: costDraft.notes.trim() || undefined,
-      createdAt: existingCost?.createdAt ?? now,
-      updatedAt: now,
-    };
+    const result = buildSystemCostFromDraft({
+      draft: costDraft,
+      existingCost,
+      id: createId('cost'),
+      now: new Date().toISOString(),
+      today,
+    });
+
+    if (!result.ok) {
+      Alert.alert(result.title, result.message);
+      return;
+    }
 
     if (existingCost) {
-      await updateCost(costRecord);
+      await updateCost(result.value);
       Alert.alert('Cost updated', 'ROI and payback were recalculated.');
     } else {
-      await saveCost(costRecord);
+      await saveCost(result.value);
       Alert.alert('Cost saved', 'The new cost is included in ROI and payback.');
     }
 
@@ -767,458 +1234,92 @@ export default function InsightsScreen() {
           />
         </View>
 
-        <SoftCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Generation vs Consumption</Text>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Text style={{ color: theme.primaryChart, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Generated</Text>
-              <Text style={{ color: theme.accent, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
-            </View>
-          </View>
-          <View style={{ pointerEvents: 'none' }}>
-            <BarChart
-              data={barData}
-              width={chartWidth}
-              height={220}
-              barWidth={8}
-              spacing={10}
-              initialSpacing={8}
-              endSpacing={8}
-              roundedTop
-              hideRules={false}
-              rulesColor={theme.chartGrid}
-              xAxisColor={theme.border}
-              yAxisColor="transparent"
-              yAxisTextStyle={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}
-              xAxisLabelTextStyle={{ color: theme.textSubtle, fontSize: 10, fontFamily: fontFamilies.body }}
-              noOfSections={4}
-              disableScroll
-            />
-          </View>
-        </SoftCard>
+        <GenerationChartCard barData={barData} chartWidth={chartWidth} />
 
-        <View style={{ gap: 10 }}>
-          <SectionHeader title="Reports" />
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <SoftCard tone="amber" style={{ flex: 1 }} padding={10}>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Generated</Text>
-              <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(summary.solarGeneratedKwh)}</Text>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
-            </SoftCard>
-            <SoftCard tone="blue" style={{ flex: 1 }} padding={10}>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Consumed</Text>
-              <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(summary.gridConsumedKwh)}</Text>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
-            </SoftCard>
-            <SoftCard tone="green" style={{ flex: 1 }} padding={10}>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.bodyStrong }}>Saved</Text>
-              <Text style={{ color: theme.text, fontSize: 20, fontFamily: fontFamilies.bodyHeavy }}>{formatCompactKwh(summary.selfConsumedSolarKwh)}</Text>
-              <Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: fontFamilies.body }}>kWh</Text>
-            </SoftCard>
-          </View>
-        </View>
+        <ReportTiles generated={summary.solarGeneratedKwh} consumed={summary.gridConsumedKwh} saved={summary.selfConsumedSolarKwh} />
 
-        <SoftCard style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Estimated Savings</Text>
-            <Text selectable style={{ color: theme.text, fontSize: 26, fontFamily: fontFamilies.bodyHeavy }}>
-              {formatCurrency(summary.estimatedSavings)}
-            </Text>
-            <Text style={{ color: theme.primaryChart, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-              ROI {formatPercent(lifetimeRoi.roiPercentage)}
-            </Text>
-          </View>
-          <View style={{ pointerEvents: 'none', width: Math.min(chartWidth, 185) }}>
-            <LineChart
-              data={savingsLineData}
-              width={Math.min(chartWidth, 185)}
-              height={112}
-              curved
-              areaChart
-              hideAxesAndRules
-              hideDataPoints
-              disableScroll
-              color={theme.accent}
-              startFillColor={theme.accent}
-              endFillColor={theme.accent}
-              startOpacity={0.26}
-              endOpacity={0.02}
-              thickness={2}
-              maxValue={savingsChartMax}
-              initialSpacing={0}
-              endSpacing={0}
-            />
-          </View>
-        </SoftCard>
+        <SavingsTrendCard
+          savings={summary.estimatedSavings}
+          roi={lifetimeRoi.roiPercentage}
+          chartWidth={chartWidth}
+          lineData={savingsLineData}
+          maxValue={savingsChartMax}
+          formatCurrency={formatCurrency}
+          formatPercent={formatPercent}
+        />
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 10 }}>
-          <SoftCard tone="blue" style={{ flex: 1, minWidth: 280 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
-              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>Expected Grid Monthly Bill</Text>
-                <Text
-                  selectable
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.62}
-                  style={{ color: theme.text, fontSize: 28, fontFamily: fontFamilies.bodyHeavy, fontVariant: ['tabular-nums'] }}
-                >
-                  {formatCurrency(expectedGridMonthlyBill)}
-                </Text>
-                <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>{gridBillHelper}</Text>
-              </View>
-              <IconSquare icon="receipt-outline" colors={wattGradients.blue} size={46} />
-            </View>
+        <GridBillCard
+          expectedGridMonthlyBill={expectedGridMonthlyBill}
+          gridBillHelper={gridBillHelper}
+          billingCycleProgress={billingCycleProgress}
+          billingCycleLabel={billingCycleLabel}
+          billingCycleWindow={billingCycleWindow}
+          averageBillingCycleGridCost={averageBillingCycleGridCost}
+          billingCycleEstimate={billingCycleEstimate}
+          billingCycleRate={billingCycleRate}
+          currentCycleDraft={currentCycleDraft}
+          currentCycleOverride={currentCycleOverride}
+          onDraftChange={updateCurrentCycleDraftField}
+          onSave={() =>
+            void saveBillingCycleDraft({
+              anchorCycleStartDate: computedBillingCycleWindow.startDate,
+              fallbackStartDate: computedBillingCycleWindow.startDate,
+              fallbackEndDate: computedBillingCycleWindow.endDate,
+              draft: currentCycleDraft,
+              existingOverride: currentCycleOverride,
+              clearDraft: () => setCurrentCycleDraft(createBillCycleDraft()),
+            })
+          }
+          onClear={() => {
+            if (currentCycleOverride) {
+              void clearBillingCycleOverride(currentCycleOverride.id);
+            }
+          }}
+          formatCurrency={formatCurrency}
+          formatRate={formatRate}
+        />
 
-            <View style={{ height: 8, overflow: 'hidden', borderRadius: 999, backgroundColor: theme.surface }}>
-              <View style={{ width: `${billingCycleProgress}%`, height: '100%', borderRadius: 999, backgroundColor: theme.accent }} />
-            </View>
+        <BreakdownCard
+          pieData={pieData}
+          homeUsageKwh={summary.homeUsageKwh}
+          solarGeneratedKwh={summary.solarGeneratedKwh}
+          selfConsumedSolarKwh={summary.selfConsumedSolarKwh}
+          exportedEnergyKwh={exportedEnergyKwh}
+          gridConsumedKwh={summary.gridConsumedKwh}
+        />
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              <BillStat label="Cycle" value={billingCycleLabel} />
-              <BillStat label="Days" value={`${billingCycleWindow.elapsedDays}/${billingCycleWindow.totalDays}`} />
-              <BillStat label="Avg / day" value={formatCurrency(averageBillingCycleGridCost)} accent />
-              <BillStat label={billingCycleEstimate.hasOverride ? 'Bill rate' : 'Rate'} value={formatRate(billingCycleRate)} />
-            </View>
+        <PaybackSection
+          forecastWindow={forecastWindow}
+          onForecastWindowChange={setForecastWindow}
+          projectedPaybackLabel={projectedPaybackLabel}
+          paybackHelper={paybackHelper}
+          averageDailySavings={paybackForecast.averageDailySavings}
+          remainingAmount={lifetimeRoi.remainingAmount}
+          formatCurrency={formatCurrency}
+        />
 
-            <View style={{ gap: 10 }}>
-              <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>Bill cycle override</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <DateTimePickerField
-                    mode="date"
-                    value={currentCycleDraft.startDate}
-                    displayValue={currentCycleDraft.startDate ? getDateDisplayValue(currentCycleDraft.startDate) : ''}
-                    placeholder={formatShortDate(billingCycleWindow.startDate)}
-                    onChange={(value) => updateCurrentCycleDraftField('startDate', value)}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <DateTimePickerField
-                    mode="date"
-                    value={currentCycleDraft.endDate}
-                    displayValue={currentCycleDraft.endDate ? getDateDisplayValue(currentCycleDraft.endDate) : ''}
-                    placeholder={formatShortDate(billingCycleWindow.endDate)}
-                    onChange={(value) => updateCurrentCycleDraftField('endDate', value)}
-                  />
-                </View>
-              </View>
-              <TextInput
-                value={currentCycleDraft.importRate}
-                onChangeText={(value) => updateCurrentCycleDraftField('importRate', value)}
-                keyboardType="numeric"
-                placeholder={formatRate(billingCycleRate)}
-                placeholderTextColor={theme.textSubtle}
-                style={inputStyle(theme)}
-              />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <ActionButton
-                  label="Save cycle"
-                  icon="save-outline"
-                  onPress={() =>
-                    void saveBillingCycleDraft({
-                      anchorCycleStartDate: computedBillingCycleWindow.startDate,
-                      fallbackStartDate: computedBillingCycleWindow.startDate,
-                      fallbackEndDate: computedBillingCycleWindow.endDate,
-                      draft: currentCycleDraft,
-                      existingOverride: currentCycleOverride,
-                      clearDraft: () => setCurrentCycleDraft(createBillCycleDraft()),
-                    })
-                  }
-                />
-                {currentCycleOverride ? (
-                  <ActionButton
-                    label="Clear"
-                    icon="close-outline"
-                    tone="secondary"
-                    onPress={() => void clearBillingCycleOverride(currentCycleOverride.id)}
-                  />
-                ) : null}
-              </View>
-            </View>
-          </SoftCard>
-        </View>
+        <FinancialBreakdownSection
+          lifetimeRoi={lifetimeRoi}
+          solarContribution={solarContribution}
+          selfConsumptionShare={selfConsumptionShare}
+          averageDailySavings={averageDailySavings}
+          averageSolarPerDay={averageSolarPerDay}
+          averageDailyGridCost={averageDailyGridCost}
+          lowestSolarLabel={lowestSolarDay ? `${formatEnergy(lowestSolarDay.solarGenerationKwh)} on ${formatShortDate(lowestSolarDay.date)}` : 'No readings'}
+          formatCurrency={formatCurrency}
+          formatKwh={formatKwh}
+          formatPercent={formatPercent}
+        />
 
-        <SoftCard>
-          <SectionHeader title="Breakdown" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-            <PieChart
-              data={pieData}
-              donut
-              radius={86}
-              innerRadius={48}
-              innerCircleColor={theme.surface}
-              strokeWidth={3}
-              strokeColor={theme.surface}
-              centerLabelComponent={() => (
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: theme.text, fontSize: 18, fontFamily: fontFamilies.bodyHeavy }}>
-                    {formatCompactKwh(summary.homeUsageKwh)}
-                  </Text>
-                  <Text style={{ color: theme.textMuted, fontSize: 10, fontFamily: fontFamilies.body }}>kWh</Text>
-                </View>
-              )}
-            />
-            <View style={{ flex: 1, gap: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.warningText }} />
-                <Text style={{ flex: 1, color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-                  Solar generated {formatCompactKwh(summary.solarGeneratedKwh)} kWh
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.primaryChart }} />
-                <Text style={{ flex: 1, color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-                  Self-consumed {formatCompactKwh(summary.selfConsumedSolarKwh)} kWh
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.accent }} />
-                <Text style={{ flex: 1, color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-                  Exported {formatCompactKwh(exportedEnergyKwh)} kWh
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ height: 10, width: 10, borderRadius: 999, backgroundColor: theme.textMuted }} />
-                <Text style={{ flex: 1, color: theme.text, fontSize: 12, fontFamily: fontFamilies.bodyStrong }}>
-                  Grid {formatCompactKwh(summary.gridConsumedKwh)} kWh
-                </Text>
-              </View>
-            </View>
-          </View>
-        </SoftCard>
+        <CostFormCard
+          isEditing={Boolean(editingCostId)}
+          costDraft={costDraft}
+          onDraftChange={updateCostDraftField}
+          onSave={() => void saveCostDraft()}
+          onCancel={resetCostDraft}
+        />
 
-        <View style={{ gap: 10 }}>
-          <SectionHeader title="Payback Forecast" />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {forecastOptions.map((option) => (
-              <OptionChip
-                key={option.value}
-                label={option.label}
-                selected={forecastWindow === option.value}
-                onPress={() => setForecastWindow(option.value)}
-              />
-            ))}
-          </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <FinancialMetric
-              label="Projected payback"
-              value={projectedPaybackLabel}
-              helper={paybackHelper}
-              icon="time-outline"
-              tone="green"
-            />
-            <FinancialMetric
-              label="Forecast daily savings"
-              value={formatCurrency(paybackForecast.averageDailySavings)}
-              helper="Estimated"
-              icon="calendar-outline"
-            />
-            <FinancialMetric
-              label="Remaining to recover"
-              value={formatCurrency(lifetimeRoi.remainingAmount)}
-              helper="All-time capital"
-              icon="construct-outline"
-            />
-          </View>
-        </View>
-
-        <View style={{ gap: 10 }}>
-          <SectionHeader title="Financial Breakdown" />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <FinancialMetric
-              label="Gross savings"
-              value={formatCurrency(lifetimeRoi.totalEstimatedSavings)}
-              helper="All-time before maintenance"
-              icon="cash-outline"
-              tone="green"
-            />
-            <FinancialMetric
-              label="Avg daily savings"
-              value={formatCurrency(averageDailySavings)}
-              helper="Estimated"
-              icon="calendar-outline"
-            />
-            <FinancialMetric
-              label="ROI"
-              value={formatPercent(lifetimeRoi.roiPercentage)}
-              helper="Net benefit / capital"
-              icon="trending-up-outline"
-            />
-            <FinancialMetric
-              label="Remaining to recover"
-              value={formatCurrency(lifetimeRoi.remainingAmount)}
-              helper="Unrecovered capital"
-              icon="construct-outline"
-            />
-          </View>
-          <SoftCard>
-            <InsightRow label="Total capital invested" value={formatCurrency(lifetimeRoi.totalCapitalInvestment)} />
-            <InsightRow label="Additional capital costs" value={formatCurrency(lifetimeRoi.additionalCapitalCosts)} />
-            <InsightRow label="Gross estimated savings" value={formatCurrency(lifetimeRoi.totalEstimatedSavings)} />
-            <InsightRow
-              label="Maintenance deducted"
-              value={lifetimeRoi.maintenanceCosts === 0 ? formatCurrency(0) : `-${formatCurrency(lifetimeRoi.maintenanceCosts)}`}
-            />
-            <InsightRow label="Net financial benefit" value={formatCurrency(lifetimeRoi.netSavings)} accent />
-            <InsightRow label="Solar contribution" value={formatPercent(solarContribution)} />
-            <InsightRow label="Self-consumption" value={formatPercent(selfConsumptionShare)} />
-            <InsightRow label="Avg solar / day" value={formatKwh(averageSolarPerDay)} />
-            <InsightRow label="Avg daily grid cost" value={formatCurrency(averageDailyGridCost)} />
-            <InsightRow
-              label="Lowest day"
-              value={lowestSolarDay ? `${formatEnergy(lowestSolarDay.solarGenerationKwh)} on ${formatShortDate(lowestSolarDay.date)}` : 'No readings'}
-            />
-          </SoftCard>
-        </View>
-
-        <SoftCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <IconSquare icon="card-outline" colors={wattGradients.green} size={44} />
-            <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-              <Text style={{ color: theme.text, fontSize: 17, fontFamily: fontFamilies.bodyHeavy }}>
-                {editingCostId ? 'Edit system cost' : 'Track a system cost'}
-              </Text>
-              <Text style={{ color: theme.textMuted, fontSize: 12, lineHeight: 18, fontFamily: fontFamilies.body }}>
-                Keep capital and maintenance separated so ROI stays honest.
-              </Text>
-            </View>
-          </View>
-
-          <FormField label="Date">
-            <DateTimePickerField
-              mode="date"
-              value={costDraft.date}
-              displayValue={getDateDisplayValue(costDraft.date)}
-              placeholder="Pick a date"
-              maximumDate={new Date()}
-              onChange={(value) => updateCostDraftField('date', value)}
-            />
-          </FormField>
-
-          <FormField label="Category">
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {costCategoryOptions.map((option) => (
-                <OptionChip
-                  key={option.value}
-                  label={option.label}
-                  selected={costDraft.category === option.value}
-                  onPress={() => updateCostDraftField('category', option.value)}
-                />
-              ))}
-            </View>
-          </FormField>
-
-          <FormField label="Treatment" helper="Capital affects investment. Maintenance reduces net savings.">
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {costTreatmentOptions.map((option) => (
-                <OptionChip
-                  key={option.value}
-                  label={option.label}
-                  selected={costDraft.costTreatment === option.value}
-                  onPress={() => updateCostDraftField('costTreatment', option.value)}
-                />
-              ))}
-            </View>
-          </FormField>
-
-          <FormField label="Description">
-            <TextInput
-              value={costDraft.description}
-              onChangeText={(value) => updateCostDraftField('description', value)}
-              placeholder="Inverter replacement"
-              placeholderTextColor={theme.textSubtle}
-              style={inputStyle(theme)}
-            />
-          </FormField>
-
-          <FormField label="Amount">
-            <TextInput
-              value={costDraft.amount}
-              onChangeText={(value) => updateCostDraftField('amount', value)}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={theme.textSubtle}
-              style={inputStyle(theme)}
-            />
-          </FormField>
-
-          <FormField label="Notes" helper="Optional">
-            <TextInput
-              value={costDraft.notes}
-              onChangeText={(value) => updateCostDraftField('notes', value)}
-              placeholder="Labor, supplier, warranty..."
-              placeholderTextColor={theme.textSubtle}
-              multiline
-              style={[inputStyle(theme), { minHeight: 90, textAlignVertical: 'top' }]}
-            />
-          </FormField>
-
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <ActionButton label={editingCostId ? 'Update cost' : 'Save cost'} icon="save-outline" onPress={() => void saveCostDraft()} />
-            {editingCostId ? <ActionButton label="Cancel" icon="close-outline" tone="secondary" onPress={resetCostDraft} /> : null}
-          </View>
-        </SoftCard>
-
-        <View style={{ gap: 10 }}>
-          <SectionHeader title="Tracked Costs" />
-          {costs.length === 0 ? (
-            <SoftCard>
-              <Text style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>No extra costs tracked yet</Text>
-              <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>
-                Add repairs, upgrades, maintenance, and other system costs here so ROI stays accurate.
-              </Text>
-            </SoftCard>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {costs.map((cost) => (
-                <SoftCard key={cost.id}>
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                    <View style={{ flexDirection: 'row', flex: 1, minWidth: 0, gap: 12 }}>
-                      <View
-                        style={{
-                          height: 44,
-                          width: 44,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: 15,
-                          borderCurve: 'continuous',
-                          backgroundColor: cost.costTreatment === 'capital' ? theme.statusBackground : theme.surfaceMuted,
-                        }}
-                      >
-                        <Ionicons name="card-outline" size={20} color={cost.costTreatment === 'capital' ? theme.primaryChart : theme.textMuted} />
-                      </View>
-                      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                        <Text numberOfLines={2} style={{ color: theme.text, fontSize: 15, fontFamily: fontFamilies.bodyHeavy }}>
-                          {cost.description}
-                        </Text>
-                        <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-                          {formatShortDate(cost.date)} | {cost.category} | {cost.costTreatment}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text
-                      selectable
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.7}
-                      style={{ maxWidth: 110, color: theme.statusText, fontSize: 15, textAlign: 'right', fontFamily: fontFamilies.bodyHeavy }}
-                    >
-                      {formatCurrency(cost.amount)}
-                    </Text>
-                  </View>
-
-                  {cost.notes ? <Text style={{ color: theme.textMuted, fontSize: 13, lineHeight: 19, fontFamily: fontFamilies.body }}>{cost.notes}</Text> : null}
-
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <ActionButton label="Edit" icon="create-outline" tone="secondary" onPress={() => startEditingCost(cost)} />
-                    <ActionButton label="Delete" icon="trash-outline" tone="danger" onPress={() => confirmDeleteCost(cost)} />
-                  </View>
-                </SoftCard>
-              ))}
-            </View>
-          )}
-        </View>
+        <CostListSection costs={costs} onEditCost={startEditingCost} onDeleteCost={confirmDeleteCost} formatCurrency={formatCurrency} />
       </ScreenScroll>
 
       <DateRangeFilterSheet

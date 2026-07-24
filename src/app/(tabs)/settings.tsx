@@ -1,26 +1,22 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { SegmentedControl } from '@/components/segmented-control';
-import { ListChevron, ScreenHeader, ScreenScroll, SectionHeader, SoftCard } from '@/components/watt-ui';
+import { ListChevron, ScreenHeader, ScreenScroll, SectionHeader, SettingsListRow, SoftCard } from '@/components/watt-ui';
 import { APP_VERSION } from '@/constants/about';
-import { notificationService } from '@/services/notification.service';
-import { storageService } from '@/services/storage.service';
-import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
-import { useCostsStore } from '@/stores/costs.store';
-import { useReadingsStore } from '@/stores/readings.store';
+import { useRehydrateAppStores } from '@/hooks/use-rehydrate-app-stores';
+import { resetLocalAppData } from '@/services/local-data.service';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { AppTheme } from '@/types/settings';
-import { useAppFormatters } from '@/utils/format';
+import { getErrorMessage } from '@/utils/alerts';
+import { formatCoordinates, useAppFormatters } from '@/utils/format';
 
 type SettingsIonIconName = ComponentProps<typeof Ionicons>['name'];
-type SettingsMaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-type SettingsIconFamily = 'ionicons' | 'material-community';
 
 const themeOptions: { label: string; value: AppTheme; icon: SettingsIonIconName }[] = [
   { label: 'System', value: 'system', icon: 'phone-portrait-outline' },
@@ -28,102 +24,16 @@ const themeOptions: { label: string; value: AppTheme; icon: SettingsIonIconName 
   { label: 'Dark', value: 'dark', icon: 'moon-outline' },
 ];
 
-function formatCoordinates(latitude?: number, longitude?: number): string | undefined {
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-    return undefined;
-  }
-
-  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-}
-
-function SettingRow({
-  icon,
-  iconFamily = 'ionicons',
-  title,
-  value,
-  onPress,
-  destructive = false,
-}: {
-  icon: SettingsIonIconName | SettingsMaterialCommunityIconName;
-  iconFamily?: SettingsIconFamily;
-  title: string;
-  value?: string;
-  onPress?: () => void;
-  destructive?: boolean;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={title}
-      onPress={onPress}
-      disabled={!onPress}
-      style={({ pressed }) => ({
-        minHeight: 58,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <View
-        style={{
-          height: 32,
-          width: 32,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 12,
-          backgroundColor: destructive ? theme.dangerSoft : theme.accentSoft,
-        }}
-      >
-        {iconFamily === 'material-community' ? (
-          <MaterialCommunityIcons name={icon as SettingsMaterialCommunityIconName} size={18} color={destructive ? theme.dangerText : theme.accent} />
-        ) : (
-          <Ionicons name={icon as SettingsIonIconName} size={17} color={destructive ? theme.dangerText : theme.accent} />
-        )}
-      </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          flex: 1,
-          color: destructive ? theme.dangerText : theme.text,
-          fontSize: 14,
-          fontFamily: fontFamilies.bodyStrong,
-        }}
-      >
-        {title}
-      </Text>
-      {value ? (
-        <Text numberOfLines={1} style={{ maxWidth: 132, color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>
-          {value}
-        </Text>
-      ) : null}
-      {onPress ? <ListChevron /> : null}
-    </Pressable>
-  );
-}
-
 export default function SettingsScreen() {
   const theme = useAppTheme();
   const systemProfile = useSystemStore((state) => state.systemProfile);
-  const hydrateSystem = useSystemStore((state) => state.hydrate);
-  const hydrateSettings = useSettingsStore((state) => state.hydrate);
-  const hydrateReadings = useReadingsStore((state) => state.hydrate);
-  const hydrateCosts = useCostsStore((state) => state.hydrate);
-  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
+  const rehydrateAllStores = useRehydrateAppStores();
   const themePreference = useSettingsStore((state) => state.settings.theme);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const { formatCurrency, formatRate } = useAppFormatters();
   const profileLocationSummary =
     [systemProfile?.location, formatCoordinates(systemProfile?.latitude, systemProfile?.longitude)].filter(Boolean).join(' | ') ||
     'Set your system location';
-
-  const rehydrateAllStores = async () => {
-    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]);
-  };
 
   const resetApplication = () => {
     Alert.alert('Clear local data?', 'This removes your profile, readings, bill cycles, costs, settings, and reminder schedule from this device.', [
@@ -133,13 +43,11 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: () => {
           void (async () => {
-            await notificationService.disableDailyReminder();
-            await storageService.clearAllData();
+            await resetLocalAppData();
             await rehydrateAllStores();
             router.replace('/onboarding');
           })().catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : 'Unable to clear local data.';
-            Alert.alert('Reset failed', message);
+            Alert.alert('Reset failed', getErrorMessage(error, 'Unable to clear local data.'));
           });
         },
       },
@@ -221,42 +129,42 @@ export default function SettingsScreen() {
       <View style={{ gap: 10 }}>
         <SectionHeader title="System" />
         <SoftCard>
-          <SettingRow
+          <SettingsListRow
             icon="home-outline"
             title="System Info"
             value={systemProfile?.installationDate ?? 'Not set'}
             onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })}
           />
-          <SettingRow
+          <SettingsListRow
             icon="transmission-tower"
             iconFamily="material-community"
             title="Tariff / Electricity Rate"
             value={formatRate(systemProfile?.defaultImportRate ?? 0)}
             onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })}
           />
-          <SettingRow
+          <SettingsListRow
             icon="wallet-outline"
             title="System Cost & ROI"
             value={formatCurrency(systemProfile?.initialSystemCost ?? 0)}
             onPress={() => router.push('/(tabs)/insights')}
           />
-          <SettingRow icon="options-outline" title="Units" value="kWh, PHP" />
+          <SettingsListRow icon="options-outline" title="Units" value="kWh, PHP" />
         </SoftCard>
       </View>
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="Data" />
         <SoftCard>
-          <SettingRow icon="cloud-upload-outline" title="Backup & Export" onPress={() => router.push('/(tabs)/data')} />
-          <SettingRow icon="trash-outline" title="Clear Local Data" destructive onPress={resetApplication} />
+          <SettingsListRow icon="cloud-upload-outline" title="Backup & Export" onPress={() => router.push('/(tabs)/data')} />
+          <SettingsListRow icon="trash-outline" title="Clear Local Data" destructive onPress={resetApplication} />
         </SoftCard>
       </View>
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="About" />
         <SoftCard>
-          <SettingRow icon="shield-checkmark-outline" title="Privacy & Support" value="Local data" onPress={() => router.push('/privacy' as never)} />
-          <SettingRow
+          <SettingsListRow icon="shield-checkmark-outline" title="Privacy & Support" value="Local data" onPress={() => router.push('/privacy' as never)} />
+          <SettingsListRow
             icon="information-circle-outline"
             title="About Watt Track"
             value={`Version ${APP_VERSION}`}

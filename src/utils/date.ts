@@ -91,6 +91,17 @@ export function formatMonthDayLabel(date: string): string {
   }).format(parseDateOnlyManila(date));
 }
 
+export function formatDateTimeLabel(value: string): string {
+  return new Intl.DateTimeFormat('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: MANILA_TIME_ZONE,
+  }).format(new Date(value));
+}
+
 export function formatMonthShortLabel(date: string): string {
   return new Intl.DateTimeFormat('en-PH', {
     month: 'short',

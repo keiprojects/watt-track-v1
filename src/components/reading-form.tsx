@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, type ComponentProps } from 'react';
 import { Controller, type Resolver, useForm } from 'react-hook-form';
 import { Alert, Pressable, Switch, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
-import { z } from 'zod';
 
 import { DateTimePickerField } from '@/components/date-time-picker-field';
 import {
@@ -16,54 +15,18 @@ import {
   wattGradients,
   type WattIconName,
 } from '@/components/watt-ui';
+import { readingSchema, type ReadingFormValues } from '@/schemas/reading-form.schema';
 import { buildReadingPreview, findPreviousReadings } from '@/services/calculation.service';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { EnergyReading, ReadingDraft } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
-import { formatShortDate, getTodayDateInputValue, isValidDateInputValue, isValidTimeInputValue } from '@/utils/date';
+import { formatShortDate, getTodayDateInputValue } from '@/utils/date';
 import { useAppFormatters } from '@/utils/format';
 import { getWarningLabel } from '@/utils/readingWarnings';
 
 type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 type UnitInputIconFamily = 'ionicons' | 'material-community';
-
-const optionalNumberField = z.preprocess(
-  (value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : value),
-  z.coerce.number().min(0, 'Value cannot be negative').optional(),
-);
-
-const readingSchema = z
-  .object({
-    date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
-      .refine(isValidDateInputValue, 'Use a real calendar date')
-      .refine((value) => value <= getTodayDateInputValue(), 'Reading date cannot be in the future'),
-    time: z
-      .string()
-      .optional()
-      .refine((value) => !value || isValidTimeInputValue(value), 'Use HH:MM if adding a time'),
-    gridReading: optionalNumberField,
-    solarReading: optionalNumberField,
-    exportReading: optionalNumberField,
-    importRate: optionalNumberField,
-    exportRate: optionalNumberField,
-    notes: z.string().optional(),
-    meterReset: z.boolean().optional(),
-  })
-  .refine(
-    (values) =>
-      typeof values.gridReading === 'number' ||
-      typeof values.solarReading === 'number' ||
-      typeof values.exportReading === 'number',
-    {
-      message: 'Enter at least one meter value.',
-      path: ['gridReading'],
-    },
-  );
-
-type ReadingFormValues = z.infer<typeof readingSchema>;
 
 type ReadingFormProps = {
   title: string;

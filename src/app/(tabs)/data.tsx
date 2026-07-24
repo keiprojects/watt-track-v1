@@ -1,91 +1,32 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
-import { IconSquare, ScreenHeader, ScreenScroll, SectionHeader, SoftCard, wattGradients } from '@/components/watt-ui';
+import { CommandButton, IconSquare, ScreenHeader, ScreenScroll, SectionHeader, SoftCard, wattGradients } from '@/components/watt-ui';
+import { useRehydrateAppStores } from '@/hooks/use-rehydrate-app-stores';
 import { exportService } from '@/services/export.service';
+import { resetLocalAppData } from '@/services/local-data.service';
 import { notificationService } from '@/services/notification.service';
 import { storageService } from '@/services/storage.service';
 import { useBillingCyclesStore } from '@/stores/billing-cycles.store';
 import { useCostsStore } from '@/stores/costs.store';
 import { useReadingsStore } from '@/stores/readings.store';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useSystemStore } from '@/stores/system.store';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { fontFamilies } from '@/theme/typography';
 import type { LocalBackupSnapshot, WattTrackBackup } from '@/types/backup';
+import { getErrorMessage, runAlertedAction } from '@/utils/alerts';
+import { formatDateTimeLabel } from '@/utils/date';
 
 type RestoreMode = 'replace' | 'merge';
-
-function formatBackupDate(date: string) {
-  return new Date(date).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-function DataButton({
-  label,
-  icon,
-  onPress,
-  tone = 'default',
-  disabled = false,
-}: {
-  label: string;
-  icon: ComponentProps<typeof Ionicons>['name'];
-  onPress: () => void;
-  tone?: 'default' | 'primary' | 'danger';
-  disabled?: boolean;
-}) {
-  const theme = useAppTheme();
-  const primary = tone === 'primary';
-  const danger = tone === 'danger';
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 54,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 9,
-        borderRadius: 14,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: primary ? theme.accent : danger ? theme.dangerSoft : theme.border,
-        backgroundColor: primary ? theme.accent : danger ? theme.dangerSoft : theme.surface,
-        opacity: disabled ? 0.48 : pressed ? 0.74 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={18} color={primary ? '#ffffff' : danger ? theme.dangerText : theme.accent} />
-      <Text style={{ color: primary ? '#ffffff' : danger ? theme.dangerText : theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 export default function DataScreen() {
   const theme = useAppTheme();
   const readings = useReadingsStore((state) => state.readings);
-  const hydrateReadings = useReadingsStore((state) => state.hydrate);
   const cycleOverrides = useBillingCyclesStore((state) => state.cycleOverrides);
-  const hydrateBillingCycles = useBillingCyclesStore((state) => state.hydrate);
   const costs = useCostsStore((state) => state.costs);
-  const hydrateCosts = useCostsStore((state) => state.hydrate);
-  const hydrateSettings = useSettingsStore((state) => state.hydrate);
-  const hydrateSystem = useSystemStore((state) => state.hydrate);
   const systemProfile = useSystemStore((state) => state.systemProfile);
+  const rehydrateAllStores = useRehydrateAppStores();
   const [backups, setBackups] = useState<LocalBackupSnapshot[]>([]);
   const backupSummary = `${readings.length} readings | ${costs.length} costs | ${cycleOverrides.length} bill cycles | ${systemProfile ? '1 profile' : '0 profiles'}`;
 
@@ -99,10 +40,6 @@ export default function DataScreen() {
         }
       });
   }, []);
-
-  const rehydrateAllStores = async () => {
-    await Promise.all([hydrateSystem(), hydrateSettings(), hydrateReadings(), hydrateCosts(), hydrateBillingCycles()]);
-  };
 
   const restoreBackup = async (backup: string | WattTrackBackup, mode: RestoreMode) => {
     try {
@@ -130,8 +67,7 @@ export default function DataScreen() {
           : 'Your WattTrack backup was restored.',
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to restore backup.';
-      Alert.alert('Restore failed', message);
+      Alert.alert('Restore failed', getErrorMessage(error, 'Unable to restore backup.'));
     }
   };
 
@@ -159,39 +95,42 @@ export default function DataScreen() {
   };
 
   const restoreFromFile = async () => {
-    try {
-      const payload = await exportService.pickBackupContents();
-      if (!payload) {
-        return;
-      }
-
-      showRestoreOptions(payload);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to select backup file.';
-      Alert.alert('Restore failed', message);
-    }
+    await runAlertedAction({
+      errorTitle: 'Restore failed',
+      errorFallback: 'Unable to select backup file.',
+      action: async () => {
+        const payload = await exportService.pickBackupContents();
+        if (payload) {
+          showRestoreOptions(payload);
+        }
+      },
+    });
   };
 
   const createBackup = async () => {
-    try {
-      const backup = await storageService.createLocalBackup();
-      await exportService.exportBackupFile(backup.backup);
-      setBackups(await storageService.getLocalBackups());
-      Alert.alert('Backup created', 'A local restore point was saved and a WattTrack backup file was created.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to create backup.';
-      Alert.alert('Backup failed', message);
-    }
+    await runAlertedAction({
+      errorTitle: 'Backup failed',
+      errorFallback: 'Unable to create backup.',
+      action: async () => {
+        const backup = await storageService.createLocalBackup();
+        await exportService.exportBackupFile(backup.backup);
+        setBackups(await storageService.getLocalBackups());
+      },
+      onSuccess: () => {
+        Alert.alert('Backup created', 'A local restore point was saved and a WattTrack backup file was created.');
+      },
+    });
   };
 
   const exportCsv = async () => {
-    try {
-      const result = await exportService.exportReadingsCsv(readings);
-      Alert.alert('CSV exported', `Readings exported as ${result.filename}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to export CSV.';
-      Alert.alert('Export failed', message);
-    }
+    await runAlertedAction({
+      errorTitle: 'Export failed',
+      errorFallback: 'Unable to export CSV.',
+      action: async () => {
+        const result = await exportService.exportReadingsCsv(readings);
+        Alert.alert('CSV exported', `Readings exported as ${result.filename}.`);
+      },
+    });
   };
 
   const resetData = () => {
@@ -202,13 +141,11 @@ export default function DataScreen() {
         style: 'destructive',
         onPress: () => {
           void (async () => {
-            await notificationService.disableDailyReminder();
-            await storageService.clearAllData();
+            await resetLocalAppData();
             await rehydrateAllStores();
             router.replace('/onboarding');
           })().catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : 'Unable to reset data.';
-            Alert.alert('Reset failed', message);
+            Alert.alert('Reset failed', getErrorMessage(error, 'Unable to reset data.'));
           });
         },
       },
@@ -229,9 +166,9 @@ export default function DataScreen() {
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="Export & Restore" />
-        <DataButton label="Create backup" icon="archive-outline" tone="primary" onPress={() => void createBackup()} />
-        <DataButton label="Export readings CSV" icon="document-text-outline" onPress={() => void exportCsv()} />
-        <DataButton
+        <CommandButton label="Create backup" icon="archive-outline" tone="primary" onPress={() => void createBackup()} />
+        <CommandButton label="Export readings CSV" icon="document-text-outline" onPress={() => void exportCsv()} />
+        <CommandButton
           label="Restore latest local backup"
           icon="reload-outline"
           disabled={backups.length === 0}
@@ -241,7 +178,7 @@ export default function DataScreen() {
             }
           }}
         />
-        <DataButton label="Restore from file" icon="download-outline" onPress={() => void restoreFromFile()} />
+        <CommandButton label="Restore from file" icon="download-outline" onPress={() => void restoreFromFile()} />
       </View>
 
       <View style={{ gap: 10 }}>
@@ -257,12 +194,12 @@ export default function DataScreen() {
                 <Pressable
                   key={backup.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Restore backup from ${formatBackupDate(backup.createdAt)}`}
+                  accessibilityLabel={`Restore backup from ${formatDateTimeLabel(backup.createdAt)}`}
                   onPress={() => showRestoreOptions(backup.backup)}
                   style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.72 : 1 })}
                 >
                   <Text style={{ color: theme.text, fontSize: 14, fontFamily: fontFamilies.bodyHeavy }}>
-                    {formatBackupDate(backup.createdAt)}
+                    {formatDateTimeLabel(backup.createdAt)}
                   </Text>
                   <Text style={{ color: theme.textMuted, fontSize: 12, fontFamily: fontFamilies.body }}>{backup.summary}</Text>
                   <Text style={{ color: theme.accent, fontSize: 12, fontFamily: fontFamilies.bodyHeavy }}>Restore backup</Text>
@@ -275,7 +212,7 @@ export default function DataScreen() {
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="Danger Zone" />
-        <DataButton label="Reset all data" icon="trash-outline" tone="danger" onPress={resetData} />
+        <CommandButton label="Reset all data" icon="trash-outline" tone="danger" onPress={resetData} />
       </View>
     </ScreenScroll>
   );

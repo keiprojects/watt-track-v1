@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { BillingCycleOverride } from '@/types/billing';
 import type { EnergyReading } from '@/types/reading';
 import {
+  buildBillingCycleOverrideFromDraft,
+  buildSystemCostFromDraft,
+  createBillCycleDraft,
+  createDefaultCostDraft,
   estimateGridBill,
   filterReadingsForAnalyticsRange,
   getAnalyticsRangeLabel,
@@ -135,6 +139,88 @@ describe('billing cycle insights', () => {
       gridKwh: 100,
       rate: 13.25,
       hasOverride: true,
+    });
+  });
+});
+
+describe('insights draft builders', () => {
+  it('builds a system cost record from a valid draft', () => {
+    const draft = {
+      ...createDefaultCostDraft('2026-07-24'),
+      description: 'Battery upgrade',
+      amount: '50000',
+      notes: 'Phase 2',
+    };
+
+    expect(
+      buildSystemCostFromDraft({
+        draft,
+        id: 'cost-1',
+        now: timestamp,
+        today: '2026-07-24',
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        id: 'cost-1',
+        date: '2026-07-24',
+        category: 'installation',
+        costTreatment: 'capital',
+        description: 'Battery upgrade',
+        amount: 50000,
+        notes: 'Phase 2',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    });
+  });
+
+  it('rejects invalid system cost drafts', () => {
+    expect(
+      buildSystemCostFromDraft({
+        draft: { ...createDefaultCostDraft('2026-07-25'), description: 'Future cost', amount: '1' },
+        id: 'cost-1',
+        now: timestamp,
+        today: '2026-07-24',
+      }),
+    ).toMatchObject({ ok: false, title: 'Check the date' });
+
+    expect(
+      buildSystemCostFromDraft({
+        draft: { ...createDefaultCostDraft('2026-07-24'), description: '', amount: '1' },
+        id: 'cost-1',
+        now: timestamp,
+        today: '2026-07-24',
+      }),
+    ).toMatchObject({ ok: false, title: 'Add a description' });
+  });
+
+  it('builds a billing cycle override from draft values', () => {
+    expect(
+      buildBillingCycleOverrideFromDraft({
+        anchorCycleStartDate: '2026-07-15',
+        fallbackStartDate: '2026-07-15',
+        fallbackEndDate: '2026-08-14',
+        draft: {
+          ...createBillCycleDraft(),
+          startDate: '2026-07-20',
+          endDate: '2026-08-19',
+          importRate: '13.25',
+        },
+        id: 'bill-cycle-1',
+        now: timestamp,
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        id: 'bill-cycle-1',
+        anchorCycleStartDate: '2026-07-15',
+        cycleStartDate: '2026-07-20',
+        cycleEndDate: '2026-08-19',
+        importRate: 13.25,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
     });
   });
 });

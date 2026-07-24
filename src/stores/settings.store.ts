@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { DEFAULT_APP_SETTINGS } from '@/constants/defaults';
 import { storageService } from '@/services/storage.service';
+import { persistOptimisticState } from '@/stores/persistence';
 import type { AppSettings } from '@/types/settings';
 
 type SettingsState = {
@@ -30,17 +31,29 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
   saveSettings: async (settings) => {
-    set({ settings });
-    await storageService.saveAppSettings(settings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { settings: get().settings },
+      nextState: { settings },
+      persist: () => storageService.saveAppSettings(settings),
+    });
   },
   updateSettings: async (updates) => {
     const settings = { ...get().settings, ...updates };
-    set({ settings });
-    await storageService.saveAppSettings(settings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { settings: get().settings },
+      nextState: { settings },
+      persist: () => storageService.saveAppSettings(settings),
+    });
   },
   completeOnboarding: async () => {
     const settings = { ...get().settings, onboardingCompleted: true };
-    set({ settings });
-    await storageService.saveAppSettings(settings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { settings: get().settings },
+      nextState: { settings },
+      persist: () => storageService.saveAppSettings(settings),
+    });
   },
 }));

@@ -1,4 +1,5 @@
 import type { BillingCycleOverride } from '@/types/billing';
+import type { CostTreatment, SystemCost, SystemCostCategory } from '@/types/cost';
 import type { EnergyReading } from '@/types/reading';
 import {
   addDaysToDate,
@@ -6,7 +7,9 @@ import {
   formatMonthDayLabel,
   formatMonthLabel,
   formatShortDate,
+  getTodayDateInputValue,
   getYearPrefix,
+  isValidDateInputValue,
   parseDateOnlyUtc,
 } from '@/utils/date';
 import type { GridMeterReadingSummary } from './calculation.service';
@@ -27,8 +30,152 @@ export type EffectiveBillCycleWindow = {
   totalDays: number;
 };
 
+export type CostDraft = {
+  date: string;
+  category: SystemCostCategory;
+  costTreatment: CostTreatment;
+  description: string;
+  amount: string;
+  notes: string;
+};
+
+export type BillCycleDraft = {
+  startDate: string;
+  endDate: string;
+  importRate: string;
+};
+
+export type DraftValidationResult<TValue> =
+  | { ok: true; value: TValue }
+  | { ok: false; title: string; message: string };
+
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function createDefaultCostDraft(today = getTodayDateInputValue()): CostDraft {
+  return {
+    date: today,
+    category: 'installation',
+    costTreatment: 'capital',
+    description: '',
+    amount: '',
+    notes: '',
+  };
+}
+
+export function createBillCycleDraft(): BillCycleDraft {
+  return {
+    startDate: '',
+    endDate: '',
+    importRate: '',
+  };
+}
+
+export function buildBillingCycleOverrideFromDraft({
+  anchorCycleStartDate,
+  fallbackStartDate,
+  fallbackEndDate,
+  draft,
+  existingOverride,
+  id,
+  now,
+}: {
+  anchorCycleStartDate: string;
+  fallbackStartDate: string;
+  fallbackEndDate: string;
+  draft: BillCycleDraft;
+  existingOverride?: BillingCycleOverride;
+  id: string;
+  now: string;
+}): DraftValidationResult<BillingCycleOverride> {
+  const cycleStartDate = draft.startDate || existingOverride?.cycleStartDate || fallbackStartDate;
+  const cycleEndDate = draft.endDate || existingOverride?.cycleEndDate || fallbackEndDate;
+  const importRate = draft.importRate.trim() ? Number(draft.importRate) : existingOverride?.importRate;
+
+  if (!isValidDateInputValue(cycleStartDate) || !isValidDateInputValue(cycleEndDate) || cycleStartDate > cycleEndDate) {
+    return {
+      ok: false,
+      title: 'Check the bill period',
+      message: 'Enter a valid start and end date for the utility bill period.',
+    };
+  }
+
+  if (typeof importRate === 'number' && (!Number.isFinite(importRate) || importRate <= 0)) {
+    return {
+      ok: false,
+      title: 'Check the bill rate',
+      message: 'Enter a valid import rate, or leave it blank to keep using reading rates.',
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      id: existingOverride?.id ?? id,
+      anchorCycleStartDate,
+      cycleStartDate,
+      cycleEndDate,
+      importRate,
+      createdAt: existingOverride?.createdAt ?? now,
+      updatedAt: now,
+    },
+  };
+}
+
+export function buildSystemCostFromDraft({
+  draft,
+  existingCost,
+  id,
+  now,
+  today,
+}: {
+  draft: CostDraft;
+  existingCost?: SystemCost;
+  id: string;
+  now: string;
+  today: string;
+}): DraftValidationResult<SystemCost> {
+  const amount = Number(draft.amount || 0);
+
+  if (!isValidDateInputValue(draft.date) || draft.date > today) {
+    return {
+      ok: false,
+      title: 'Check the date',
+      message: 'Use a real date that is not in the future.',
+    };
+  }
+
+  if (!draft.description.trim()) {
+    return {
+      ok: false,
+      title: 'Add a description',
+      message: 'Name the repair, upgrade, maintenance, or install cost.',
+    };
+  }
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    return {
+      ok: false,
+      title: 'Check the amount',
+      message: 'Use a valid amount of 0 or higher.',
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      id: existingCost?.id ?? id,
+      date: draft.date,
+      category: draft.category,
+      costTreatment: draft.costTreatment,
+      description: draft.description.trim(),
+      amount,
+      notes: draft.notes.trim() || undefined,
+      createdAt: existingCost?.createdAt ?? now,
+      updatedAt: now,
+    },
+  };
 }
 
 export function getEffectiveBillCycleWindow({

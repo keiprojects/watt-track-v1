@@ -36,6 +36,14 @@ export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(normalizeDecimals(decimals, 1))}%`;
 }
 
+export function formatCoordinates(latitude?: number, longitude?: number): string | undefined {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return undefined;
+  }
+
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
 export function useAppFormatters() {
   const decimalPlaces = useSettingsStore((state) => state.settings.decimalPlaces);
   const currency = useSystemStore((state) => state.systemProfile?.currency ?? 'PHP');

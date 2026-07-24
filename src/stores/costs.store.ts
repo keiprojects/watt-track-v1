@@ -1,11 +1,9 @@
 import { create } from 'zustand';
 
 import { storageService } from '@/services/storage.service';
+import { persistOptimisticState } from '@/stores/persistence';
 import type { SystemCost } from '@/types/cost';
-
-function sortCostsDescending(costs: SystemCost[]): SystemCost[] {
-  return [...costs].sort((left, right) => right.date.localeCompare(left.date));
-}
+import { sortCostsDescending } from '@/utils/domainSort';
 
 type CostsState = {
   costs: SystemCost[];
@@ -32,18 +30,33 @@ export const useCostsStore = create<CostsState>((set, get) => ({
     }
   },
   saveCost: async (cost) => {
+    const previousCosts = get().costs;
     const costs = sortCostsDescending([cost, ...get().costs]);
-    set({ costs });
-    await storageService.saveSystemCost(cost);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { costs: previousCosts },
+      nextState: { costs },
+      persist: () => storageService.saveSystemCost(cost),
+    });
   },
   updateCost: async (cost) => {
+    const previousCosts = get().costs;
     const costs = sortCostsDescending(get().costs.map((currentCost) => (currentCost.id === cost.id ? cost : currentCost)));
-    set({ costs });
-    await storageService.updateSystemCost(cost);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { costs: previousCosts },
+      nextState: { costs },
+      persist: () => storageService.updateSystemCost(cost),
+    });
   },
   deleteCost: async (costId) => {
+    const previousCosts = get().costs;
     const costs = get().costs.filter((cost) => cost.id !== costId);
-    set({ costs });
-    await storageService.deleteSystemCost(costId);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { costs: previousCosts },
+      nextState: { costs },
+      persist: () => storageService.deleteSystemCost(costId),
+    });
   },
 }));

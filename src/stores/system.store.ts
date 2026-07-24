@@ -29,14 +29,22 @@ export const useSystemStore = create<SystemState>((set) => ({
     }
   },
   saveProfile: async (profile) => {
+    const previousSystemProfile = useSystemStore.getState().systemProfile;
     const existingReadings = useReadingsStore.getState().readings;
     const recalculatedReadings = sortReadingsDescending(recalculateReadings({ readings: existingReadings, profile }));
 
     set({ systemProfile: profile });
     useReadingsStore.setState({ readings: recalculatedReadings });
-    await Promise.all([
-      storageService.saveSystemProfile(profile),
-      storageService.setEnergyReadings(recalculatedReadings),
-    ]);
+
+    try {
+      await Promise.all([
+        storageService.saveSystemProfile(profile),
+        storageService.setEnergyReadings(recalculatedReadings),
+      ]);
+    } catch (error) {
+      set({ systemProfile: previousSystemProfile });
+      useReadingsStore.setState({ readings: existingReadings });
+      throw error;
+    }
   },
 }));

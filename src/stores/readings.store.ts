@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { recalculateReadings } from '@/services/calculation.service';
 import { storageService } from '@/services/storage.service';
+import { persistOptimisticState } from '@/stores/persistence';
 import type { EnergyReading } from '@/types/reading';
 import type { SystemProfile } from '@/types/system';
 import { sortReadingsDescending } from '@/utils/date';
@@ -32,33 +33,53 @@ export const useReadingsStore = create<ReadingsState>((set, get) => ({
     }
   },
   setReadings: async (readings) => {
+    const previousReadings = get().readings;
     const sorted = sortReadingsDescending(readings);
-    set({ readings: sorted });
-    await storageService.setEnergyReadings(sorted);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { readings: previousReadings },
+      nextState: { readings: sorted },
+      persist: () => storageService.setEnergyReadings(sorted),
+    });
   },
   saveReading: async (reading, profile) => {
+    const previousReadings = get().readings;
     const readings = sortReadingsDescending(recalculateReadings({ readings: [reading, ...get().readings], profile }));
-    set({ readings });
-    await storageService.setEnergyReadings(readings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { readings: previousReadings },
+      nextState: { readings },
+      persist: () => storageService.setEnergyReadings(readings),
+    });
   },
   updateReading: async (reading, profile) => {
+    const previousReadings = get().readings;
     const readings = sortReadingsDescending(
       recalculateReadings({
         readings: get().readings.map((currentReading) => (currentReading.id === reading.id ? reading : currentReading)),
         profile,
       }),
     );
-    set({ readings });
-    await storageService.setEnergyReadings(readings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { readings: previousReadings },
+      nextState: { readings },
+      persist: () => storageService.setEnergyReadings(readings),
+    });
   },
   deleteReading: async (readingId, profile) => {
+    const previousReadings = get().readings;
     const readings = sortReadingsDescending(
       recalculateReadings({
         readings: get().readings.filter((reading) => reading.id !== readingId),
         profile,
       }),
     );
-    set({ readings });
-    await storageService.setEnergyReadings(readings);
+    await persistOptimisticState({
+      set: (state) => set(state),
+      previousState: { readings: previousReadings },
+      nextState: { readings },
+      persist: () => storageService.setEnergyReadings(readings),
+    });
   },
 }));
